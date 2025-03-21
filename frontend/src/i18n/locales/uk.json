@@ -1,0 +1,51 @@
+{
+  "common": {
+    "welcome": "Ласкаво просимо",
+    "login": "Увійти",
+    "register": "Зареєструватися",
+    "logout": "Вийти",
+    "email": "Електронна пошта",
+    "password": "Пароль",
+    "confirmPassword": "Підтвердіть пароль",
+    "forgotPassword": "Забули пароль?",
+    "resetPassword": "Скинути пароль",
+    "username": "Ім'я користувача",
+    "profile": "Профіль",
+    "editProfile": "Редагувати профіль",
+    "save": "Зберегти",
+    "cancel": "Скасувати",
+    "submit": "Відправити",
+    "verification": "Підтвердження",
+    "admin": "Адміністратор",
+    "language": "Мова"
+  },
+  "auth": {
+    "loginTitle": "Вхід у систему",
+    "registerTitle": "Реєстрація",
+    "verificationTitle": "Підтвердження email",
+    "forgotPasswordTitle": "Відновлення паролю",
+    "resetPasswordTitle": "Скидання паролю",
+    "loginSuccess": "Вхід виконано успішно",
+    "registerSuccess": "Реєстрація пройшла успішно",
+    "verificationSuccess": "Email підтверджено",
+    "passwordResetSuccess": "Пароль успішно скинуто"
+  },
+  "profile": {
+    "title": "Профіль користувача",
+    "editTitle": "Редагування профілю",
+    "personalInfo": "Особиста інформація",
+    "accountSettings": "Налаштування облікового запису"
+  },
+  "admin": {
+    "dashboard": "Панель керування",
+    "users": "Користувачі",
+    "settings": "Налаштування"
+  },
+  "errors": {
+    "requiredField": "Це поле обов'язкове",
+    "invalidEmail": "Невірний формат email",
+    "passwordMismatch": "Паролі не співпадають",
+    "minLength": "Мінімальна довжина: {{count}} символів",
+    "serverError": "Помилка сервера, спробуйте пізніше"
+  }
+} 

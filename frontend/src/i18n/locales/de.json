@@ -1,0 +1,51 @@
+{
+  "common": {
+    "welcome": "Willkommen",
+    "login": "Anmelden",
+    "register": "Registrieren",
+    "logout": "Abmelden",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "confirmPassword": "Passwort bestätigen",
+    "forgotPassword": "Passwort vergessen?",
+    "resetPassword": "Passwort zurücksetzen",
+    "username": "Benutzername",
+    "profile": "Profil",
+    "editProfile": "Profil bearbeiten",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "submit": "Absenden",
+    "verification": "Verifizierung",
+    "admin": "Administrator",
+    "language": "Sprache"
+  },
+  "auth": {
+    "loginTitle": "Anmelden",
+    "registerTitle": "Registrieren",
+    "verificationTitle": "E-Mail-Verifizierung",
+    "forgotPasswordTitle": "Passwort vergessen",
+    "resetPasswordTitle": "Passwort zurücksetzen",
+    "loginSuccess": "Erfolgreich angemeldet",
+    "registerSuccess": "Erfolgreich registriert",
+    "verificationSuccess": "E-Mail verifiziert",
+    "passwordResetSuccess": "Passwort erfolgreich zurückgesetzt"
+  },
+  "profile": {
+    "title": "Benutzerprofil",
+    "editTitle": "Profil bearbeiten",
+    "personalInfo": "Persönliche Informationen",
+    "accountSettings": "Kontoeinstellungen"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "users": "Benutzer",
+    "settings": "Einstellungen"
+  },
+  "errors": {
+    "requiredField": "Dieses Feld ist erforderlich",
+    "invalidEmail": "Ungültiges E-Mail-Format",
+    "passwordMismatch": "Passwörter stimmen nicht überein",
+    "minLength": "Mindestlänge: {{count}} Zeichen",
+    "serverError": "Serverfehler, bitte versuchen Sie es später erneut"
+  }
+} 

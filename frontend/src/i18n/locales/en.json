@@ -1,0 +1,51 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm Password",
+    "forgotPassword": "Forgot Password?",
+    "resetPassword": "Reset Password",
+    "username": "Username",
+    "profile": "Profile",
+    "editProfile": "Edit Profile",
+    "save": "Save",
+    "cancel": "Cancel",
+    "submit": "Submit",
+    "verification": "Verification",
+    "admin": "Admin",
+    "language": "Language"
+  },
+  "auth": {
+    "loginTitle": "Sign In",
+    "registerTitle": "Sign Up",
+    "verificationTitle": "Email Verification",
+    "forgotPasswordTitle": "Forgot Password",
+    "resetPasswordTitle": "Reset Password",
+    "loginSuccess": "Logged in successfully",
+    "registerSuccess": "Registered successfully",
+    "verificationSuccess": "Email verified",
+    "passwordResetSuccess": "Password reset successfully"
+  },
+  "profile": {
+    "title": "User Profile",
+    "editTitle": "Edit Profile",
+    "personalInfo": "Personal Information",
+    "accountSettings": "Account Settings"
+  },
+  "admin": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "settings": "Settings"
+  },
+  "errors": {
+    "requiredField": "This field is required",
+    "invalidEmail": "Invalid email format",
+    "passwordMismatch": "Passwords do not match",
+    "minLength": "Minimum length: {{count}} characters",
+    "serverError": "Server error, please try again later"
+  }
+} 

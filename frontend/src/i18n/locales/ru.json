@@ -1,0 +1,51 @@
+{
+  "common": {
+    "welcome": "Добро пожаловать",
+    "login": "Войти",
+    "register": "Зарегистрироваться",
+    "logout": "Выйти",
+    "email": "Электронная почта",
+    "password": "Пароль",
+    "confirmPassword": "Подтвердите пароль",
+    "forgotPassword": "Забыли пароль?",
+    "resetPassword": "Сбросить пароль",
+    "username": "Имя пользователя",
+    "profile": "Профиль",
+    "editProfile": "Редактировать профиль",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "verification": "Подтверждение",
+    "admin": "Администратор",
+    "language": "Язык"
+  },
+  "auth": {
+    "loginTitle": "Вход в систему",
+    "registerTitle": "Регистрация",
+    "verificationTitle": "Подтверждение email",
+    "forgotPasswordTitle": "Восстановление пароля",
+    "resetPasswordTitle": "Сброс пароля",
+    "loginSuccess": "Вход выполнен успешно",
+    "registerSuccess": "Регистрация прошла успешно",
+    "verificationSuccess": "Email подтвержден",
+    "passwordResetSuccess": "Пароль успешно сброшен"
+  },
+  "profile": {
+    "title": "Профиль пользователя",
+    "editTitle": "Редактирование профиля",
+    "personalInfo": "Личная информация",
+    "accountSettings": "Настройки аккаунта"
+  },
+  "admin": {
+    "dashboard": "Панель управления",
+    "users": "Пользователи",
+    "settings": "Настройки"
+  },
+  "errors": {
+    "requiredField": "Это поле обязательно",
+    "invalidEmail": "Неверный формат email",
+    "passwordMismatch": "Пароли не совпадают",
+    "minLength": "Минимальная длина: {{count}} символов",
+    "serverError": "Ошибка сервера, попробуйте позже"
+  }
+} 
