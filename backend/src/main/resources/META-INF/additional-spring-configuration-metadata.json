@@ -1,0 +1,24 @@
+{
+  "properties": [
+    {
+      "name": "jwt.access-secret",
+      "type": "java.lang.String",
+      "description": "Secret key for JWT access token"
+    },
+    {
+      "name": "jwt.refresh-secret",
+      "type": "java.lang.String",
+      "description": "Secret key for JWT refresh token"
+    },
+    {
+      "name": "jwt.access-expiration",
+      "type": "java.lang.Long",
+      "description": "Expiration time for JWT access token in milliseconds"
+    },
+    {
+      "name": "jwt.refresh-expiration",
+      "type": "java.lang.Long",
+      "description": "Expiration time for JWT refresh token in milliseconds"
+    }
+  ]
+} 

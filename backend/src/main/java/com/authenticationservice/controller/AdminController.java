@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.service.AdminService; // Подключаем сервис
@@ -12,15 +13,14 @@ import com.authenticationservice.service.AdminService; // Подключаем �
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping(ApiConstants.ADMIN_BASE_URL)
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')") // ВАЖНО: Защищаем все методы контроллера
+@PreAuthorize("hasRole('ADMIN')")
 public class AdminController {
 
-    private final AdminService adminService; // Внедряем сервис
+    private final AdminService adminService;
 
-    // Добавление email в белый список
-    @PostMapping("/whitelist/add")
+    @PostMapping(ApiConstants.WHITELIST_ADD_URL)
     public ResponseEntity<String> addToWhitelist(@RequestParam String email) {
         try {
             adminService.addToWhitelist(email);
@@ -30,8 +30,7 @@ public class AdminController {
         }
     }
 
-    // Удаление email из белого списка
-    @DeleteMapping("/whitelist/remove")
+    @DeleteMapping(ApiConstants.WHITELIST_REMOVE_URL)
     public ResponseEntity<String> removeFromWhitelist(@RequestParam String email) {
         try {
             adminService.removeFromWhitelist(email);
@@ -41,14 +40,12 @@ public class AdminController {
         }
     }
 
-    // Список пользователей
-    @GetMapping("/users")
+    @GetMapping(ApiConstants.USERS_URL)
     public ResponseEntity<List<UserDTO>> getAllUsers() {
         return ResponseEntity.ok(adminService.getAllUsers());
     }
 
-    // Получить одного пользователя
-    @GetMapping("/users/{id}")
+    @GetMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
         try {
             return ResponseEntity.ok(adminService.getUserById(id));
@@ -57,8 +54,7 @@ public class AdminController {
         }
     }
 
-    // Изменить поля пользователя
-    @PutMapping("/users/{id}")
+    @PutMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
         try {
             adminService.updateUser(id, request);
@@ -68,8 +64,7 @@ public class AdminController {
         }
     }
 
-    // Удалить пользователя
-    @DeleteMapping("/users/{id}")
+    @DeleteMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         try {
             adminService.deleteUser(id);
@@ -77,10 +72,9 @@ public class AdminController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
-
     }
 
-    @GetMapping("/whitelist")
+    @GetMapping(ApiConstants.WHITELIST_URL)
     public ResponseEntity<List<String>> getWhitelist() {
         return ResponseEntity.ok(adminService.getWhitelist());
     }

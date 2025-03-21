@@ -20,7 +20,6 @@ public class Role {
         this.name = name;
     }
 
-    // Геттеры и сеттеры
     public Long getId() {
         return id;
     }

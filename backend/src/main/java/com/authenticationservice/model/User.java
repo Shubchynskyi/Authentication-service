@@ -11,7 +11,7 @@ import java.util.Set;
 @Entity
 @Getter
 @Setter
-@Table(name = "users") // Можно явно указать название таблицы
+@Table(name = "users")
 public class User {
 
     @Id
@@ -34,7 +34,7 @@ public class User {
 
     private boolean emailVerified;
 
-    private String verificationCode; // Код, который отправляем по почте
+    private String verificationCode;
 
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles", joinColumns = @JoinColumn(name = "user_id"), inverseJoinColumns = @JoinColumn(name = "role_id"))

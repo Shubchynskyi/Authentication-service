@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
@@ -17,37 +18,37 @@ import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/auth")
+@RequestMapping(ApiConstants.AUTH_BASE_URL)
 public class AuthController {
 
     private final AuthService authService;
 
-    @PostMapping("/register")
+    @PostMapping(ApiConstants.REGISTER_URL)
     public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
         authService.register(request);
         return ResponseEntity.ok("Проверьте вашу почту (код подтверждения выведен в консоль сервера)!");
     }
 
-    @PostMapping("/verify")
+    @PostMapping(ApiConstants.VERIFY_URL)
     public ResponseEntity<String> verify(@RequestBody VerificationRequest request) {
         authService.verifyEmail(request);
         return ResponseEntity.ok("Email подтверждён. Теперь можно войти в систему.");
     }
 
-    @PostMapping("/login")
+    @PostMapping(ApiConstants.LOGIN_URL)
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest req) {
         Map<String, String> tokens = authService.login(req);
         return ResponseEntity.ok(tokens);
     }
 
-    @PostMapping("/refresh")
+    @PostMapping(ApiConstants.REFRESH_URL)
     public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> body) {
         String refreshToken = body.get("refreshToken");
         Map<String, String> tokens = authService.refresh(refreshToken);
         return ResponseEntity.ok(tokens);
     }
 
-    @PostMapping("/resend-verification")
+    @PostMapping(ApiConstants.RESEND_VERIFICATION_URL)
     public ResponseEntity<String> resendVerification(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
@@ -61,7 +62,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/forgot-password")
+    @PostMapping(ApiConstants.FORGOT_PASSWORD_URL)
     public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> body) {
         String email = body.get("email");
         if (email == null || email.isBlank()) {
@@ -75,7 +76,7 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/reset-password")
+    @PostMapping(ApiConstants.RESET_PASSWORD_URL)
     public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
         if (request.getToken() == null || request.getToken().isBlank() ||
                 request.getNewPassword() == null || request.getNewPassword().isBlank() ||

@@ -4,9 +4,9 @@ import java.util.Date;
 
 import javax.crypto.SecretKey;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.authenticationservice.config.JwtProperties;
 import com.authenticationservice.model.User;
 
 import io.jsonwebtoken.Claims;
@@ -18,32 +18,23 @@ import io.jsonwebtoken.security.Keys;
 @Component
 public class JwtTokenProvider {
 
+    private final JwtProperties jwtProperties;
     private final SecretKey key;
-    private final SecretKey refreshKey; // Или можно использовать тот же key,
-    // но лучше разные ключи
-    private final long accessExpiration;
-    private final long refreshExpiration;
-
+    private final SecretKey refreshKey;
     private final JwtParser accessParser;
     private final JwtParser refreshParser;
 
-    public JwtTokenProvider(
-            @Value("${jwt.access-secret}") String accessSecret,
-            @Value("${jwt.refresh-secret}") String refreshSecret,
-            @Value("${jwt.access-expiration}") long accessExpiration,
-            @Value("${jwt.refresh-expiration}") long refreshExpiration) {
-        this.accessExpiration = accessExpiration; // например, 15_000_000 (15 минут)
-        this.refreshExpiration = refreshExpiration; // например, 604_800_000 (7 дней)
-        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(accessSecret));
-        this.refreshKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(refreshSecret));
-
+    public JwtTokenProvider(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+        this.key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getAccessSecret()));
+        this.refreshKey = Keys.hmacShaKeyFor(Decoders.BASE64.decode(jwtProperties.getRefreshSecret()));
         this.accessParser = Jwts.parser().verifyWith(key).build();
         this.refreshParser = Jwts.parser().verifyWith(refreshKey).build();
     }
 
     public String generateAccessToken(User user) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + accessExpiration);
+        Date expiry = new Date(now.getTime() + jwtProperties.getAccessExpiration());
         return Jwts.builder()
                 .subject(user.getEmail())
                 .issuedAt(now)
@@ -54,7 +45,7 @@ public class JwtTokenProvider {
 
     public String generateRefreshToken(User user) {
         Date now = new Date();
-        Date expiry = new Date(now.getTime() + refreshExpiration);
+        Date expiry = new Date(now.getTime() + jwtProperties.getRefreshExpiration());
         return Jwts.builder()
                 .subject(user.getEmail())
                 .issuedAt(now)
@@ -90,5 +81,4 @@ public class JwtTokenProvider {
         Claims claims = accessParser.parseSignedClaims(accessToken).getPayload();
         return claims.getSubject();
     }
-
 }

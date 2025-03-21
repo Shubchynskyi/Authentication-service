@@ -35,10 +35,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String jwt = getJwtFromRequest(request);
-            // ВАЖНО: Добавили проверку ВАЛИДНОСТИ токена
             if (StringUtils.hasText(jwt) && jwtTokenProvider.validateAccessToken(jwt)) {
                 String email = jwtTokenProvider.getEmailFromAccess(jwt);
-                User user = userRepository.findByEmail(email).orElse(null); // orElse(null) безопаснее
+                User user = userRepository.findByEmail(email).orElse(null);
 
                 if (user != null) {
                     var authorities = user.getRoles().stream()
@@ -52,10 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception ex) {
-            // Логируем ошибку, но НЕ выбрасываем исключение. Иначе пользователь получит 500
-            // ошибку.
             System.err.println("Authentication failed: " + ex.getMessage());
-            // Очищаем контекст безопасности, чтобы не было "фантомной" аутентификации
             SecurityContextHolder.clearContext();
         }
 

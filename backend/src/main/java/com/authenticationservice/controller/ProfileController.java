@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.ProfileUpdateRequest;
 import com.authenticationservice.service.ProfileService;
 
@@ -12,36 +13,33 @@ import java.security.Principal;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/protected")
+@RequestMapping(ApiConstants.PROTECTED_BASE_URL)
 public class ProfileController {
 
-    private final ProfileService profileService; // Используем сервис
+    private final ProfileService profileService;
 
-    @GetMapping("/profile")
+    @GetMapping(ApiConstants.PROFILE_URL)
     public ResponseEntity<?> getProfile(Principal principal) {
         try {
-            return ResponseEntity.ok(profileService.getProfile(principal.getName())); // Используем principal
+            return ResponseEntity.ok(profileService.getProfile(principal.getName()));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage()); // Обработка ошибок
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping("/profile")
+    @PostMapping(ApiConstants.PROFILE_URL)
     public ResponseEntity<String> updateProfile(@RequestBody ProfileUpdateRequest request, Principal principal) {
         try {
             profileService.updateProfile(principal.getName(), request);
             return ResponseEntity.ok("Профиль успешно обновлен");
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage()); // Возвращаем сообщение об ошибке
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @GetMapping("/check")
-    @PreAuthorize("isAuthenticated()") // ВАЖНО: Добавляем авторизацию
+    @GetMapping(ApiConstants.CHECK_URL)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<?> checkAuthentication() {
-        // Если дошли до сюда, значит, пользователь аутентифицирован.
-        // Можно вернуть что угодно (даже пустой ответ). Главное - статус 200 OK.
         return ResponseEntity.ok().build();
     }
-
 }
