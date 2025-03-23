@@ -20,6 +20,7 @@ import com.authenticationservice.constants.CorsConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.security.JwtAuthenticationFilter;
 
+import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -72,9 +73,9 @@ public class SecurityConfig {
         configuration.setAllowedMethods(CorsConstants.ALLOWED_METHODS);
         configuration.setAllowedHeaders(CorsConstants.ALLOWED_HEADERS);
         configuration.setAllowCredentials(true);
-
+        
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration(SecurityConstants.ALL_PATHS, configuration);
+        source.registerCorsConfiguration(CorsConstants.ALL_PATHS, configuration);
         return source;
     }
 }

@@ -44,17 +44,18 @@ const RegistrationPage: React.FC = () => {
 
     } catch (err) {
       setMessageType('error');
-      if (axios.isAxiosError(err) && err.response?.data) {
-        if (typeof err.response.data === 'string') {
+      if (axios.isAxiosError(err)) {
+        if (err.response?.data) {
           setMessage(err.response.data);
-        } else if (typeof err.response.data.message === 'string') {
-          setMessage(err.response.data.message);
+        } else if (err.message) {
+          setMessage(err.message);
         } else {
-          setMessage('Ошибка при регистрации');
+          setMessage('Registration error occurred');
         }
       } else {
-        setMessage('Непредвиденная ошибка при регистрации');
+        setMessage('Unexpected error during registration');
       }
+      console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,7 @@
 package com.authenticationservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,6 +17,7 @@ import com.authenticationservice.service.AuthService;
 
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiConstants.AUTH_BASE_URL)
@@ -25,14 +27,21 @@ public class AuthController {
 
     @PostMapping(ApiConstants.REGISTER_URL)
     public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
-        authService.register(request);
-        return ResponseEntity.ok("Проверьте вашу почту (код подтверждения выведен в консоль сервера)!");
+        log.info("Received registration request for email: {}", request.getEmail());
+        try {
+            authService.register(request);
+            log.info("Successfully registered user with email: {}", request.getEmail());
+            return ResponseEntity.ok("Check your email (verification code is in server console)!");
+        } catch (Exception e) {
+            log.error("Registration error for email: {}, error: {}", request.getEmail(), e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping(ApiConstants.VERIFY_URL)
     public ResponseEntity<String> verify(@RequestBody VerificationRequest request) {
         authService.verifyEmail(request);
-        return ResponseEntity.ok("Email подтверждён. Теперь можно войти в систему.");
+        return ResponseEntity.ok("Email verified. Now you can login.");
     }
 
     @PostMapping(ApiConstants.LOGIN_URL)

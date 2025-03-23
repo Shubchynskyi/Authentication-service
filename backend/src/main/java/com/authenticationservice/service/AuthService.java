@@ -1,6 +1,7 @@
 package com.authenticationservice.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -22,6 +23,7 @@ import com.authenticationservice.security.JwtTokenProvider;
 
 import java.util.*;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -34,16 +36,21 @@ public class AuthService {
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public void register(RegistrationRequest request) {
+        log.info("Starting registration process for email: {}", request.getEmail());
+        
         Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(request.getEmail());
         if (allowed.isEmpty()) {
-            throw new RuntimeException("Данный email не находится в белом списке. Регистрация запрещена.");
+            log.error("Email {} is not in whitelist", request.getEmail());
+            throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
         }
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Пользователь с таким email уже существует.");
+            log.error("User with email {} already exists", request.getEmail());
+            throw new RuntimeException("User with this email already exists.");
         }
 
         String verificationCode = UUID.randomUUID().toString();
+        log.info("Generated verification code for email: {}", request.getEmail());
 
         User user = new User();
         user.setEmail(request.getEmail());
@@ -53,13 +60,18 @@ public class AuthService {
         user.setVerificationCode(verificationCode);
 
         Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
-                .orElseThrow(() -> new RuntimeException("Роль ROLE_USER не найдена в базе."));
+                .orElseThrow(() -> {
+                    log.error("Role ROLE_USER not found in database");
+                    return new RuntimeException("Role ROLE_USER not found in database.");
+                });
         user.setRoles(Set.of(userRole));
 
         userRepository.save(user);
+        log.info("User saved to database");
 
-        System.out.println("Код подтверждения для " + request.getEmail() + ": " + verificationCode);
+        log.info("Verification code for {}: {}", request.getEmail(), verificationCode);
         sendVerificationEmail(request.getEmail(), verificationCode);
+        log.info("Verification email sent to {}", request.getEmail());
     }
 
     private void sendVerificationEmail(String toEmail, String code) {
@@ -71,8 +83,8 @@ public class AuthService {
         try {
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("Ошибка при отправке email подтверждения на " + toEmail + ": " + e.getMessage());
-            throw new RuntimeException("Ошибка отправки email подтверждения.", e);
+            System.err.println("Error sending verification email to " + toEmail + ": " + e.getMessage());
+            throw new RuntimeException("Error sending verification email.", e);
         }
     }
 
@@ -84,7 +96,7 @@ public class AuthService {
             user.setEmailVerified(true);
             userRepository.save(user);
         } else {
-            throw new RuntimeException("Неверный код подтверждения");
+            throw new RuntimeException("Invalid verification code");
         }
     }
 
@@ -108,7 +120,7 @@ public class AuthService {
 
     public Map<String, String> refresh(String refreshToken) {
         if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
-            throw new RuntimeException("Невалидный/просроченный refresh‑токен");
+            throw new RuntimeException("Invalid/expired refresh token");
         }
         String email = jwtTokenProvider.getEmailFromRefresh(refreshToken);
         User user = userRepository.findByEmail(email)
@@ -165,8 +177,8 @@ public class AuthService {
         try {
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("Ошибка при отправке email сброса пароля на " + toEmail + ": " + e.getMessage());
-            throw new RuntimeException("Ошибка отправки email сброса пароля.", e);
+            System.err.println("Error sending password reset email to " + toEmail + ": " + e.getMessage());
+            throw new RuntimeException("Error sending password reset email.", e);
         }
     }
 

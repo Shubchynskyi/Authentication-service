@@ -1,5 +1,10 @@
 server:
   port: 8080
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      enabled: true
 
 spring:
   datasource:
@@ -23,6 +28,16 @@ spring:
           auth: true
           starttls:
             enable: true
+          ssl:
+            trust: "*"
+
+logging:
+  level:
+    root: INFO
+    '[com.authenticationservice]': DEBUG
+    '[org.springframework.security]': DEBUG
+  charset:
+    console: UTF-8
 
 jwt:
   access-secret: ${JWT_ACCESS_SECRET}
