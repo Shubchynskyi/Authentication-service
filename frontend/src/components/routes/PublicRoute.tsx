@@ -1,18 +1,15 @@
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 
 interface PublicRouteProps {
     children: React.ReactNode;
 }
 
 const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
-    const location = useLocation();
-    
-    const isAuthenticated = localStorage.getItem('token') !== null;
+    const isAuthenticated = localStorage.getItem('accessToken') !== null;
     
     if (isAuthenticated) {
-        const from = location.state?.from?.pathname || '/';
-        return <Navigate to={from} replace />;
+        return <Navigate to="/profile" replace />;
     }
     
     return <>{children}</>;

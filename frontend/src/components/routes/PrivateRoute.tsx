@@ -8,7 +8,7 @@ interface PrivateRouteProps {
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
     const location = useLocation();
     
-    const isAuthenticated = localStorage.getItem('token') !== null;
+    const isAuthenticated = localStorage.getItem('accessToken') !== null;
     
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;

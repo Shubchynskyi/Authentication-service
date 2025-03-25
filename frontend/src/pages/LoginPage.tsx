@@ -1,17 +1,16 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     Box,
     TextField,
     Button,
     Typography,
-    Alert,
     Paper,
     CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import api from '../api';
-import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+import { useNotification } from '../context/NotificationContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -23,47 +22,29 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 }));
 
 const LoginPage = () => {
+    const { login, isLoading } = useAuth();
+    const { showNotification } = useNotification();
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [errorMessage, setErrorMessage] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setIsLoading(true);
+        
         try {
-            const response = await api.post<{ accessToken: string; refreshToken: string }>(
-                '/api/auth/login',
-                { email, password }
-            );
-            localStorage.setItem('accessToken', response.data.accessToken);
-            localStorage.setItem('refreshToken', response.data.refreshToken);
+            await login(email, password);
+            showNotification('Successfully logged in', 'success');
             navigate('/profile', { replace: true });
-
         } catch (error) {
-            let message = 'Непредвиденная ошибка';
-            if (axios.isAxiosError(error)) {
-                if (error.response?.status === 401) {
-                    message = 'Неверный email или пароль';
-                } else {
-                    message = error.response?.data.message || 'Ошибка при авторизации';
-                }
-            }
-            setErrorMessage(message)
-        } finally {
-            setIsLoading(false);
+            showNotification('Invalid email or password', 'error');
         }
     };
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
             <StyledPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
-                    Добро пожаловать!
-                </Typography>
-                <Typography variant="h6" align="center" marginBottom={3}>
-                    Вход в аккаунт
+                    Login
                 </Typography>
                 <form onSubmit={handleLogin} style={{ width: '100%' }}>
                     <TextField
@@ -76,7 +57,7 @@ const LoginPage = () => {
                         required
                     />
                     <TextField
-                        label="Пароль"
+                        label="Password"
                         fullWidth
                         margin="normal"
                         type="password"
@@ -91,28 +72,26 @@ const LoginPage = () => {
                         sx={{ mt: 3, mb: 2 }}
                         disabled={isLoading}
                     >
-                        {isLoading ? <CircularProgress size={24} /> : 'Войти'}
+                        {isLoading ? <CircularProgress size={24} /> : 'Login'}
                     </Button>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                        <Button component={Link} to="/register" variant="outlined">
-                            Регистрация
-                        </Button>
-                        <Button component={Link} to="/forgot-password" variant="outlined">
-                            Забыли пароль?
-                        </Button>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-                        <Link to="/">
-                            <Typography variant="body2">Вернуться на главную</Typography>
-                        </Link>
-                    </Box>
+                    <Button
+                        variant="text"
+                        fullWidth
+                        component={Link}
+                        to="/register"
+                    >
+                        Don't have an account? Register
+                    </Button>
+                    <Button
+                        variant="text"
+                        fullWidth
+                        component={Link}
+                        to="/forgot-password"
+                    >
+                        Forgot password?
+                    </Button>
                 </form>
             </StyledPaper>
-            {errorMessage && (
-                <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
-                    {errorMessage}
-                </Alert>
-            )}
         </Box>
     );
 };

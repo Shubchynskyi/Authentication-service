@@ -32,14 +32,11 @@ const VerificationPage: React.FC = () => {
   const [messageType, setMessageType] = useState<'error' | 'success'>('success');
 
   useEffect(() => {
-    if (location.state && location.state.email) {
+    // Если email передан через state, используем его
+    if (location.state?.email) {
       setEmail(location.state.email);
-    } else {
-      setMessage("Email не был передан. Пожалуйста, зарегистрируйтесь заново.");
-      setMessageType('error');
-      navigate('/register', { replace: true });
     }
-  }, [location.state, navigate]);
+  }, [location.state]);
 
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -74,7 +71,7 @@ const VerificationPage: React.FC = () => {
     setResendLoading(true);
     try {
       const response = await axios.post<string>(
-        'http://localhost:8080/api/auth/resend-verification',  //  НУЖНО ДОБАВИТЬ ЭТОТ ЭНДПОИНТ В БЭКЕНД
+        'http://localhost:8080/api/auth/resend-verification',
         { email }
       );
       setMessage(response.data);

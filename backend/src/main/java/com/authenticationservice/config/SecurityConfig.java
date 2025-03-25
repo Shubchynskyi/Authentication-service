@@ -20,7 +20,6 @@ import com.authenticationservice.constants.CorsConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.security.JwtAuthenticationFilter;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration

@@ -12,31 +12,34 @@ import AdminPage from '../pages/AdminPage';
 import PrivateRoute from '../components/routes/PrivateRoute';
 import PublicRoute from '../components/routes/PublicRoute';
 import AdminRoute from '../components/routes/AdminRoute';
+import { ProfileProvider } from '../context/ProfileContext';
 
 const App: FC = () => {
     return (
-        <Router>
-            <Routes>
-                <Route path="/" element={<HomePage />} />
+        <ProfileProvider>
+            <Router>
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
 
-                <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
-                <Route path="/register" element={<PublicRoute><RegistrationPage /></PublicRoute>} />
-                <Route path="/verify" element={<PublicRoute><VerificationPage /></PublicRoute>} />
-                <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
-                <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
+                    <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+                    <Route path="/register" element={<PublicRoute><RegistrationPage /></PublicRoute>} />
+                    <Route path="/verify" element={<PublicRoute><VerificationPage /></PublicRoute>} />
+                    <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+                    <Route path="/reset-password" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
-                <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
-                <Route path="/edit-profile" element={<PrivateRoute><EditProfilePage /></PrivateRoute>} />
+                    <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+                    <Route path="/edit-profile" element={<PrivateRoute><EditProfilePage /></PrivateRoute>} />
 
-                <Route path="/admin/*" element={<AdminRoute />}>
-                    <Route index element={<AdminPage />} /> 
-                    {/*<Route path="users" element={<AdminUsersPage />} />*/}  {/* /admin/users */}
-                    {/*<Route path="settings" element={<AdminSettingsPage />} />*/}  {/* /admin/settings */}
-                </Route>
+                    <Route path="/admin/*" element={<AdminRoute />}>
+                        <Route index element={<AdminPage />} /> 
+                        {/*<Route path="users" element={<AdminUsersPage />} />*/}  {/* /admin/users */}
+                        {/*<Route path="settings" element={<AdminSettingsPage />} />*/}  {/* /admin/settings */}
+                    </Route>
 
-                <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-        </Router>
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Router>
+        </ProfileProvider>
     );
 };
 

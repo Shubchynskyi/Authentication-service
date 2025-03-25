@@ -12,9 +12,9 @@ public final class SecurityConstants {
     
     public static final long ONE_HOUR_IN_MS = 3600000;
     
-    public static final String EMAIL_VERIFIED_ERROR = "Email не подтвержден";
-    public static final String USER_NOT_FOUND_ERROR = "Пользователь не найден";
-    public static final String INVALID_PASSWORD_ERROR = "Неверный пароль";
+    public static final String EMAIL_VERIFIED_ERROR = "Email not verified";
+    public static final String USER_NOT_FOUND_ERROR = "User not found";
+    public static final String INVALID_PASSWORD_ERROR = "Incorrect password";
 
     public static final String ROOT_PATH = "/";
     public static final String LOGIN_PATH = "/login";

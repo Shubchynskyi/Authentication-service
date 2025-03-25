@@ -1,17 +1,16 @@
-import React, { useState, useEffect } from 'react'; // Добавили useEffect
+import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Box,
     TextField,
     Button,
     Typography,
-    Alert,
     Paper,
     CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import api from '../api';
-import axios from 'axios';
+import { useProfile } from '../context/ProfileContext';
+import { useNotification } from '../context/NotificationContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -22,115 +21,62 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     backgroundColor: theme.palette.background.paper,
 }));
 
-interface ProfileData {
-    name: string;
-    email: string;
-}
-
 const EditProfilePage: React.FC = () => {
     const navigate = useNavigate();
-    const [name, setName] = useState('');
+    const { profile, updateProfile, isLoading } = useProfile();
+    const { showNotification } = useNotification();
+    
+    const [name, setName] = useState(profile?.name || '');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
-    const [message, setMessage] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [messageType, setMessageType] = useState<'error' | 'success'>('success');
-
-
-     useEffect(() => {
-        let isCancelled = false;
-
-        const fetchProfile = async () => {
-            setIsLoading(true);
-            try {
-                const response = await api.get<ProfileData>('/api/protected/profile');
-
-                if (!isCancelled) {
-                   setName(response.data.name);
-
-                }
-
-            } catch (error) {
-                 let message = 'Непредвиденная ошибка при загрузке профиля';
-                if (!isCancelled) {
-                   if (axios.isAxiosError(error)) {
-                        message = error.response?.data.message || 'Ошибка при загрузке профиля';
-                    }
-                    setMessage(message);
-                }
-            }
-            finally{
-                if(!isCancelled)
-                 setIsLoading(false);
-            }
-
-        };
-
-        fetchProfile();
-
-        return () => {
-            isCancelled = true;
-        };
-    }, []);
-
 
     const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setIsLoading(true);
 
         if (newPassword && !currentPassword) {
-            setMessage('Для изменения пароля необходимо ввести текущий пароль.');
-            setMessageType('error');
-            setIsLoading(false);
+            showNotification('Current password is required to change password', 'error');
             return;
         }
 
         try {
-            const response = await api.post<string>(
-                '/api/protected/profile',
-                {
-                    name: name,
-                    password: newPassword,
-                    currentPassword: currentPassword,
-                },
-            );
-            setMessage(response.data);
-            setMessageType('success');
+            await updateProfile({
+                name,
+                password: newPassword,
+                currentPassword: currentPassword,
+            });
+            showNotification('Profile updated successfully', 'success');
             navigate('/profile', { replace: true });
-
         } catch (error) {
-             let message = 'Непредвиденная ошибка';
-            if (axios.isAxiosError(error)) {
-                message = error.response?.data.message || 'Ошибка при обновлении профиля';
-            }
-            setMessage(message);
-            setMessageType('error');
-        } finally {
-            setIsLoading(false);
+            showNotification('Error updating profile', 'error');
         }
     };
 
-     if (isLoading) {
-        return <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}><CircularProgress /></Box>;
+    if (isLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
     }
 
     return (
-        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
             <StyledPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
-                    Редактирование профиля
+                    Edit Profile
                 </Typography>
                 <form onSubmit={handleUpdate} style={{ width: '100%' }}>
                     <TextField
-                        label="Имя"
+                        label="Name"
                         fullWidth
                         margin="normal"
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
+                        required
                     />
                     <TextField
-                        label="Текущий пароль"
+                        label="Current Password"
                         fullWidth
                         margin="normal"
                         type="password"
@@ -139,7 +85,7 @@ const EditProfilePage: React.FC = () => {
                         required={!!newPassword}
                     />
                     <TextField
-                        label="Новый пароль (если хотите изменить)"
+                        label="New Password (optional)"
                         fullWidth
                         margin="normal"
                         type="password"
@@ -153,7 +99,7 @@ const EditProfilePage: React.FC = () => {
                         sx={{ mt: 3, mb: 2 }}
                         disabled={isLoading}
                     >
-                        {isLoading ? <CircularProgress size={24} /> : 'Сохранить изменения'}
+                        {isLoading ? <CircularProgress size={24} /> : 'Save Changes'}
                     </Button>
                     <Button
                         variant="outlined"
@@ -161,14 +107,9 @@ const EditProfilePage: React.FC = () => {
                         component={Link}
                         to="/profile"
                     >
-                        Вернуться в профиль
+                        Back to Profile
                     </Button>
                 </form>
-                {message && (
-                    <Alert severity={messageType} sx={{ mt: 2, width: '100%' }}>
-                        {message}
-                    </Alert>
-                )}
             </StyledPaper>
         </Box>
     );
