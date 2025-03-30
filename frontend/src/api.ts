@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_URL } from './config';
 
 const api = axios.create({
-    baseURL: 'http://localhost:8080',
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -98,5 +99,14 @@ api.interceptors.response.use(
         return Promise.reject(error);
     }
 );
+
+export const checkAccess = async (resource: string): Promise<boolean> => {
+    try {
+        await api.get(`/api/auth/check-access/${resource}`);
+        return true;
+    } catch (error) {
+        return false;
+    }
+};
 
 export default api;

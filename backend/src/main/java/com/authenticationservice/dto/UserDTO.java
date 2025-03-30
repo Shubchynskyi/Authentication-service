@@ -1,33 +1,36 @@
 package com.authenticationservice.dto;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
 import com.authenticationservice.model.User;
-import com.authenticationservice.model.Role;
-
-import java.util.Set;
+import lombok.Data;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class UserDTO {
     private Long id;
+    private String username;
     private String email;
-    private String name;
+    private List<String> roles;
+    private boolean enabled;
+    private boolean blocked;
     private boolean emailVerified;
-    private Set<String> roles;
+    private String lastLoginAt;
+    private int failedLoginAttempts;
 
     public static UserDTO fromUser(User user) {
-        var dto = new UserDTO();
+        UserDTO dto = new UserDTO();
         dto.setId(user.getId());
+        dto.setUsername(user.getName());
         dto.setEmail(user.getEmail());
-        dto.setName(user.getName());
-        dto.setEmailVerified(user.isEmailVerified());
         dto.setRoles(user.getRoles().stream()
-                .map(Role::getName)
-                .collect(Collectors.toSet()));
+                .map(role -> role.getName())
+                .collect(Collectors.toList()));
+        dto.setEnabled(user.isEnabled());
+        dto.setBlocked(user.isBlocked());
+        dto.setEmailVerified(user.isEmailVerified());
+        dto.setLastLoginAt(user.getLastLoginAt() != null ? 
+            user.getLastLoginAt().toString() : null);
+        dto.setFailedLoginAttempts(user.getFailedLoginAttempts());
         return dto;
     }
 }

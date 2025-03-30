@@ -19,6 +19,26 @@
       "name": "jwt.refresh-expiration",
       "type": "java.lang.Long",
       "description": "Expiration time for JWT refresh token in milliseconds"
+    },
+    {
+      "name": "admin.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable admin initialization"
+    },
+    {
+      "name": "admin.email",
+      "type": "java.lang.String",
+      "description": "Admin user email"
+    },
+    {
+      "name": "admin.username",
+      "type": "java.lang.String",
+      "description": "Admin user username"
+    },
+    {
+      "name": "frontend.url",
+      "type": "java.lang.String",
+      "description": "Frontend application URL"
     }
   ]
 } 

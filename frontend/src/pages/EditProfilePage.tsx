@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import {
     Box,
@@ -26,9 +26,15 @@ const EditProfilePage: React.FC = () => {
     const { profile, updateProfile, isLoading } = useProfile();
     const { showNotification } = useNotification();
     
-    const [name, setName] = useState(profile?.name || '');
+    const [name, setName] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+
+    useEffect(() => {
+        if (profile?.name) {
+            setName(profile.name);
+        }
+    }, [profile]);
 
     const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();

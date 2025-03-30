@@ -1,6 +1,8 @@
 package com.authenticationservice.security;
 
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
@@ -8,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import com.authenticationservice.config.JwtProperties;
 import com.authenticationservice.model.User;
+import com.authenticationservice.model.Role;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
@@ -17,6 +20,8 @@ import io.jsonwebtoken.security.Keys;
 
 @Component
 public class JwtTokenProvider {
+
+    private static final String ROLES_CLAIM = "roles";
 
     private final JwtProperties jwtProperties;
     private final SecretKey key;
@@ -35,10 +40,16 @@ public class JwtTokenProvider {
     public String generateAccessToken(User user) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + jwtProperties.getAccessExpiration());
+        
+        List<String> roles = user.getRoles().stream()
+            .map(Role::getName)
+            .collect(Collectors.toList());
+
         return Jwts.builder()
                 .subject(user.getEmail())
                 .issuedAt(now)
                 .expiration(expiry)
+                .claim(ROLES_CLAIM, roles)
                 .signWith(key)
                 .compact();
     }
@@ -80,5 +91,11 @@ public class JwtTokenProvider {
     public String getEmailFromAccess(String accessToken) {
         Claims claims = accessParser.parseSignedClaims(accessToken).getPayload();
         return claims.getSubject();
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<String> getRolesFromAccess(String accessToken) {
+        Claims claims = accessParser.parseSignedClaims(accessToken).getPayload();
+        return claims.get(ROLES_CLAIM, List.class);
     }
 }

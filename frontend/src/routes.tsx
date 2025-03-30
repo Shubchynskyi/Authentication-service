@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { useProfile } from './context/ProfileContext';
+import { checkAccess } from './api';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegistrationPage from './pages/RegistrationPage';
@@ -13,6 +13,7 @@ import EditProfilePage from './pages/EditProfilePage';
 import AdminPage from './pages/AdminPage';
 import NotFoundPage from './components/NotFoundPage';
 import { CircularProgress, Box } from '@mui/material';
+import VerifyPage from './pages/VerifyPage';
 
 const LoadingScreen = () => (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -36,20 +37,38 @@ const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated, isLoading } = useAuth();
-    const { isAdmin, isLoading: isProfileLoading } = useProfile();
+    const [hasAccess, setHasAccess] = useState(false);
+    const [isCheckingAccess, setIsCheckingAccess] = useState(true);
 
-    if (isLoading || isProfileLoading) {
+    useEffect(() => {
+        const checkAdminAccess = async () => {
+            if (!isAuthenticated) {
+                setHasAccess(false);
+                setIsCheckingAccess(false);
+                return;
+            }
+
+            try {
+                const canAccess = await checkAccess('admin-panel');
+                setHasAccess(canAccess);
+            } catch (error) {
+                setHasAccess(false);
+            } finally {
+                setIsCheckingAccess(false);
+            }
+        };
+
+        checkAdminAccess();
+    }, [isAuthenticated]);
+
+    if (isLoading || isCheckingAccess) {
         return <LoadingScreen />;
     }
 
-    if (!isAuthenticated || !isAdmin) {
+    if (!isAuthenticated || !hasAccess) {
         return <NotFoundPage />;
     }
 
-    return <>{children}</>;
-};
-
-const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return <>{children}</>;
 };
 
@@ -100,7 +119,10 @@ const AppRoutes: React.FC = () => {
                 path="/verify/*"
                 element={
                     <GuestRoute>
-                        <VerificationPage />
+                        <Routes>
+                            <Route path="/" element={<VerificationPage />} />
+                            <Route path="/email" element={<VerifyPage />} />
+                        </Routes>
                     </GuestRoute>
                 }
             />

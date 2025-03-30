@@ -6,6 +6,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.beans.factory.annotation.Value;
 
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.EmailConstants;
@@ -22,6 +24,7 @@ import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
 
 import java.util.*;
+import java.time.LocalDateTime;
 
 @Slf4j
 @Service
@@ -33,6 +36,11 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final JavaMailSender mailSender;
+    private final EmailService emailService;
+    
+    @Value("${frontend.url}")
+    private String frontendUrl;
+    
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public void register(RegistrationRequest request) {
@@ -49,15 +57,15 @@ public class AuthService {
             throw new RuntimeException("User with this email already exists.");
         }
 
-        String verificationCode = UUID.randomUUID().toString();
-        log.info("Generated verification code for email: {}", request.getEmail());
+        String verificationToken = UUID.randomUUID().toString();
+        log.info("Generated verification token for email: {}", request.getEmail());
 
         User user = new User();
         user.setEmail(request.getEmail());
         user.setName(request.getName());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmailVerified(false);
-        user.setVerificationCode(verificationCode);
+        user.setVerificationToken(verificationToken);
 
         Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
                 .orElseThrow(() -> {
@@ -69,16 +77,16 @@ public class AuthService {
         userRepository.save(user);
         log.info("User saved to database");
 
-        log.info("Verification code for {}: {}", request.getEmail(), verificationCode);
-        sendVerificationEmail(request.getEmail(), verificationCode);
+        log.info("Verification token for {}: {}", request.getEmail(), verificationToken);
+        sendVerificationEmail(request.getEmail(), verificationToken);
         log.info("Verification email sent to {}", request.getEmail());
     }
 
-    private void sendVerificationEmail(String toEmail, String code) {
+    private void sendVerificationEmail(String toEmail, String token) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
         message.setSubject(EmailConstants.VERIFICATION_SUBJECT);
-        String emailText = String.format(EmailConstants.VERIFICATION_EMAIL_TEMPLATE, code);
+        String emailText = String.format(EmailConstants.VERIFICATION_EMAIL_TEMPLATE, token);
         message.setText(emailText);
         try {
             mailSender.send(message);
@@ -92,7 +100,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
-        if (user.getVerificationCode().equals(request.getCode())) {
+        if (user.getVerificationToken().equals(request.getCode())) {
             user.setEmailVerified(true);
             userRepository.save(user);
         } else {
@@ -100,22 +108,65 @@ public class AuthService {
         }
     }
 
+    @Transactional
     public Map<String, String> login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
-        if (!user.isEmailVerified()) {
-            throw new RuntimeException(SecurityConstants.EMAIL_VERIFIED_ERROR);
+
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
         }
+
+        if (user.isBlocked()) {
+            throw new RuntimeException("Account is blocked. " + 
+                (user.getBlockReason() != null ? user.getBlockReason() : ""));
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            user.incrementFailedLoginAttempts();
+            userRepository.save(user);
+
+            if (user.getFailedLoginAttempts() >= 10) {
+                // Отправляем email о блокировке
+                String emailContent = String.format(
+                    "Your account was blocked due to exceeding the number of login attempts.\n" +
+                    "To unlock your account, you need to reset your password.\n" +
+                    "Follow the link to reset your password: %s/reset-password",
+                    frontendUrl
+                );
+                emailService.sendEmail(user.getEmail(), "Account blocked", emailContent);
+            }
+
             throw new RuntimeException(SecurityConstants.INVALID_PASSWORD_ERROR);
         }
+
+        if (!user.isEmailVerified()) {
+            // Генерируем новый код верификации
+            String verificationToken = UUID.randomUUID().toString();
+            user.setVerificationToken(verificationToken);
+            userRepository.save(user);
+
+            // Отправляем email с кодом
+            String emailContent = String.format(
+                "To verify your email, use the code: %s",
+                verificationToken
+            );
+            emailService.sendEmail(user.getEmail(), "Email verification", emailContent);
+
+            throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
+        }
+
+        // Успешный вход
+        user.resetFailedLoginAttempts();
+        userRepository.save(user);
+
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 
-        Map<String, String> result = new HashMap<>();
-        result.put("accessToken", accessToken);
-        result.put("refreshToken", refreshToken);
-        return result;
+        return Map.of(
+            "accessToken", accessToken,
+            "refreshToken", refreshToken
+        );
     }
 
     public Map<String, String> refresh(String refreshToken) {
@@ -144,11 +195,11 @@ public class AuthService {
             throw new RuntimeException("Email is already verified.");
         }
 
-        String verificationCode = UUID.randomUUID().toString();
-        user.setVerificationCode(verificationCode);
+        String verificationToken = UUID.randomUUID().toString();
+        user.setVerificationToken(verificationToken);
         userRepository.save(user);
 
-        sendVerificationEmail(email, verificationCode);
+        sendVerificationEmail(email, verificationToken);
     }
 
     public void initiatePasswordReset(String email) {
@@ -161,7 +212,7 @@ public class AuthService {
 
         String resetToken = UUID.randomUUID().toString();
         user.setResetPasswordToken(resetToken);
-        user.setResetPasswordTokenExpiry(new Date(System.currentTimeMillis() + SecurityConstants.ONE_HOUR_IN_MS));
+        user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
 
         sendPasswordResetEmail(email, resetToken);
@@ -186,7 +237,7 @@ public class AuthService {
         User user = userRepository.findByResetPasswordToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token."));
 
-        if (user.getResetPasswordTokenExpiry().before(new Date())) {
+        if (user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Expired reset token.");
         }
 
@@ -194,5 +245,17 @@ public class AuthService {
         user.setResetPasswordToken(null);
         user.setResetPasswordTokenExpiry(null);
         userRepository.save(user);
+    }
+
+    public String generatePasswordResetToken(String email) {
+        User user = userRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String token = UUID.randomUUID().toString();
+        user.setResetPasswordToken(token);
+        user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(24));
+        userRepository.save(user);
+
+        return token;
     }
 }

@@ -31,6 +31,14 @@ spring:
           ssl:
             trust: "*"
 
+admin:
+  enabled: ${ADMIN_ENABLED}
+  email: ${ADMIN_EMAIL}
+  username: ${ADMIN_USERNAME}
+
+frontend:
+  url: ${FRONTEND_URL}
+
 logging:
   level:
     root: INFO
@@ -38,6 +46,7 @@ logging:
     '[org.springframework.security]': DEBUG
   charset:
     console: UTF-8
+    file: UTF-8
 
 jwt:
   access-secret: ${JWT_ACCESS_SECRET}

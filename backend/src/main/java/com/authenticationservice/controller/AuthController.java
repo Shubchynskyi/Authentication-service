@@ -7,6 +7,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.http.HttpStatus;
 
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.LoginRequest;
@@ -14,8 +18,10 @@ import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
 import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.service.AuthService;
+import com.authenticationservice.security.JwtTokenProvider;
 
 import java.util.Map;
+import java.util.List;
 
 @Slf4j
 @RestController
@@ -24,6 +30,7 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping(ApiConstants.REGISTER_URL)
     public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
@@ -102,5 +109,28 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    @GetMapping("/check-access/{resource}")
+    public ResponseEntity<?> checkAccess(@PathVariable String resource, @RequestHeader("Authorization") String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        String token = authHeader.substring(7);
+        List<String> roles = jwtTokenProvider.getRolesFromAccess(token);
+
+        // Проверяем доступ на основе ролей и ресурса
+        boolean hasAccess = switch (resource) {
+            case "admin-panel" -> roles.contains("ROLE_ADMIN");
+            case "user-management" -> roles.contains("ROLE_ADMIN");
+            default -> false;
+        };
+
+        if (!hasAccess) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok().build();
     }
 }
