@@ -8,6 +8,7 @@ interface AuthContextType {
     logout: () => void;
     error: string | null;
     isLoading: boolean;
+    setTokens: (accessToken: string, refreshToken: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,7 +18,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [error, setError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Проверяем токены при инициализации
+    // Check tokens on initialization
     useEffect(() => {
         const accessToken = localStorage.getItem('accessToken');
         const refreshToken = localStorage.getItem('refreshToken');
@@ -59,8 +60,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.location.href = '/login';
     }, []);
 
+    const setTokens = useCallback((accessToken: string, refreshToken: string) => {
+        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem('refreshToken', refreshToken);
+        setIsAuthenticated(true);
+    }, []);
+
     return (
-        <AuthContext.Provider value={{ isAuthenticated, login, logout, error, isLoading }}>
+        <AuthContext.Provider value={{ isAuthenticated, login, logout, error, isLoading, setTokens }}>
             {children}
         </AuthContext.Provider>
     );

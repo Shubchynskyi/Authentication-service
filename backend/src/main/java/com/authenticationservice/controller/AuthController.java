@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.LoginRequest;
@@ -120,7 +122,7 @@ public class AuthController {
         String token = authHeader.substring(7);
         List<String> roles = jwtTokenProvider.getRolesFromAccess(token);
 
-        // Проверяем доступ на основе ролей и ресурса
+        // Check access based on roles and resource
         boolean hasAccess = switch (resource) {
             case "admin-panel" -> roles.contains("ROLE_ADMIN");
             case "user-management" -> roles.contains("ROLE_ADMIN");
@@ -132,5 +134,18 @@ public class AuthController {
         }
 
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/oauth2/success")
+    public ResponseEntity<Map<String, String>> oauth2Success(@AuthenticationPrincipal OAuth2User oauth2User) {
+        String email = oauth2User.getAttribute("email");
+        String name = oauth2User.getAttribute("name");
+        
+        try {
+            Map<String, String> tokens = authService.handleOAuth2Login(email, name);
+            return ResponseEntity.ok(tokens);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
     }
 }

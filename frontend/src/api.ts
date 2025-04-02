@@ -28,7 +28,6 @@ const processQueue = (error: any = null) => {
 const clearAuthAndRedirect = () => {
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
-    // Используем replace вместо href для предотвращения проблем с историей браузера
     window.location.replace('/login');
 };
 
@@ -48,7 +47,7 @@ api.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Если это ошибка 401 и это не запрос на обновление токена
+        // If this is a 401 error and this is not a token refresh request
         if (error.response?.status === 401 && 
             !originalRequest._retry && 
             !originalRequest.url?.includes('/api/auth/refresh')) {
@@ -90,7 +89,7 @@ api.interceptors.response.use(
             }
         }
 
-        // Если это ошибка 401 при попытке обновить токен
+        // If this is a 401 error when trying to refresh the token
         if (error.response?.status === 401 && 
             originalRequest.url?.includes('/api/auth/refresh')) {
             clearAuthAndRedirect();

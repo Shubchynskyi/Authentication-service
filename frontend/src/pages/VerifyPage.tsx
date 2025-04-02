@@ -7,7 +7,7 @@ import {
     CircularProgress,
     Alert,
 } from '@mui/material';
-import api from '../services/api';
+import api from '../services/api';  
 
 const VerifyPage = () => {
     const navigate = useNavigate();
@@ -23,7 +23,7 @@ const VerifyPage = () => {
 
                 if (!verificationToken || !email) {
                     setStatus('error');
-                    setErrorMessage('Неверная ссылка подтверждения');
+                    setErrorMessage('Invalid confirmation link');
                     return;
                 }
 
@@ -35,12 +35,12 @@ const VerifyPage = () => {
                 setStatus('success');
                 setTimeout(() => {
                     navigate('/login', {
-                        state: { message: 'Email успешно подтвержден. Теперь вы можете войти.' }
+                        state: { message: 'Email successfully verified. Now you can login.' }
                     });
                 }, 2000);
             } catch (error: any) {
                 setStatus('error');
-                setErrorMessage(error.response?.data || 'Ошибка подтверждения email');
+                setErrorMessage(error.response?.data || 'Error verifying email');
             }
         };
 
@@ -57,21 +57,21 @@ const VerifyPage = () => {
                 gap: 2
             }}>
                 <Typography component="h1" variant="h5">
-                    Подтверждение Email
+                    Email verification
                 </Typography>
 
                 {status === 'loading' && (
                     <>
                         <CircularProgress />
                         <Typography>
-                            Подтверждаем ваш email...
+                            Verifying your email...
                         </Typography>
                     </>
                 )}
 
                 {status === 'success' && (
                     <Alert severity="success">
-                        Email успешно подтвержден! Перенаправляем на страницу входа...
+                        Email successfully verified! Redirecting to login page...
                     </Alert>
                 )}
 

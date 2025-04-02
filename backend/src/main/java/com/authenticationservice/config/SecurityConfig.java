@@ -1,6 +1,7 @@
 package com.authenticationservice.config;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,8 +20,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.authenticationservice.constants.CorsConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.security.JwtAuthenticationFilter;
+import com.authenticationservice.service.AuthService;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.List;
+import java.util.Map;
 
 @Configuration
 @RequiredArgsConstructor
@@ -28,12 +32,17 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final AuthService authService;
+    
+    @Value("${frontend.url}")
+    private String frontendUrl;
 
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    @SuppressWarnings("unused")
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -50,8 +59,24 @@ public class SecurityConfig {
                     auth.requestMatchers(SecurityConstants.VERIFY_PATH).permitAll();
                     auth.requestMatchers(SecurityConstants.FORGOT_PASSWORD_PATH).permitAll();
                     auth.requestMatchers(SecurityConstants.RESET_PASSWORD_PATH).permitAll();
+                    auth.requestMatchers("/oauth2/**").permitAll();
                     auth.anyRequest().authenticated();
                 })
+                .oauth2Login(oauth2 -> oauth2
+                    .successHandler((request, response, authentication) -> {
+                        OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                        String email = oauth2User.getAttribute("email");
+                        String name = oauth2User.getAttribute("name");
+                        
+                        // Generate JWT tokens
+                        Map<String, String> tokens = authService.handleOAuth2Login(email, name);
+                        
+                        // Redirect to frontend with tokens
+                        response.sendRedirect(frontendUrl + "/oauth2/success?" + 
+                            "accessToken=" + tokens.get("accessToken") + 
+                            "&refreshToken=" + tokens.get("refreshToken"));
+                    })
+                )
                 .httpBasic(Customizer.withDefaults());
 
         http.addFilterBefore(jwtAuthenticationFilter,

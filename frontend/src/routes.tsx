@@ -14,6 +14,7 @@ import AdminPage from './pages/AdminPage';
 import NotFoundPage from './components/NotFoundPage';
 import { CircularProgress, Box } from '@mui/material';
 import VerifyPage from './pages/VerifyPage';
+import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler';
 
 const LoadingScreen = () => (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
@@ -98,6 +99,7 @@ const AppRoutes: React.FC = () => {
         <Routes>
             {/* Public page */}
             <Route path="/" element={<HomePage />} />
+            <Route path="/oauth2/success" element={<OAuth2RedirectHandler />} />
 
             {/* Pages only for guests */}
             <Route

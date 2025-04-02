@@ -11,7 +11,7 @@ import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.model.Role;
-import com.authenticationservice.service.AdminService; // Подключаем сервис
+import com.authenticationservice.service.AdminService;
 import com.authenticationservice.repository.RoleRepository;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,7 +49,7 @@ public class AdminController {
     public ResponseEntity<String> createUser(@RequestBody AdminUpdateUserRequest request) {
         try {
             adminService.createUser(request);
-            return ResponseEntity.ok("Пользователь создан");
+            return ResponseEntity.ok("User created");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -68,7 +68,7 @@ public class AdminController {
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
         try {
             adminService.updateUser(id, request);
-            return ResponseEntity.ok("Пользователь обновлен");
+            return ResponseEntity.ok("User updated");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -78,7 +78,7 @@ public class AdminController {
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         try {
             adminService.deleteUser(id);
-            return ResponseEntity.ok("Пользователь удален");
+            return ResponseEntity.ok("User deleted");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -93,7 +93,7 @@ public class AdminController {
     public ResponseEntity<String> addToWhitelist(@RequestParam String email) {
         try {
             adminService.addToWhitelist(email);
-            return ResponseEntity.ok("Email добавлен в белый список");
+            return ResponseEntity.ok("Email added to whitelist");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -103,7 +103,7 @@ public class AdminController {
     public ResponseEntity<String> removeFromWhitelist(@RequestParam String email) {
         try {
             adminService.removeFromWhitelist(email);
-            return ResponseEntity.ok("Email удален из белого списка");
+            return ResponseEntity.ok("Email removed from whitelist");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -114,15 +114,15 @@ public class AdminController {
         try {
             String password = request.get("password");
             if (password == null || password.isBlank()) {
-                return ResponseEntity.badRequest().body("Пароль обязателен");
+                return ResponseEntity.badRequest().body("Password is required");
             }
             
             boolean verified = adminService.verifyAdminPassword(principal.getName(), password);
             if (!verified) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Неверный пароль");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
             }
             
-            return ResponseEntity.ok("Пароль подтвержден");
+            return ResponseEntity.ok("Password verified");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

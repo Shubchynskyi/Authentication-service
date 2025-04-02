@@ -83,7 +83,7 @@ const LoginPage = () => {
                             margin="normal"
                             required
                             fullWidth
-                            label="Код подтверждения"
+                            label="Confirmation code"
                             value={verificationCode}
                             onChange={(e) => setVerificationCode(e.target.value)}
                             error={!!error}
@@ -139,7 +139,7 @@ const LoginPage = () => {
                         margin="normal"
                         required
                         fullWidth
-                        label="Пароль"
+                        label="Password"
                         type="password"
                         autoComplete="current-password"
                         value={password}
@@ -153,17 +153,25 @@ const LoginPage = () => {
                         variant="contained"
                         sx={{ mt: 3, mb: 2 }}
                     >
-                        Войти
+                        Login
+                    </Button>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        sx={{ mb: 2 }}
+                        onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+                    >
+                        Login with Google
                     </Button>
                     <Grid container>
                         <Grid item xs>
                             <Link component={RouterLink} to="/forgot-password" variant="body2">
-                                Забыли пароль?
+                                Forgot password?
                             </Link>
                         </Grid>
                         <Grid item>
                             <Link component={RouterLink} to="/register" variant="body2">
-                                {"Нет аккаунта? Зарегистрируйтесь"}
+                                {"No account? Register"}
                             </Link>
                         </Grid>
                     </Grid>

@@ -258,4 +258,31 @@ public class AuthService {
 
         return token;
     }
+
+    @Transactional
+    public Map<String, String> handleOAuth2Login(String email, String name) {
+        User user = userRepository.findByEmail(email)
+                .orElseGet(() -> {
+                    User newUser = new User();
+                    newUser.setEmail(email);
+                    newUser.setName(name);
+                    newUser.setEnabled(true);
+                    newUser.setEmailVerified(true);
+                    newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                    
+                    Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
+                            .orElseThrow(() -> new RuntimeException("Role ROLE_USER not found"));
+                    newUser.setRoles(Set.of(userRole));
+                    
+                    return userRepository.save(newUser);
+                });
+
+        String accessToken = jwtTokenProvider.generateAccessToken(user);
+        String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+
+        return Map.of(
+            "accessToken", accessToken,
+            "refreshToken", refreshToken
+        );
+    }
 }

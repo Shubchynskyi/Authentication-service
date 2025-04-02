@@ -38,7 +38,7 @@
     {
       "name": "frontend.url",
       "type": "java.lang.String",
-      "description": "Frontend application URL"
+      "description": "Frontend application URL for OAuth2 redirects and CORS configuration"
     }
   ]
 } 
