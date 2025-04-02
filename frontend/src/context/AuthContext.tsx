@@ -56,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
         setIsAuthenticated(false);
-        window.location.replace('/login');
+        window.location.href = '/login';
     }, []);
 
     return (

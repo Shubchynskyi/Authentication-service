@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { checkAccess } from './api';
 import HomePage from './pages/HomePage';
@@ -23,13 +23,14 @@ const LoadingScreen = () => (
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { isAuthenticated, isLoading } = useAuth();
+    const location = useLocation();
 
     if (isLoading) {
         return <LoadingScreen />;
     }
 
     if (!isAuthenticated) {
-        return <NotFoundPage />;
+        return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
     return <>{children}</>;
@@ -95,10 +96,10 @@ const AppRoutes: React.FC = () => {
 
     return (
         <Routes>
-            {/* Публичная страница */}
+            {/* Public page */}
             <Route path="/" element={<HomePage />} />
 
-            {/* Страницы только для гостей */}
+            {/* Pages only for guests */}
             <Route
                 path="/login"
                 element={
@@ -143,7 +144,7 @@ const AppRoutes: React.FC = () => {
                 }
             />
 
-            {/* Защищенные страницы */}
+            {/* Protected pages */}
             <Route
                 path="/profile/*"
                 element={
@@ -157,7 +158,7 @@ const AppRoutes: React.FC = () => {
                 }
             />
 
-            {/* Страницы только для админов */}
+            {/* Pages only for admins */}
             <Route
                 path="/admin/*"
                 element={
@@ -170,7 +171,7 @@ const AppRoutes: React.FC = () => {
                 }
             />
 
-            {/* Несуществующие страницы */}
+            {/* Non-existent pages */}
             <Route path="*" element={<NotFoundPage />} />
         </Routes>
     );
