@@ -67,6 +67,10 @@ public class User {
     @Column(name = "unblocked_at")
     private LocalDateTime unblockedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "auth_provider")
+    private AuthProvider authProvider = AuthProvider.LOCAL;
+
     public User() {
     }
 

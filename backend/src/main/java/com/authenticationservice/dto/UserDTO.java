@@ -1,5 +1,6 @@
 package com.authenticationservice.dto;
 
+import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.User;
 import lombok.Data;
 import java.util.List;
@@ -16,6 +17,8 @@ public class UserDTO {
     private boolean emailVerified;
     private String lastLoginAt;
     private int failedLoginAttempts;
+    private String blockReason;
+    private AuthProvider authProvider;
 
     public static UserDTO fromUser(User user) {
         UserDTO dto = new UserDTO();
@@ -31,6 +34,8 @@ public class UserDTO {
         dto.setLastLoginAt(user.getLastLoginAt() != null ? 
             user.getLastLoginAt().toString() : null);
         dto.setFailedLoginAttempts(user.getFailedLoginAttempts());
+        dto.setBlockReason(user.getBlockReason());
+        dto.setAuthProvider(user.getAuthProvider());
         return dto;
     }
 }

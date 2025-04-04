@@ -16,6 +16,7 @@ import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.model.AllowedEmail;
+import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AllowedEmailRepository;
@@ -66,6 +67,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setEmailVerified(false);
         user.setVerificationToken(verificationToken);
+        user.setAuthProvider(AuthProvider.LOCAL);
 
         Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
                 .orElseThrow(() -> {
@@ -269,6 +271,7 @@ public class AuthService {
                     newUser.setEnabled(true);
                     newUser.setEmailVerified(true);
                     newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
+                    newUser.setAuthProvider(AuthProvider.GOOGLE);
                     
                     Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
                             .orElseThrow(() -> new RuntimeException("Role ROLE_USER not found"));
