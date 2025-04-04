@@ -129,7 +129,6 @@ public class AuthService {
             userRepository.save(user);
 
             if (user.getFailedLoginAttempts() >= 10) {
-                // Отправляем email о блокировке
                 String emailContent = String.format(
                     "Your account was blocked due to exceeding the number of login attempts.\n" +
                     "To unlock your account, you need to reset your password.\n" +
@@ -143,12 +142,10 @@ public class AuthService {
         }
 
         if (!user.isEmailVerified()) {
-            // Генерируем новый код верификации
             String verificationToken = UUID.randomUUID().toString();
             user.setVerificationToken(verificationToken);
             userRepository.save(user);
 
-            // Отправляем email с кодом
             String emailContent = String.format(
                 "To verify your email, use the code: %s",
                 verificationToken
@@ -158,7 +155,6 @@ public class AuthService {
             throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
         }
 
-        // Успешный вход
         user.resetFailedLoginAttempts();
         userRepository.save(user);
 

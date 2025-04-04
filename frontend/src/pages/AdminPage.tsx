@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box,
     Button,
@@ -19,23 +19,17 @@ import {
     TablePagination,
     Tab,
     Tabs,
-    Select,
-    MenuItem,
-    FormControl,
-    InputLabel,
     List,
     ListItem,
     ListItemText,
     ListItemSecondaryAction,
     Typography,
-    FormGroup,
     FormControlLabel,
     Checkbox
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import { useAuth } from '../context/AuthContext';
-import api from '../api';
+import api from '../services/api';
 
 interface User {
     id: number;
@@ -46,14 +40,6 @@ interface User {
     blocked: boolean;
     emailVerified: boolean;
     blockReason?: string;
-}
-
-interface PageResponse<T> {
-    content: T[];
-    totalElements: number;
-    totalPages: number;
-    size: number;
-    number: number;
 }
 
 interface TabPanelProps {
@@ -80,10 +66,8 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const AdminPage = () => {
-    const { token } = useAuth();
     const [tabValue, setTabValue] = useState(0);
     const [users, setUsers] = useState<User[]>([]);
-    const [roles, setRoles] = useState<string[]>([]);
     const [whitelist, setWhitelist] = useState<string[]>([]);
     const [totalElements, setTotalElements] = useState(0);
     const [page, setPage] = useState(0);
@@ -101,10 +85,6 @@ const AdminPage = () => {
     });
     const [confirmAdminDialog, setConfirmAdminDialog] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
-    const [roleMapping] = useState({
-        'ROLE_USER': 'User',
-        'ROLE_ADMIN': 'Admin'
-    });
     const [confirmActionDialog, setConfirmActionDialog] = useState(false);
     const [confirmActionPassword, setConfirmActionPassword] = useState('');
     const [pendingAction, setPendingAction] = useState<{
@@ -112,25 +92,17 @@ const AdminPage = () => {
         data: any;
     } | null>(null);
 
-    const fetchRoles = async () => {
-        try {
-            const response = await api.get('/api/admin/roles');
-            setRoles(response.data);
-        } catch (error) {
-            console.error('Error fetching roles:', error);
-        }
-    };
-
     const fetchWhitelist = async () => {
         try {
             const response = await api.get('/api/admin/whitelist');
             setWhitelist(response.data);
         } catch (error) {
             console.error('Error fetching whitelist:', error);
+            alert('Failed to fetch whitelist. Please try again later.');
         }
     };
 
-    const fetchUsers = async () => {
+    const fetchUsers = useCallback(async () => {
         try {
             const response = await api.get('/api/admin/users', {
                 params: {
@@ -142,20 +114,23 @@ const AdminPage = () => {
             setTotalElements(response.data.totalElements);
         } catch (error) {
             console.error('Error fetching users:', error);
+            alert('Failed to fetch users. Please try again later.');
         }
-    };
+    }, [page, rowsPerPage]);
 
     useEffect(() => {
-        fetchRoles();
         fetchWhitelist();
-        fetchUsers();
     }, []);
 
-    const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
+    useEffect(() => {
+        fetchUsers();
+    }, [page, rowsPerPage, fetchUsers]);
+
+    const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
     };
 
-    const handleChangePage = (event: unknown, newPage: number) => {
+    const handleChangePage = (_event: unknown, newPage: number) => {
         setPage(newPage);
     };
 
@@ -227,7 +202,7 @@ const AdminPage = () => {
             setAdminPassword('');
         } catch (error) {
             console.error('Error verifying admin:', error);
-            alert('Неверный пароль администратора');
+            alert('Invalid admin password');
         }
     };
 
@@ -244,9 +219,14 @@ const AdminPage = () => {
                 handleCloseDialog();
                 fetchUsers();
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error saving user:', error);
-            alert(error.response?.data?.message || 'Ошибка при сохранении пользователя');
+            if (error instanceof Error && 'response' in error) {
+                const axiosError = error as { response?: { data?: { message?: string } } };
+                alert(axiosError.response?.data?.message || 'Error saving user');
+            } else {
+                alert('Error saving user');
+            }
         }
     };
 
@@ -303,8 +283,8 @@ const AdminPage = () => {
         <Box sx={{ width: '100%' }}>
             <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
                 <Tabs value={tabValue} onChange={handleTabChange}>
-                    <Tab label="Пользователи" />
-                    <Tab label="Белый список" />
+                    <Tab label="Users" />
+                    <Tab label="Whitelist" />
                 </Tabs>
             </Box>
 
@@ -314,7 +294,7 @@ const AdminPage = () => {
                         variant="contained"
                         onClick={() => handleOpenDialog()}
                     >
-                        Добавить пользователя
+                        Add user
                     </Button>
                 </Box>
 
@@ -323,11 +303,11 @@ const AdminPage = () => {
                         <TableHead>
                             <TableRow>
                                 <TableCell>ID</TableCell>
-                                <TableCell>Имя пользователя</TableCell>
+                                <TableCell>Username</TableCell>
                                 <TableCell>Email</TableCell>
-                                <TableCell>Роли</TableCell>
-                                <TableCell>Статус</TableCell>
-                                <TableCell>Действия</TableCell>
+                                <TableCell>Roles</TableCell>
+                                <TableCell>Status</TableCell>
+                                <TableCell>Actions</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -338,18 +318,18 @@ const AdminPage = () => {
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>{user.roles.join(', ')}</TableCell>
                                     <TableCell>
-                                        {user.blocked ? 'Заблокирован' : 
-                                         !user.enabled ? 'Отключен' :
-                                         !user.emailVerified ? 'Не подтвержден' :
-                                         'Активен'}
+                                        {user.blocked ? 'Blocked' : 
+                                         !user.enabled ? 'Disabled' :
+                                         !user.emailVerified ? 'Not verified' :
+                                         'Active'}
                                     </TableCell>
                                     <TableCell>
-                                        <Tooltip title="Редактировать">
+                                        <Tooltip title="Edit">
                                             <IconButton onClick={() => handleOpenDialog(user)}>
                                                 <EditIcon />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip title="Удалить">
+                                        <Tooltip title="Delete">
                                             <IconButton onClick={() => handleDelete(user.id)}>
                                                 <DeleteIcon />
                                             </IconButton>
@@ -409,12 +389,12 @@ const AdminPage = () => {
 
             <Dialog open={openDialog} onClose={handleCloseDialog}>
                 <DialogTitle>
-                    {selectedUser ? 'Редактировать пользователя' : 'Добавить пользователя'}
+                    {selectedUser ? 'Edit user' : 'Add user'}
                 </DialogTitle>
                 <DialogContent>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
                         <TextField
-                            label="Имя пользователя"
+                            label="Username"
                             value={formData.username}
                             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                             fullWidth
@@ -432,7 +412,7 @@ const AdminPage = () => {
                                     onChange={(e) => handleRoleChange(e.target.checked)}
                                 />
                             }
-                            label="Администратор"
+                            label="Admin"
                         />
                         <FormControlLabel
                             control={
@@ -445,11 +425,11 @@ const AdminPage = () => {
                                     })}
                                 />
                             }
-                            label="Заблокирован"
+                            label="Blocked"
                         />
                         {formData.blocked && (
                             <TextField
-                                label="Причина блокировки"
+                                label="Block reason"
                                 value={formData.blockReason}
                                 onChange={(e) => setFormData({ ...formData, blockReason: e.target.value })}
                                 fullWidth
@@ -462,7 +442,7 @@ const AdminPage = () => {
                 <DialogActions>
                     <Button onClick={handleCloseDialog}>Отмена</Button>
                     <Button onClick={handleSubmit} variant="contained">
-                        {selectedUser ? 'Сохранить' : 'Добавить'}
+                        {selectedUser ? 'Save' : 'Add'}
                     </Button>
                 </DialogActions>
             </Dialog>
@@ -476,7 +456,7 @@ const AdminPage = () => {
                         </Typography>
                         <TextField
                             type="password"
-                            label="Пароль администратора"
+                            label="Admin password"
                             value={adminPassword}
                             onChange={(e) => setAdminPassword(e.target.value)}
                             fullWidth
@@ -500,7 +480,7 @@ const AdminPage = () => {
                         </Typography>
                         <TextField
                             type="password"
-                            label="Пароль администратора"
+                            label="Admin password"
                             value={confirmActionPassword}
                             onChange={(e) => setConfirmActionPassword(e.target.value)}
                             fullWidth
