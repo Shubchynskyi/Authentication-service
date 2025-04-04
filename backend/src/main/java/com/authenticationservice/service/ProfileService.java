@@ -28,6 +28,7 @@ public class ProfileService {
         profileResponse.setEmail(user.getEmail());
         profileResponse.setName(user.getName());
         profileResponse.setRoles(user.getRoles().stream().map(Role::getName).toList());
+        profileResponse.setAuthProvider(user.getAuthProvider());
 
         return profileResponse;
     }

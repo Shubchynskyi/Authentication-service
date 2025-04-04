@@ -7,6 +7,7 @@ import {
     Typography,
     Paper,
     CircularProgress,
+    Alert,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { useProfile } from '../context/ProfileContext';
@@ -65,6 +66,8 @@ const EditProfilePage: React.FC = () => {
         );
     }
 
+    const isGoogleUser = profile?.authProvider === 'GOOGLE';
+
     return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
             <StyledPaper elevation={3}>
@@ -81,23 +84,32 @@ const EditProfilePage: React.FC = () => {
                         onChange={(e) => setName(e.target.value)}
                         required
                     />
-                    <TextField
-                        label="Current Password"
-                        fullWidth
-                        margin="normal"
-                        type="password"
-                        value={currentPassword}
-                        onChange={(e) => setCurrentPassword(e.target.value)}
-                        required={!!newPassword}
-                    />
-                    <TextField
-                        label="New Password (optional)"
-                        fullWidth
-                        margin="normal"
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                    />
+                    {isGoogleUser ? (
+                        <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
+                            Password change is not available for Google-authenticated accounts. 
+                            Please use Google account settings to manage your password.
+                        </Alert>
+                    ) : (
+                        <>
+                            <TextField
+                                label="Current Password"
+                                fullWidth
+                                margin="normal"
+                                type="password"
+                                value={currentPassword}
+                                onChange={(e) => setCurrentPassword(e.target.value)}
+                                required={!!newPassword}
+                            />
+                            <TextField
+                                label="New Password (optional)"
+                                fullWidth
+                                margin="normal"
+                                type="password"
+                                value={newPassword}
+                                onChange={(e) => setNewPassword(e.target.value)}
+                            />
+                        </>
+                    )}
                     <Button
                         type="submit"
                         variant="contained"

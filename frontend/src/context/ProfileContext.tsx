@@ -6,6 +6,7 @@ interface ProfileData {
     email: string;
     name: string;
     roles: string[];
+    authProvider: 'LOCAL' | 'GOOGLE';
 }
 
 interface UpdateProfileData {
