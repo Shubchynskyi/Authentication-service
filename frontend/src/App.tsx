@@ -8,6 +8,7 @@ import { ThemeProvider } from './context/ThemeContext';
 import AppRoutes from './routes';
 import NotificationContainer from './components/NotificationContainer';
 import Navbar from './components/Navbar';
+import './i18n/i18n';
 
 const App: React.FC = () => {
     return (

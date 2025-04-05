@@ -28,7 +28,16 @@
     "loginSuccess": "Вхід виконано успішно",
     "registerSuccess": "Реєстрація пройшла успішно",
     "verificationSuccess": "Email підтверджено",
-    "passwordResetSuccess": "Пароль успішно скинуто"
+    "passwordResetSuccess": "Пароль успішно скинуто",
+    "loginWithGoogle": "Увійти через Google",
+    "loginError": {
+      "invalidCredentials": "Невірні дані для входу",
+      "accountDisabled": "Обліковий запис відключено",
+      "accountBlocked": "Обліковий запис заблоковано",
+      "emailNotVerified": "Email не підтверджено",
+      "serverError": "Помилка сервера, спробуйте пізніше",
+      "networkError": "Помилка мережі, перевірте підключення"
+    }
   },
   "profile": {
     "title": "Профіль користувача",
@@ -46,6 +55,7 @@
     "invalidEmail": "Невірний формат email",
     "passwordMismatch": "Паролі не співпадають",
     "minLength": "Мінімальна довжина: {{count}} символів",
-    "serverError": "Помилка сервера, спробуйте пізніше"
+    "serverError": "Помилка сервера, спробуйте пізніше",
+    "networkError": "Помилка мережі, перевірте підключення"
   }
 } 

@@ -16,25 +16,35 @@
     "cancel": "Cancel",
     "submit": "Submit",
     "verification": "Verification",
-    "admin": "Admin",
+    "admin": "Administrator",
     "language": "Language"
   },
   "auth": {
     "loginTitle": "Sign In",
     "registerTitle": "Sign Up",
     "verificationTitle": "Email Verification",
-    "forgotPasswordTitle": "Forgot Password",
-    "resetPasswordTitle": "Reset Password",
-    "loginSuccess": "Logged in successfully",
-    "registerSuccess": "Registered successfully",
+    "forgotPasswordTitle": "Password Recovery",
+    "resetPasswordTitle": "Password Reset",
+    "loginSuccess": "Successfully logged in",
+    "registerSuccess": "Successfully registered",
     "verificationSuccess": "Email verified",
-    "passwordResetSuccess": "Password reset successfully"
+    "passwordResetSuccess": "Password successfully reset",
+    "loginWithGoogle": "Sign in with Google",
+    "loginError": {
+      "invalidCredentials": "Invalid login credentials",
+      "accountDisabled": "Account is disabled",
+      "accountBlocked": "Account is blocked",
+      "emailNotVerified": "Email is not verified",
+      "serverError": "Server error, please try again later",
+      "networkError": "Network error, check your connection"
+    }
   },
   "profile": {
     "title": "User Profile",
     "editTitle": "Edit Profile",
     "personalInfo": "Personal Information",
-    "accountSettings": "Account Settings"
+    "accountSettings": "Account Settings",
+    "googleAuthInfo": "Password change is not available for Google-authenticated accounts. Please use Google account settings to manage your password."
   },
   "admin": {
     "dashboard": "Dashboard",
@@ -46,6 +56,7 @@
     "invalidEmail": "Invalid email format",
     "passwordMismatch": "Passwords do not match",
     "minLength": "Minimum length: {{count}} characters",
-    "serverError": "Server error, please try again later"
+    "serverError": "Server error, please try again later",
+    "networkError": "Network error, check your connection"
   }
 } 

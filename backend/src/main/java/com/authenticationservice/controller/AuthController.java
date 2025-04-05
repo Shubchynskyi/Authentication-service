@@ -54,9 +54,14 @@ public class AuthController {
     }
 
     @PostMapping(ApiConstants.LOGIN_URL)
-    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest req) {
-        Map<String, String> tokens = authService.login(req);
-        return ResponseEntity.ok(tokens);
+    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+        try {
+            Map<String, String> tokens = authService.login(req);
+            return ResponseEntity.ok(tokens);
+        } catch (RuntimeException e) {
+            log.error("Login error for email: {}, error: {}", req.getEmail(), e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     @PostMapping(ApiConstants.REFRESH_URL)

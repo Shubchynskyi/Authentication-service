@@ -28,7 +28,16 @@
     "loginSuccess": "Вход выполнен успешно",
     "registerSuccess": "Регистрация прошла успешно",
     "verificationSuccess": "Email подтвержден",
-    "passwordResetSuccess": "Пароль успешно сброшен"
+    "passwordResetSuccess": "Пароль успешно сброшен",
+    "loginWithGoogle": "Войти через Google",
+    "loginError": {
+      "invalidCredentials": "Неверные данные для входа",
+      "accountDisabled": "Аккаунт отключен",
+      "accountBlocked": "Аккаунт заблокирован",
+      "emailNotVerified": "Email не подтвержден",
+      "serverError": "Ошибка сервера, попробуйте позже",
+      "networkError": "Ошибка сети, проверьте подключение"
+    }
   },
   "profile": {
     "title": "Профиль пользователя",
@@ -46,6 +55,7 @@
     "invalidEmail": "Неверный формат email",
     "passwordMismatch": "Пароли не совпадают",
     "minLength": "Минимальная длина: {{count}} символов",
-    "serverError": "Ошибка сервера, попробуйте позже"
+    "serverError": "Ошибка сервера, попробуйте позже",
+    "networkError": "Ошибка сети, проверьте подключение"
   }
 } 

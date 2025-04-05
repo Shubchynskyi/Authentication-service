@@ -22,7 +22,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const accessToken = localStorage.getItem('accessToken');
         const refreshToken = localStorage.getItem('refreshToken');
-        setIsAuthenticated(!!accessToken && !!refreshToken);
+        if (accessToken && refreshToken) {
+            api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+            setIsAuthenticated(true);
+        }
         setIsLoading(false);
     }, []);
 
@@ -34,15 +37,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 '/api/auth/login',
                 { email, password }
             );
-            localStorage.setItem('accessToken', response.data.accessToken);
-            localStorage.setItem('refreshToken', response.data.refreshToken);
+            const { accessToken, refreshToken } = response.data;
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             setIsAuthenticated(true);
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                if (error.response?.status === 401) {
-                    setError('Invalid email or password');
+                console.log('Auth error:', error.response?.data);
+                const errorData = error.response?.data;
+                if (typeof errorData === 'string') {
+                    setError(errorData);
+                } else if (errorData && typeof errorData.message === 'string') {
+                    setError(errorData.message);
                 } else {
-                    setError(error.response?.data.message || 'Login error');
+                    setError('Error	whileиloggingеinу');
                 }
             } else {
                 setError('Unexpected error');
@@ -56,6 +65,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = useCallback(() => {
         localStorage.removeItem('accessToken');
         localStorage.removeItem('refreshToken');
+        delete api.defaults.headers.common['Authorization'];
         setIsAuthenticated(false);
         window.location.href = '/login';
     }, []);
@@ -63,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const setTokens = useCallback((accessToken: string, refreshToken: string) => {
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
         setIsAuthenticated(true);
     }, []);
 

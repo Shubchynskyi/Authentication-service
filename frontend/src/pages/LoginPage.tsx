@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 import {
     Box,
     TextField,
@@ -7,145 +8,81 @@ import {
     Typography,
     Container,
     Grid,
-    Link,
     Alert,
 } from '@mui/material';
-import { useAuth } from '../context/AuthContext';
-import api from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const LoginPage = () => {
-    const { login } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
-    const [successMessage, setSuccessMessage] = useState('');
-    const [showVerification, setShowVerification] = useState(false);
-    const [verificationCode, setVerificationCode] = useState('');
-
-    useEffect(() => {
-        // Check for success message in location state
-        const message = location.state?.message;
-        if (message) {
-            setSuccessMessage(message);
-            // Clear the message from location state
-            window.history.replaceState({}, document.title);
-        }
-    }, [location]);
+    const [errorMsg, setErrorMsg] = useState('');
+    const { t } = useTranslation();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
-        
-        try {
-            await login(email, password);
-            navigate('/');
-        } catch (error: any) {
-            const errorMessage = error.response?.data || error.message;
-            
-            if (errorMessage.startsWith('EMAIL_NOT_VERIFIED:')) {
-                setShowVerification(true);
-            } else {
-                setError(errorMessage);
-            }
-        }
-    };
 
-    const handleVerification = async (e: React.FormEvent) => {
-        e.preventDefault();
         try {
-            await api.post('/api/auth/verify', {
+            const response = await axios.post('http://localhost:8080/api/auth/login', {
                 email,
-                verificationToken: verificationCode
+                password
             });
-            await login(email, password);
-            navigate('/');
+
+            if (response.data.accessToken && response.data.refreshToken) {
+                localStorage.setItem('accessToken', response.data.accessToken);
+                localStorage.setItem('refreshToken', response.data.refreshToken);
+                // redirect to home page for applying tokens    
+                window.location.href = '/';
+            }
         } catch (error: any) {
-            setError(error.response?.data || error.message);
+            console.error('Login error:', error);
+            setErrorMsg(t('auth.loginError.invalidCredentials'));
+            // NOT clear fields when error
         }
     };
 
-    if (showVerification) {
-        return (
-            <Container component="main" maxWidth="xs">
-                <Box sx={{
+    return (
+        <Container maxWidth="xs">
+            <Box
+                sx={{
                     marginTop: 8,
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                }}>
-                    <Typography component="h1" variant="h5">
-                        Подтверждение Email
-                    </Typography>
-                    <Box component="form" onSubmit={handleVerification} sx={{ mt: 1 }}>
-                        <TextField
-                            margin="normal"
-                            required
-                            fullWidth
-                            label="Confirmation code"
-                            value={verificationCode}
-                            onChange={(e) => setVerificationCode(e.target.value)}
-                            error={!!error}
-                            helperText={error}
-                        />
-                        <Button
-                            type="submit"
-                            fullWidth
-                            variant="contained"
-                            sx={{ mt: 3, mb: 2 }}
-                        >
-                            Подтвердить
-                        </Button>
-                    </Box>
-                </Box>
-            </Container>
-        );
-    }
-
-    return (
-        <Container component="main" maxWidth="xs">
-            <Box sx={{
-                marginTop: 8,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-            }}>
+                }}
+            >
                 <Typography component="h1" variant="h5">
-                    Вход
+                    {t('auth.loginTitle')}
                 </Typography>
-                {successMessage && (
-                    <Alert severity="success" sx={{ mt: 2, width: '100%' }}>
-                        {successMessage}
+                
+                {errorMsg && (
+                    <Alert severity="error" sx={{ mt: 2, mb: 2, width: '100%' }}>
+                        {errorMsg}
                     </Alert>
                 )}
-                {error && (
-                    <Alert severity="error" sx={{ mt: 2, width: '100%' }}>
-                        {error}
-                    </Alert>
-                )}
-                <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
+                
+                <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
                     <TextField
                         margin="normal"
                         required
                         fullWidth
-                        label="Email"
+                        label={t('common.email')}
+                        name="email"
                         autoComplete="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        error={!!error}
+                        error={!!errorMsg}
                     />
                     <TextField
                         margin="normal"
                         required
                         fullWidth
-                        label="Password"
+                        name="password"
+                        label={t('common.password')}
                         type="password"
                         autoComplete="current-password"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        error={!!error}
-                        helperText={error}
+                        error={!!errorMsg}
                     />
                     <Button
                         type="submit"
@@ -153,25 +90,27 @@ const LoginPage = () => {
                         variant="contained"
                         sx={{ mt: 3, mb: 2 }}
                     >
-                        Login
+                        {t('common.login')}
                     </Button>
+                    
                     <Button
                         fullWidth
                         variant="outlined"
                         sx={{ mb: 2 }}
                         onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
                     >
-                        Login with Google
+                        {t('auth.loginWithGoogle')}
                     </Button>
+                    
                     <Grid container>
                         <Grid item xs>
-                            <Link component={RouterLink} to="/forgot-password" variant="body2">
-                                Forgot password?
+                            <Link to="/forgot-password">
+                                {t('common.forgotPassword')}
                             </Link>
                         </Grid>
                         <Grid item>
-                            <Link component={RouterLink} to="/register" variant="body2">
-                                {"No account? Register"}
+                            <Link to="/register">
+                                {t('common.register')}
                             </Link>
                         </Grid>
                     </Grid>

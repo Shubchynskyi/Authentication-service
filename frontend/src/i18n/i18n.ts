@@ -15,6 +15,17 @@ export const availableLanguages = {
   de: 'Deutsch'
 };
 
+// Определяем язык браузера
+const getBrowserLanguage = () => {
+  const storedLanguage = localStorage.getItem('language');
+  if (storedLanguage && Object.keys(availableLanguages).includes(storedLanguage)) {
+    return storedLanguage;
+  }
+  
+  const browserLang = navigator.language.split('-')[0];
+  return Object.keys(availableLanguages).includes(browserLang) ? browserLang : 'en';
+};
+
 i18n
   .use(Backend)
   .use(LanguageDetector)
@@ -26,12 +37,14 @@ i18n
       uk: { translation: uk },
       de: { translation: de }
     },
+    lng: getBrowserLanguage(),
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false
     },
     detection: {
       order: ['localStorage', 'navigator'],
+      lookupLocalStorage: 'language',
       caches: ['localStorage'],
     },
   });

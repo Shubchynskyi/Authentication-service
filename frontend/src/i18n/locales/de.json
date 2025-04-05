@@ -17,7 +17,8 @@
     "submit": "Absenden",
     "verification": "Verifizierung",
     "admin": "Administrator",
-    "language": "Sprache"
+    "language": "Sprache",
+    "newPassword": "Neues Passwort"
   },
   "auth": {
     "loginTitle": "Anmelden",
@@ -28,13 +29,23 @@
     "loginSuccess": "Erfolgreich angemeldet",
     "registerSuccess": "Erfolgreich registriert",
     "verificationSuccess": "E-Mail verifiziert",
-    "passwordResetSuccess": "Passwort erfolgreich zurückgesetzt"
+    "passwordResetSuccess": "Passwort erfolgreich zurückgesetzt",
+    "loginWithGoogle": "Mit Google anmelden",
+    "loginError": {
+      "invalidCredentials": "Ungültige Anmeldedaten",
+      "accountDisabled": "Konto deaktiviert",
+      "accountBlocked": "Konto gesperrt",
+      "emailNotVerified": "E-Mail nicht verifiziert",
+      "serverError": "Serverfehler, bitte versuchen Sie es später erneut",
+      "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung"
+    }
   },
   "profile": {
     "title": "Benutzerprofil",
     "editTitle": "Profil bearbeiten",
     "personalInfo": "Persönliche Informationen",
-    "accountSettings": "Kontoeinstellungen"
+    "accountSettings": "Kontoeinstellungen",
+    "googleAuthInfo": "Die Passwortänderung ist für mit Google authentifizierte Konten nicht verfügbar. Bitte verwenden Sie die Google-Kontoeinstellungen, um Ihr Passwort zu verwalten."
   },
   "admin": {
     "dashboard": "Dashboard",
@@ -46,6 +57,7 @@
     "invalidEmail": "Ungültiges E-Mail-Format",
     "passwordMismatch": "Passwörter stimmen nicht überein",
     "minLength": "Mindestlänge: {{count}} Zeichen",
-    "serverError": "Serverfehler, bitte versuchen Sie es später erneut"
+    "serverError": "Serverfehler, bitte versuchen Sie es später erneut",
+    "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung"
   }
 } 
