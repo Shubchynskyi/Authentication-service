@@ -25,6 +25,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.List;
 import java.util.Map;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @RequiredArgsConstructor
@@ -64,17 +66,23 @@ public class SecurityConfig {
                 })
                 .oauth2Login(oauth2 -> oauth2
                     .successHandler((request, response, authentication) -> {
-                        OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-                        String email = oauth2User.getAttribute("email");
-                        String name = oauth2User.getAttribute("name");
-                        
-                        // Generate JWT tokens
-                        Map<String, String> tokens = authService.handleOAuth2Login(email, name);
-                        
-                        // Redirect to frontend with tokens
-                        response.sendRedirect(frontendUrl + "/oauth2/success?" + 
-                            "accessToken=" + tokens.get("accessToken") + 
-                            "&refreshToken=" + tokens.get("refreshToken"));
+                        try {
+                            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                            String email = oauth2User.getAttribute("email");
+                            String name = oauth2User.getAttribute("name");
+                            
+                            // Generate JWT tokens
+                            Map<String, String> tokens = authService.handleOAuth2Login(email, name);
+                            
+                            // Redirect to frontend with tokens
+                            response.sendRedirect(frontendUrl + "/oauth2/success?" + 
+                                "accessToken=" + tokens.get("accessToken") + 
+                                "&refreshToken=" + tokens.get("refreshToken"));
+                        } catch (Exception e) {
+                            // Redirect to frontend with error
+                            response.sendRedirect(frontendUrl + "/oauth2/success?error=" + 
+                                URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+                        }
                     })
                 )
                 .httpBasic(Customizer.withDefaults());

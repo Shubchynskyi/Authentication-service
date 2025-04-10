@@ -276,6 +276,15 @@ public class AuthService {
                     return userRepository.save(newUser);
                 });
 
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
+        }
+
+        if (user.isBlocked()) {
+            throw new RuntimeException("Account is blocked. " + 
+                (user.getBlockReason() != null ? user.getBlockReason() : ""));
+        }
+
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 

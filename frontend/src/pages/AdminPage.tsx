@@ -212,21 +212,25 @@ const AdminPage = () => {
                 ? `/api/admin/users/${selectedUser.id}`
                 : '/api/admin/users';
             
+            const requestData = {
+                username: formData.username,
+                email: formData.email,
+                roles: formData.roles,
+                isAktiv: true,
+                isBlocked: formData.blocked,
+                blockReason: formData.blocked ? formData.blockReason : null
+            };
+            
             const method = selectedUser ? 'put' : 'post';
-            const response = await api[method](url, formData);
+            const response = await api[method](url, requestData);
 
             if (response.status === 200 || response.status === 201) {
                 handleCloseDialog();
                 fetchUsers();
             }
-        } catch (error: unknown) {
+        } catch (error) {
             console.error('Error saving user:', error);
-            if (error instanceof Error && 'response' in error) {
-                const axiosError = error as { response?: { data?: { message?: string } } };
-                alert(axiosError.response?.data?.message || 'Error saving user');
-            } else {
-                alert('Error saving user');
-            }
+            alert('Error saving user');
         }
     };
 
@@ -392,57 +396,62 @@ const AdminPage = () => {
                     {selectedUser ? 'Edit user' : 'Add user'}
                 </DialogTitle>
                 <DialogContent>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
-                        <TextField
-                            label="Username"
-                            value={formData.username}
-                            onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                            fullWidth
-                        />
-                        <TextField
-                            label="Email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            fullWidth
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={formData.roles.includes('ROLE_ADMIN')}
-                                    onChange={(e) => handleRoleChange(e.target.checked)}
-                                />
-                            }
-                            label="Admin"
-                        />
-                        <FormControlLabel
-                            control={
-                                <Checkbox
-                                    checked={formData.blocked}
-                                    onChange={(e) => setFormData({ 
-                                        ...formData, 
-                                        blocked: e.target.checked,
-                                        blockReason: e.target.checked ? formData.blockReason : ''
-                                    })}
-                                />
-                            }
-                            label="Blocked"
-                        />
-                        {formData.blocked && (
-                            <TextField
-                                label="Block reason"
-                                value={formData.blockReason}
-                                onChange={(e) => setFormData({ ...formData, blockReason: e.target.value })}
-                                fullWidth
-                                multiline
-                                rows={2}
+                    <TextField
+                        margin="normal"
+                        fullWidth
+                        label="Username"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                    />
+                    <TextField
+                        margin="normal"
+                        fullWidth
+                        label="Email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={formData.roles.includes('ROLE_ADMIN')}
+                                onChange={(e) => handleRoleChange(e.target.checked)}
                             />
-                        )}
-                    </Box>
+                        }
+                        label="Admin"
+                    />
+                    <FormControlLabel
+                        control={
+                            <Checkbox
+                                checked={formData.blocked}
+                                onChange={(e) => setFormData({ 
+                                    ...formData, 
+                                    blocked: e.target.checked,
+                                    blockReason: e.target.checked ? formData.blockReason : ''
+                                })}
+                            />
+                        }
+                        label="Blocked"
+                    />
+                    {formData.blocked && (
+                        <TextField
+                            margin="normal"
+                            fullWidth
+                            label="Block Reason"
+                            value={formData.blockReason}
+                            onChange={(e) => setFormData({ ...formData, blockReason: e.target.value })}
+                            required
+                            error={formData.blocked && !formData.blockReason}
+                            helperText={formData.blocked && !formData.blockReason ? "Block reason is required" : ""}
+                        />
+                    )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseDialog}>Отмена</Button>
-                    <Button onClick={handleSubmit} variant="contained">
-                        {selectedUser ? 'Save' : 'Add'}
+                    <Button onClick={handleCloseDialog}>Cancel</Button>
+                    <Button 
+                        onClick={handleSubmit}
+                        disabled={formData.blocked && !formData.blockReason}
+                    >
+                        Save
                     </Button>
                 </DialogActions>
             </Dialog>
