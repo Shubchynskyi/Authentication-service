@@ -115,15 +115,6 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
-        if (!user.isEnabled()) {
-            throw new RuntimeException("Account is disabled");
-        }
-
-        if (user.isBlocked()) {
-            throw new RuntimeException("Account is blocked. " + 
-                (user.getBlockReason() != null ? user.getBlockReason() : ""));
-        }
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             user.incrementFailedLoginAttempts();
             userRepository.save(user);
@@ -139,6 +130,15 @@ public class AuthService {
             }
 
             throw new RuntimeException(SecurityConstants.INVALID_PASSWORD_ERROR);
+        }
+
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
+        }
+
+        if (user.isBlocked()) {
+            throw new RuntimeException("Account is blocked. " + 
+                (user.getBlockReason() != null ? user.getBlockReason() : ""));
         }
 
         if (!user.isEmailVerified()) {

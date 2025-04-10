@@ -17,7 +17,9 @@ const OAuth2RedirectHandler = () => {
         if (error) {
             let errorMessage = t('auth.loginError.generalError');
             if (error.includes('Account is blocked')) {
-                errorMessage = t('auth.loginError.accountBlocked');
+                const blockReason = error.split('Account is blocked.')[1]?.trim();
+                errorMessage = t('auth.loginError.accountBlocked') + 
+                    (blockReason ? `: ${blockReason}` : '');
             } else if (error.includes('Account is disabled')) {
                 errorMessage = t('auth.loginError.accountDisabled');
             }

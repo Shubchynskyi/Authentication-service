@@ -43,12 +43,13 @@ const LoginPage = () => {
         } catch (error: any) {
             console.error('Login error:', error);
             if (error.response?.data) {
-                // Преобразуем сообщения об ошибках в локализованные
                 const errorMessage = error.response.data;
                 if (errorMessage.includes('User not found') || errorMessage.includes('Incorrect password')) {
                     setErrorMsg(t('auth.loginError.invalidCredentials'));
                 } else if (errorMessage.includes('Account is blocked')) {
-                    setErrorMsg(t('auth.loginError.accountBlocked'));
+                    const blockReason = errorMessage.split('Account is blocked.')[1]?.trim();
+                    setErrorMsg(t('auth.loginError.accountBlocked') + 
+                        (blockReason ? `: ${blockReason}` : ''));
                 } else if (errorMessage.includes('Email not verified')) {
                     setErrorMsg(t('auth.loginError.emailNotVerified'));
                 } else {
