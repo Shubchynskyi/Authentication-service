@@ -35,12 +35,13 @@ public class AdminInitializationService {
             return;
         }
 
-        if (adminConfig.getEmail() == null || adminConfig.getEmail().isEmpty()) {
+        String adminEmail = adminConfig.getEmail();
+        if (adminEmail == null || adminEmail.isEmpty()) {
             log.warn("Admin email not configured. Skipping admin initialization.");
             return;
         }
 
-        User existingUser = userRepository.findByEmail(adminConfig.getEmail())
+        User existingUser = userRepository.findByEmail(adminEmail)
             .orElse(null);
 
         if (existingUser != null) {
@@ -52,12 +53,12 @@ public class AdminInitializationService {
                     .orElseThrow(() -> new RuntimeException("Admin role not found"));
                 existingUser.getRoles().add(adminRole);
                 userRepository.save(existingUser);
-                log.info("Added admin role to existing user: {}", adminConfig.getEmail());
+                log.info("Added admin role to existing user: {}", adminEmail);
             }
         } else {
             String tempPassword = UUID.randomUUID().toString();
             User newAdmin = new User();
-            newAdmin.setEmail(adminConfig.getEmail());
+            newAdmin.setEmail(adminEmail);
             newAdmin.setName(adminConfig.getUsername());
             newAdmin.setPassword(tempPassword);
             newAdmin.setEnabled(true);
@@ -69,21 +70,21 @@ public class AdminInitializationService {
 
             userRepository.save(newAdmin);
 
-            String resetToken = authService.generatePasswordResetToken(newAdmin.getEmail());
+            String resetToken = authService.generatePasswordResetToken(adminEmail);
             String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
             
             String emailContent = String.format(
-                "Welcome to the system! To set the password, please follow the link: %s",
+                "Welcome to the system! To set your password, please follow the link: %s",
                 resetLink
             );
 
             emailService.sendEmail(
-                newAdmin.getEmail(),
+                adminEmail,
                 "Setup password administrator",
                 emailContent
             );
 
-            log.info("Created new admin user and sent setup email to: {}", adminConfig.getEmail());
+            log.info("Created new admin user and sent setup email to: {}", adminEmail);
         }
     }
 } 

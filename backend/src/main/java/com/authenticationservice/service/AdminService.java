@@ -45,7 +45,7 @@ public class AdminService {
 
     public void addToWhitelist(String email) {
         if (allowedEmailRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email already in whitelist");
+            throw new RuntimeException("Email already exists in whitelist");
         }
         AllowedEmail allowedEmail = new AllowedEmail(email);
         allowedEmailRepository.save(allowedEmail);

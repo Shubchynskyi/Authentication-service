@@ -42,7 +42,7 @@ public class AuthService {
     @Value("${frontend.url}")
     private String frontendUrl;
     
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final BCryptPasswordEncoder passwordEncoder;
 
     public void register(RegistrationRequest request) {
         log.info("Starting registration process for email: {}", request.getEmail());
@@ -255,6 +255,11 @@ public class AuthService {
         userRepository.save(user);
 
         return token;
+    }
+
+    @Transactional(readOnly = true)
+    public String generateRandomPassword() {
+        return UUID.randomUUID().toString().substring(0, 12);
     }
 
     @Transactional
