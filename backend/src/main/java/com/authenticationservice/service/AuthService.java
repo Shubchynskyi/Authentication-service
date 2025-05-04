@@ -4,7 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,11 +38,10 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final JavaMailSender mailSender;
     private final EmailService emailService;
-    
+    private final PasswordEncoder passwordEncoder;
+
     @Value("${frontend.url}")
     private String frontendUrl;
-    
-    private final BCryptPasswordEncoder passwordEncoder;
 
     public void register(RegistrationRequest request) {
         log.info("Starting registration process for email: {}", request.getEmail());

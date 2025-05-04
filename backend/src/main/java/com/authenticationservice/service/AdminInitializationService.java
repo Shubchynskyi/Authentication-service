@@ -3,6 +3,8 @@ package com.authenticationservice.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.crypto.password.PasswordEncoder;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -24,6 +26,7 @@ public class AdminInitializationService {
     private final RoleRepository roleRepository;
     private final EmailService emailService;
     private final AuthService authService;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -42,49 +45,49 @@ public class AdminInitializationService {
         }
 
         User existingUser = userRepository.findByEmail(adminEmail)
-            .orElse(null);
+                .orElse(null);
 
         if (existingUser != null) {
             boolean isAdmin = existingUser.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
+                    .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
 
             if (!isAdmin) {
                 Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                    .orElseThrow(() -> new RuntimeException("Admin role not found"));
+                        .orElseThrow(() -> new RuntimeException("Admin role not found"));
                 existingUser.getRoles().add(adminRole);
                 userRepository.save(existingUser);
                 log.info("Added admin role to existing user: {}", adminEmail);
             }
         } else {
+            Role adminRole = roleRepository.findByName("ROLE_ADMIN")
+                    .orElseThrow(() -> new RuntimeException("Admin role not found"));
+
             String tempPassword = UUID.randomUUID().toString();
+            String encodedPassword = passwordEncoder.encode(tempPassword);
+
             User newAdmin = new User();
             newAdmin.setEmail(adminEmail);
             newAdmin.setName(adminConfig.getUsername());
-            newAdmin.setPassword(tempPassword);
+            newAdmin.setPassword(encodedPassword);
             newAdmin.setEnabled(true);
             newAdmin.setEmailVerified(true);
-
-            Role adminRole = roleRepository.findByName("ROLE_ADMIN")
-                .orElseThrow(() -> new RuntimeException("Admin role not found"));
             newAdmin.getRoles().add(adminRole);
 
             userRepository.save(newAdmin);
 
             String resetToken = authService.generatePasswordResetToken(adminEmail);
             String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
-            
+
             String emailContent = String.format(
-                "Welcome to the system! To set your password, please follow the link: %s",
-                resetLink
-            );
+                    "Welcome to the system! To set your password, please follow the link: %s",
+                    resetLink);
 
             emailService.sendEmail(
-                adminEmail,
-                "Setup password administrator",
-                emailContent
-            );
+                    adminEmail,
+                    "Setup password administrator",
+                    emailContent);
 
             log.info("Created new admin user and sent setup email to: {}", adminEmail);
         }
     }
-} 
+}

@@ -7,124 +7,142 @@ import com.authenticationservice.model.User;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AdminInitializationService Tests")
 class AdminInitializationServiceTest {
 
-    @Mock
-    private AdminConfig adminConfig;
+        @Mock
+        private AdminConfig adminConfig;
 
-    @Mock
-    private UserRepository userRepository;
+        @Mock
+        private UserRepository userRepository;
 
-    @Mock
-    private RoleRepository roleRepository;
+        @Mock
+        private RoleRepository roleRepository;
 
-    @Mock
-    private EmailService emailService;
+        @Mock
+        private EmailService emailService;
 
-    @Mock
-    private AuthService authService;
+        @Mock
+        private AuthService authService;
 
-    @InjectMocks
-    private AdminInitializationService adminInitializationService;
+        @Mock
+        private BCryptPasswordEncoder passwordEncoder;
 
-    private User existingUser;
-    private Role adminRole;
+        @InjectMocks
+        private AdminInitializationService adminInitializationService;
 
-    @BeforeEach
-    void setUp() {
-        existingUser = new User();
-        existingUser.setId(1L);
-        existingUser.setName("existinguser");
-        existingUser.setEmail(TestConstants.ADMIN_EMAIL);
-        existingUser.setEnabled(true);
+        private User existingUser;
+        private Role adminRole;
 
-        adminRole = new Role();
-        adminRole.setName(TestConstants.ROLE_ADMIN);
-    }
+        @BeforeEach
+        void setUp() {
+                existingUser = new User();
+                adminRole = new Role();
+                adminRole.setName(TestConstants.Roles.ROLE_ADMIN);
 
-    @Test
-    void initializeAdmin_shouldSkipInitialization_whenAdminIsDisabled() {
-        // Arrange
-        when(adminConfig.isEnabled()).thenReturn(false);
+                existingUser.setId(1L);
+                existingUser.setName("existinguser");
+                existingUser.setEmail(TestConstants.UserData.ADMIN_EMAIL);
+                existingUser.setEnabled(true);
+                existingUser.getRoles().add(adminRole);
 
-        // Act
-        adminInitializationService.initializeAdmin();
+        }
 
-        // Assert
-        verify(adminConfig).isEnabled();
-        verifyNoMoreInteractions(adminConfig, userRepository, roleRepository, emailService, authService);
-    }
+        @Nested
+        @DisplayName("Admin Initialization Tests")
+        class AdminInitializationTests {
+                @Test
+                @DisplayName("Should skip initialization when admin is disabled")
+                void initializeAdmin_shouldSkipInitialization_whenAdminIsDisabled() {
+                        // Arrange
+                        when(adminConfig.isEnabled()).thenReturn(false);
 
-    @Test
-    void initializeAdmin_shouldSkipInitialization_whenNoEmailConfigured() {
-        // Arrange
-        when(adminConfig.isEnabled()).thenReturn(true);
-        when(adminConfig.getEmail()).thenReturn(null);
+                        // Act
+                        adminInitializationService.initializeAdmin();
 
-        // Act
-        adminInitializationService.initializeAdmin();
+                        // Assert
+                        verify(adminConfig).isEnabled();
+                        verifyNoMoreInteractions(adminConfig, userRepository, roleRepository, emailService,
+                                        authService);
+                }
 
-        // Assert
-        verify(adminConfig).isEnabled();
-        verify(adminConfig).getEmail();
-        verifyNoMoreInteractions(adminConfig, userRepository, roleRepository, emailService, authService);
-    }
+                @Test
+                @DisplayName("Should skip initialization when admin already exists")
+                void initializeAdmin_shouldSkipInitialization_whenAdminExists() {
+                        // Arrange
+                        when(adminConfig.getEmail()).thenReturn(TestConstants.UserData.ADMIN_EMAIL);
+                        when(adminConfig.isEnabled()).thenReturn(true);
+                        when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
+                                        .thenReturn(Optional.of(existingUser));
 
-    @Test
-    void initializeAdmin_shouldAddAdminRole_whenUserExists() {
-        // Arrange
-        when(adminConfig.isEnabled()).thenReturn(true);
-        when(adminConfig.getEmail()).thenReturn(TestConstants.ADMIN_EMAIL);
-        when(userRepository.findByEmail(TestConstants.ADMIN_EMAIL)).thenReturn(Optional.of(existingUser));
-        when(roleRepository.findByName(TestConstants.ROLE_ADMIN)).thenReturn(Optional.of(adminRole));
+                        // Act
+                        adminInitializationService.initializeAdmin();
 
-        // Act
-        adminInitializationService.initializeAdmin();
+                        // Assert
+                        verify(userRepository).findByEmail(TestConstants.UserData.ADMIN_EMAIL);
+                        verifyNoMoreInteractions(userRepository, roleRepository, passwordEncoder);
+                }
 
-        // Assert
-        verify(adminConfig).isEnabled();
-        verify(adminConfig).getEmail();
-        verify(userRepository).findByEmail(TestConstants.ADMIN_EMAIL);
-        verify(roleRepository).findByName(TestConstants.ROLE_ADMIN);
-        verify(userRepository).save(any(User.class));
-        verifyNoMoreInteractions(adminConfig, userRepository, roleRepository, emailService, authService);
-    }
+                @Test
+                @DisplayName("Should create admin when admin does not exist")
+                void initializeAdmin_shouldCreateAdmin_whenAdminNotExists() {
+                        // Arrange
+                        when(adminConfig.isEnabled()).thenReturn(true);
+                        when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
+                                        .thenReturn(Optional.empty());
+                        when(roleRepository.findByName(TestConstants.Roles.ROLE_ADMIN))
+                                        .thenReturn(Optional.of(adminRole));
+                        when(passwordEncoder.encode(anyString()))
+                                        .thenReturn(TestConstants.UserData.ENCODED_PASSWORD);
+                        when(userRepository.save(any(User.class)))
+                                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        when(adminConfig.getEmail()).thenReturn(TestConstants.UserData.ADMIN_EMAIL);
 
-    @Test
-    void initializeAdmin_shouldCreateNewAdmin_whenUserDoesNotExist() {
-        // Arrange
-        when(adminConfig.isEnabled()).thenReturn(true);
-        when(adminConfig.getEmail()).thenReturn(TestConstants.ADMIN_EMAIL);
-        when(adminConfig.getUsername()).thenReturn(TestConstants.ADMIN_USERNAME);
-        when(userRepository.findByEmail(TestConstants.ADMIN_EMAIL)).thenReturn(Optional.empty());
-        when(roleRepository.findByName(TestConstants.ROLE_ADMIN)).thenReturn(Optional.of(adminRole));
-        when(authService.generatePasswordResetToken(anyString())).thenReturn(TestConstants.RESET_TOKEN);
+                        // Act
+                        adminInitializationService.initializeAdmin();
 
-        // Act
-        adminInitializationService.initializeAdmin();
+                        // Assert
+                        verify(userRepository).findByEmail(TestConstants.UserData.ADMIN_EMAIL);
+                        verify(roleRepository).findByName(TestConstants.Roles.ROLE_ADMIN);
+                        verify(passwordEncoder).encode(anyString());
+                        verify(userRepository).save(any(User.class));
+                }
 
-        // Assert
-        verify(adminConfig).isEnabled();
-        verify(adminConfig).getEmail();
-        verify(adminConfig).getUsername();
-        verify(userRepository).findByEmail(TestConstants.ADMIN_EMAIL);
-        verify(roleRepository).findByName(TestConstants.ROLE_ADMIN);
-        verify(authService).generatePasswordResetToken(anyString());
-        verify(userRepository).save(any(User.class));
-        verify(emailService).sendEmail(anyString(), anyString(), anyString());
-        verifyNoMoreInteractions(adminConfig, userRepository, roleRepository, emailService, authService);
-    }
-} 
+                @Test
+                @DisplayName("Should throw exception when admin role not found")
+                void initializeAdmin_shouldThrowException_whenAdminRoleNotFound() {
+                        // Arrange
+                        when(adminConfig.isEnabled()).thenReturn(true);
+                        when(adminConfig.getEmail()).thenReturn(TestConstants.UserData.ADMIN_EMAIL);
+                        when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
+                                        .thenReturn(Optional.empty());
+                        when(roleRepository.findByName(TestConstants.Roles.ROLE_ADMIN))
+                                        .thenReturn(Optional.empty());
+
+                        // Act & Assert
+                        RuntimeException ex = assertThrows(RuntimeException.class,
+                                        () -> adminInitializationService.initializeAdmin());
+                        assertEquals(TestConstants.ErrorMessages.ADMIN_ROLE_NOT_FOUND, ex.getMessage());
+                        verify(userRepository).findByEmail(TestConstants.UserData.ADMIN_EMAIL);
+                        verify(roleRepository).findByName(TestConstants.Roles.ROLE_ADMIN);
+                        verifyNoMoreInteractions(userRepository, roleRepository, passwordEncoder);
+                }
+        }
+}

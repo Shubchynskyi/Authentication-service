@@ -10,6 +10,8 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -29,6 +31,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@DisplayName("AdminService Tests")
 class AdminServiceTest {
 
     @Mock
@@ -70,398 +73,435 @@ class AdminServiceTest {
         updateRequest = createUpdateRequest();
 
         // Setup service configuration
-        ReflectionTestUtils.setField(adminService, "frontendUrl", TestConstants.FRONTEND_URL);
+        ReflectionTestUtils.setField(adminService, "frontendUrl", TestConstants.Urls.FRONTEND_URL);
     }
 
-    // ************** User Management Tests **************
+    @Nested
+    @DisplayName("User Management Tests")
+    class UserManagementTests {
+        @Test
+        @DisplayName("Should return page of users when admin is authenticated")
+        void getAllUsers_shouldReturnPageOfUsers_whenAdminAuthenticated() {
+            // Arrange
+            setupAdminAuthentication();
+            Page<User> userPage = new PageImpl<>(Collections.singletonList(testUser));
+            when(userRepository.findByEmailNot(anyString(), any(Pageable.class)))
+                    .thenReturn(userPage);
 
-    @Test
-    void getAllUsers_shouldReturnPageOfUsers_whenAdminAuthenticated() {
-        // Arrange
-        setupAdminAuthentication();
-        Page<User> userPage = new PageImpl<>(Collections.singletonList(testUser));
-        when(userRepository.findByEmailNot(anyString(), any(Pageable.class)))
-                .thenReturn(userPage);
+            // Act
+            Page<UserDTO> users = adminService.getAllUsers(mock(Pageable.class), null);
 
-        // Act
-        Page<UserDTO> users = adminService.getAllUsers(mock(Pageable.class), null);
+            // Assert
+            assertNotNull(users);
+            assertEquals(1, users.getTotalElements());
+            assertEquals(testUser.getName(), users.getContent().get(0).getUsername());
+            verify(userRepository).findByEmailNot(anyString(), any(Pageable.class));
+        }
 
-        // Assert
-        assertNotNull(users);
-        assertEquals(1, users.getTotalElements());
-        assertEquals(testUser.getName(), users.getContent().get(0).getUsername());
-        verify(userRepository).findByEmailNot(anyString(), any(Pageable.class));
+        @Test
+        @DisplayName("Should update user when user exists")
+        void updateUser_shouldUpdateUser_whenUserExists() {
+            // Arrange
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class)))
+                    .thenAnswer(invocation -> {
+                        User savedUser = invocation.getArgument(0);
+                        testUser.setBlocked(savedUser.isBlocked());
+                        testUser.setBlockReason(savedUser.getBlockReason());
+                        testUser.setEnabled(savedUser.isEnabled());
+                        return testUser;
+                    });
+
+            // Act
+            UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+
+            // Assert
+            assertNotNull(updatedUser);
+            assertEquals(TestConstants.UserData.TEST_USERNAME, updatedUser.getUsername());
+            assertEquals(TestConstants.UserData.TEST_EMAIL, updatedUser.getEmail());
+            assertTrue(updatedUser.isEnabled());
+            assertFalse(updatedUser.isBlocked());
+            assertNull(updatedUser.getBlockReason());
+            verify(userRepository).findById(1L);
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when user not found")
+        void updateUser_shouldThrowException_whenUserNotFound() {
+            // Arrange
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> adminService.updateUser(1L, updateRequest));
+            verify(userRepository).findById(1L);
+        }
+
+        @Test
+        @DisplayName("Should block user when block requested")
+        void updateUser_shouldBlockUser_whenBlockRequested() {
+            // Arrange
+            updateRequest.setIsBlocked(true);
+            updateRequest.setBlockReason("Test block reason");
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class)))
+                    .thenReturn(testUser);
+
+            // Act
+            UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+
+            // Assert
+            assertNotNull(updatedUser);
+            assertTrue(updatedUser.isBlocked());
+            assertEquals("Test block reason", updatedUser.getBlockReason());
+            verify(userRepository).findById(1L);
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should unblock user when unblock requested")
+        void updateUser_shouldUnblockUser_whenUnblockRequested() {
+            // Arrange
+            testUser.setBlocked(true);
+            testUser.setBlockReason("Previous reason");
+            updateRequest.setIsBlocked(false);
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class)))
+                    .thenReturn(testUser);
+
+            // Act
+            UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+
+            // Assert
+            assertNotNull(updatedUser);
+            assertFalse(updatedUser.isBlocked());
+            assertNull(updatedUser.getBlockReason());
+            verify(userRepository).findById(1L);
+            verify(userRepository).save(any(User.class));
+        }
+
+        @Test
+        @DisplayName("Should throw exception when admin tries to block self")
+        void updateUser_shouldThrowException_whenAdminTriesToBlockSelf() {
+            // Arrange
+            Role adminRole = createAdminRole();
+            testUser.setEmail(TestConstants.UserData.ADMIN_EMAIL);
+            testUser.setRoles(Set.of(adminRole));
+            updateRequest.setIsBlocked(true);
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.of(testUser));
+
+            // Act & Assert
+            assertThrows(RuntimeException.class, () -> adminService.updateUser(1L, updateRequest));
+            verify(userRepository).findById(1L);
+        }
     }
 
-    @Test
-    void updateUser_shouldUpdateUser_whenUserExists() {
-        // Arrange
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> {
-                    User savedUser = invocation.getArgument(0);
-                    testUser.setBlocked(savedUser.isBlocked());
-                    testUser.setBlockReason(savedUser.getBlockReason());
-                    testUser.setEnabled(savedUser.isEnabled());
-                    return testUser;
-                });
+    @Nested
+    @DisplayName("Whitelist Management Tests")
+    class WhitelistManagementTests {
+        @Test
+        @DisplayName("Should succeed when adding new email to whitelist")
+        void addToWhitelist_shouldSucceed_whenEmailNotExists() {
+            // Arrange
+            String email = "newwhitelist@example.com";
+            when(allowedEmailRepository.findByEmail(email))
+                    .thenReturn(Optional.empty());
+            when(allowedEmailRepository.save(any(AllowedEmail.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
 
-        // Act
-        UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+            // Act & Assert
+            assertDoesNotThrow(() -> adminService.addToWhitelist(email));
+            verify(allowedEmailRepository).save(any(AllowedEmail.class));
+        }
 
-        // Assert
-        assertNotNull(updatedUser);
-        assertEquals(TestConstants.TEST_USERNAME, updatedUser.getUsername());
-        assertEquals(TestConstants.TEST_EMAIL, updatedUser.getEmail());
-        assertTrue(updatedUser.isEnabled());
-        assertFalse(updatedUser.isBlocked());
-        assertNull(updatedUser.getBlockReason());
-        verify(userRepository).findById(1L);
-        verify(userRepository).save(any(User.class));
+        @Test
+        @DisplayName("Should throw exception when email already exists in whitelist")
+        void addToWhitelist_shouldThrowException_whenEmailAlreadyExists() {
+            // Arrange
+            String email = "existing@example.com";
+            AllowedEmail existing = new AllowedEmail(email);
+            when(allowedEmailRepository.findByEmail(email))
+                    .thenReturn(Optional.of(existing));
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.addToWhitelist(email));
+            assertEquals(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST, ex.getMessage());
+        }
+
+        @Test
+        @DisplayName("Should succeed when removing email from whitelist")
+        void removeFromWhitelist_shouldSucceed_whenEmailExists() {
+            // Arrange
+            String email = "remove@example.com";
+            AllowedEmail existing = new AllowedEmail(email);
+            when(allowedEmailRepository.findByEmail(email))
+                    .thenReturn(Optional.of(existing));
+            doNothing().when(allowedEmailRepository).delete(existing);
+
+            // Act & Assert
+            assertDoesNotThrow(() -> adminService.removeFromWhitelist(email));
+            verify(allowedEmailRepository).delete(existing);
+        }
+
+        @Test
+        @DisplayName("Should throw exception when email not found in whitelist")
+        void removeFromWhitelist_shouldThrowException_whenEmailNotFound() {
+            // Arrange
+            String email = "notfound@example.com";
+            when(allowedEmailRepository.findByEmail(email))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.removeFromWhitelist(email));
+            assertEquals(TestConstants.ErrorMessages.EMAIL_NOT_IN_WHITELIST, ex.getMessage());
+        }
     }
 
-    @Test
-    void updateUser_shouldThrowException_whenUserNotFound() {
-        // Arrange
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.empty());
+    @Nested
+    @DisplayName("User Retrieval Tests")
+    class UserRetrievalTests {
+        @Test
+        @DisplayName("Should return user when user exists")
+        void getUserById_shouldReturnUser_whenUserExists() {
+            // Arrange
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.of(testUser));
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> adminService.updateUser(1L, updateRequest));
-        verify(userRepository).findById(1L);
+            // Act
+            UserDTO userDTO = adminService.getUserById(1L);
+
+            // Assert
+            assertNotNull(userDTO);
+            assertEquals(testUser.getEmail(), userDTO.getEmail());
+        }
+
+        @Test
+        @DisplayName("Should throw exception when user not found")
+        void getUserById_shouldThrowException_whenUserNotFound() {
+            // Arrange
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.getUserById(1L));
+            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND, ex.getMessage());
+        }
     }
 
-    @Test
-    void updateUser_shouldBlockUser_whenBlockRequested() {
-        // Arrange
-        updateRequest.setIsBlocked(true);
-        updateRequest.setBlockReason("Test block reason");
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class)))
-                .thenReturn(testUser);
+    @Nested
+    @DisplayName("User Creation Tests")
+    class UserCreationTests {
+        @Test
+        @DisplayName("Should succeed when all data is valid")
+        void createUser_shouldSucceed_whenAllDataValid() {
+            // Arrange
+            AdminUpdateUserRequest request = createUserCreationRequest();
+            when(userRepository.existsByEmail(request.getEmail()))
+                    .thenReturn(false);
+            when(roleRepository.findByName(TestConstants.Roles.ROLE_USER))
+                    .thenReturn(Optional.of(userRole));
+            when(passwordEncoder.encode(anyString()))
+                    .thenReturn(TestConstants.UserData.ENCODED_PASSWORD);
+            when(userRepository.save(any(User.class)))
+                    .thenAnswer(invocation -> {
+                        User u = invocation.getArgument(0);
+                        u.setId(2L);
+                        return u;
+                    });
+            doNothing().when(emailService)
+                    .sendEmail(anyString(), anyString(), anyString());
 
-        // Act
-        UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+            // Act & Assert
+            assertDoesNotThrow(() -> adminService.createUser(request));
+            verify(userRepository).save(any(User.class));
+            verify(emailService).sendEmail(eq("create@example.com"), anyString(), 
+                contains("Your temporary password:"));
+        }
 
-        // Assert
-        assertNotNull(updatedUser);
-        assertTrue(updatedUser.isBlocked());
-        assertEquals("Test block reason", updatedUser.getBlockReason());
-        verify(userRepository).findById(1L);
-        verify(userRepository).save(any(User.class));
+        @Test
+        @DisplayName("Should throw exception when user already exists")
+        void createUser_shouldThrowException_whenUserAlreadyExists() {
+            // Arrange
+            AdminUpdateUserRequest request = createUserCreationRequest();
+            when(userRepository.existsByEmail(request.getEmail()))
+                    .thenReturn(true);
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.createUser(request));
+            assertEquals(TestConstants.ErrorMessages.USER_ALREADY_EXISTS, ex.getMessage());
+        }
+
+        @Test
+        @DisplayName("Should throw exception when role not found")
+        void createUser_shouldThrowException_whenRoleNotFound() {
+            // Arrange
+            AdminUpdateUserRequest request = createUserCreationRequest();
+            request.setRoles(Collections.singletonList("ROLE_NONEXISTENT"));
+            when(userRepository.existsByEmail(request.getEmail()))
+                    .thenReturn(false);
+            when(roleRepository.findByName("ROLE_NONEXISTENT"))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.createUser(request));
+            assertEquals("Role not found: ROLE_NONEXISTENT", ex.getMessage());
+        }
+
+        @Test
+        @DisplayName("Should throw exception when email sending fails")
+        void createUser_shouldThrowException_whenEmailSendingFails() {
+            // Arrange
+            AdminUpdateUserRequest request = createUserCreationRequest();
+            when(userRepository.existsByEmail(request.getEmail()))
+                    .thenReturn(false);
+            when(roleRepository.findByName(TestConstants.Roles.ROLE_USER))
+                    .thenReturn(Optional.of(userRole));
+            when(passwordEncoder.encode(anyString()))
+                    .thenReturn(TestConstants.UserData.ENCODED_PASSWORD);
+            when(userRepository.save(any(User.class)))
+                    .thenAnswer(invocation -> {
+                        User u = invocation.getArgument(0);
+                        u.setId(3L);
+                        return u;
+                    });
+            doThrow(new RuntimeException("Mail send error"))
+                    .when(emailService).sendEmail(anyString(), anyString(), anyString());
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.createUser(request));
+            assertTrue(ex.getMessage().contains("Failed to create user: Mail send error"));
+        }
     }
 
-    @Test
-    void updateUser_shouldUnblockUser_whenUnblockRequested() {
-        // Arrange
-        testUser.setBlocked(true);
-        testUser.setBlockReason("Previous reason");
-        updateRequest.setIsBlocked(false);
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class)))
-                .thenReturn(testUser);
+    @Nested
+    @DisplayName("User Deletion Tests")
+    class UserDeletionTests {
+        @Test
+        @DisplayName("Should succeed when user exists")
+        void deleteUser_shouldSucceed_whenUserExists() {
+            // Arrange
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.of(testUser));
+            doNothing().when(userRepository).deleteById(1L);
 
-        // Act
-        UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+            // Act & Assert
+            assertDoesNotThrow(() -> adminService.deleteUser(1L));
+            verify(userRepository).deleteById(1L);
+        }
 
-        // Assert
-        assertNotNull(updatedUser);
-        assertFalse(updatedUser.isBlocked());
-        assertNull(updatedUser.getBlockReason());
-        verify(userRepository).findById(1L);
-        verify(userRepository).save(any(User.class));
+        @Test
+        @DisplayName("Should throw exception when user not found")
+        void deleteUser_shouldThrowException_whenUserNotFound() {
+            // Arrange
+            when(userRepository.findById(1L))
+                    .thenReturn(Optional.empty());
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class, 
+                () -> adminService.deleteUser(1L));
+            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND, ex.getMessage());
+        }
     }
 
-    @Test
-    void updateUser_shouldThrowException_whenAdminTriesToBlockSelf() {
-        // Arrange
-        Role adminRole = createAdminRole();
-        testUser.setEmail(TestConstants.ADMIN_EMAIL);
-        testUser.setRoles(Set.of(adminRole));
-        updateRequest.setIsBlocked(true);
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(testUser));
+    @Nested
+    @DisplayName("Whitelist Retrieval Tests")
+    class WhitelistRetrievalTests {
+        @Test
+        @DisplayName("Should return list of whitelisted emails")
+        void getWhitelist_shouldReturnListOfEmails() {
+            // Arrange
+            AllowedEmail a1 = new AllowedEmail("a@example.com");
+            AllowedEmail a2 = new AllowedEmail("b@example.com");
+            when(allowedEmailRepository.findAll())
+                    .thenReturn(Arrays.asList(a1, a2));
 
-        // Act & Assert
-        assertThrows(RuntimeException.class, () -> adminService.updateUser(1L, updateRequest));
-        verify(userRepository).findById(1L);
+            // Act
+            List<String> whitelist = adminService.getWhitelist();
+
+            // Assert
+            assertNotNull(whitelist);
+            assertEquals(2, whitelist.size());
+            assertTrue(whitelist.contains("a@example.com"));
+            assertTrue(whitelist.contains("b@example.com"));
+        }
     }
 
-    // ************** Whitelist Management Tests **************
+    @Nested
+    @DisplayName("Admin Password Verification Tests")
+    class AdminPasswordVerificationTests {
+        @Test
+        @DisplayName("Should return true when credentials are valid")
+        void verifyAdminPassword_shouldReturnTrue_whenCredentialsValid() {
+            // Arrange
+            Role adminRole = createAdminRole();
+            testUser.setRoles(Set.of(adminRole));
+            when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
+                    .thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches("correctPassword", testUser.getPassword()))
+                    .thenReturn(true);
 
-    @Test
-    void addToWhitelist_shouldSucceed_whenEmailNotExists() {
-        // Arrange
-        String email = "newwhitelist@example.com";
-        when(allowedEmailRepository.findByEmail(email))
-                .thenReturn(Optional.empty());
-        when(allowedEmailRepository.save(any(AllowedEmail.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+            // Act
+            boolean result = adminService.verifyAdminPassword(TestConstants.UserData.ADMIN_EMAIL, "correctPassword");
 
-        // Act & Assert
-        assertDoesNotThrow(() -> adminService.addToWhitelist(email));
-        verify(allowedEmailRepository).save(any(AllowedEmail.class));
-    }
+            // Assert
+            assertTrue(result);
+        }
 
-    @Test
-    void addToWhitelist_shouldThrowException_whenEmailAlreadyExists() {
-        // Arrange
-        String email = "existing@example.com";
-        AllowedEmail existing = new AllowedEmail(email);
-        when(allowedEmailRepository.findByEmail(email))
-                .thenReturn(Optional.of(existing));
+        @Test
+        @DisplayName("Should throw exception when user not found")
+        void verifyAdminPassword_shouldThrowException_whenUserNotFound() {
+            // Arrange
+            when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
+                    .thenReturn(Optional.empty());
 
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.addToWhitelist(email));
-        assertEquals("Email already exists in whitelist", ex.getMessage());
-    }
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> adminService.verifyAdminPassword(TestConstants.UserData.TEST_EMAIL, "anyPassword"));
+            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND, ex.getMessage());
+        }
 
-    @Test
-    void removeFromWhitelist_shouldSucceed_whenEmailExists() {
-        // Arrange
-        String email = "remove@example.com";
-        AllowedEmail existing = new AllowedEmail(email);
-        when(allowedEmailRepository.findByEmail(email))
-                .thenReturn(Optional.of(existing));
-        doNothing().when(allowedEmailRepository).delete(existing);
+        @Test
+        @DisplayName("Should throw exception when user has insufficient permissions")
+        void verifyAdminPassword_shouldThrowException_whenInsufficientPermissions() {
+            // Arrange
+            testUser.setRoles(Set.of(userRole));
+            when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
+                    .thenReturn(Optional.of(testUser));
 
-        // Act & Assert
-        assertDoesNotThrow(() -> adminService.removeFromWhitelist(email));
-        verify(allowedEmailRepository).delete(existing);
-    }
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> adminService.verifyAdminPassword(TestConstants.UserData.TEST_EMAIL, "anyPassword"));
+            assertEquals(TestConstants.ErrorMessages.INSUFFICIENT_PERMISSIONS, ex.getMessage());
+        }
 
-    @Test
-    void removeFromWhitelist_shouldThrowException_whenEmailNotFound() {
-        // Arrange
-        String email = "notfound@example.com";
-        when(allowedEmailRepository.findByEmail(email))
-                .thenReturn(Optional.empty());
+        @Test
+        @DisplayName("Should return false when password is invalid")
+        void verifyAdminPassword_shouldReturnFalse_whenPasswordInvalid() {
+            // Arrange
+            Role adminRole = createAdminRole();
+            testUser.setRoles(Set.of(adminRole));
+            when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
+                    .thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches("wrongPassword", testUser.getPassword()))
+                    .thenReturn(false);
 
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.removeFromWhitelist(email));
-        assertEquals("Email not found in whitelist", ex.getMessage());
-    }
+            // Act
+            boolean result = adminService.verifyAdminPassword(TestConstants.UserData.ADMIN_EMAIL, "wrongPassword");
 
-    // ************** User Retrieval Tests **************
-
-    @Test
-    void getUserById_shouldReturnUser_whenUserExists() {
-        // Arrange
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(testUser));
-
-        // Act
-        UserDTO userDTO = adminService.getUserById(1L);
-
-        // Assert
-        assertNotNull(userDTO);
-        assertEquals(testUser.getEmail(), userDTO.getEmail());
-    }
-
-    @Test
-    void getUserById_shouldThrowException_whenUserNotFound() {
-        // Arrange
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.empty());
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.getUserById(1L));
-        assertEquals("User not found", ex.getMessage());
-    }
-
-    // ************** User Creation Tests **************
-
-    @Test
-    void createUser_shouldSucceed_whenAllDataValid() {
-        // Arrange
-        AdminUpdateUserRequest request = createUserCreationRequest();
-        when(userRepository.existsByEmail(request.getEmail()))
-                .thenReturn(false);
-        when(roleRepository.findByName(TestConstants.ROLE_USER))
-                .thenReturn(Optional.of(userRole));
-        when(passwordEncoder.encode(anyString()))
-                .thenReturn(TestConstants.ENCODED_PASSWORD);
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> {
-                    User u = invocation.getArgument(0);
-                    u.setId(2L);
-                    return u;
-                });
-        doNothing().when(emailService)
-                .sendEmail(anyString(), anyString(), anyString());
-
-        // Act & Assert
-        assertDoesNotThrow(() -> adminService.createUser(request));
-        verify(userRepository).save(any(User.class));
-        verify(emailService).sendEmail(eq("create@example.com"), anyString(), 
-            contains("Your temporary password:"));
-    }
-
-    @Test
-    void createUser_shouldThrowException_whenUserAlreadyExists() {
-        // Arrange
-        AdminUpdateUserRequest request = createUserCreationRequest();
-        when(userRepository.existsByEmail(request.getEmail()))
-                .thenReturn(true);
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.createUser(request));
-        assertEquals("User with this email already exists", ex.getMessage());
-    }
-
-    @Test
-    void createUser_shouldThrowException_whenRoleNotFound() {
-        // Arrange
-        AdminUpdateUserRequest request = createUserCreationRequest();
-        request.setRoles(Collections.singletonList("ROLE_NONEXISTENT"));
-        when(userRepository.existsByEmail(request.getEmail()))
-                .thenReturn(false);
-        when(roleRepository.findByName("ROLE_NONEXISTENT"))
-                .thenReturn(Optional.empty());
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.createUser(request));
-        assertEquals("Role not found: ROLE_NONEXISTENT", ex.getMessage());
-    }
-
-    @Test
-    void createUser_shouldThrowException_whenEmailSendingFails() {
-        // Arrange
-        AdminUpdateUserRequest request = createUserCreationRequest();
-        when(userRepository.existsByEmail(request.getEmail()))
-                .thenReturn(false);
-        when(roleRepository.findByName(TestConstants.ROLE_USER))
-                .thenReturn(Optional.of(userRole));
-        when(passwordEncoder.encode(anyString()))
-                .thenReturn(TestConstants.ENCODED_PASSWORD);
-        when(userRepository.save(any(User.class)))
-                .thenAnswer(invocation -> {
-                    User u = invocation.getArgument(0);
-                    u.setId(3L);
-                    return u;
-                });
-        doThrow(new RuntimeException("Mail send error"))
-                .when(emailService).sendEmail(anyString(), anyString(), anyString());
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.createUser(request));
-        assertTrue(ex.getMessage().contains("Failed to create user: Mail send error"));
-    }
-
-    // ************** User Deletion Tests **************
-
-    @Test
-    void deleteUser_shouldSucceed_whenUserExists() {
-        // Arrange
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.of(testUser));
-        doNothing().when(userRepository).deleteById(1L);
-
-        // Act & Assert
-        assertDoesNotThrow(() -> adminService.deleteUser(1L));
-        verify(userRepository).deleteById(1L);
-    }
-
-    @Test
-    void deleteUser_shouldThrowException_whenUserNotFound() {
-        // Arrange
-        when(userRepository.findById(1L))
-                .thenReturn(Optional.empty());
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class, 
-            () -> adminService.deleteUser(1L));
-        assertEquals("User not found", ex.getMessage());
-    }
-
-    // ************** Whitelist Retrieval Tests **************
-
-    @Test
-    void getWhitelist_shouldReturnListOfEmails() {
-        // Arrange
-        AllowedEmail a1 = new AllowedEmail("a@example.com");
-        AllowedEmail a2 = new AllowedEmail("b@example.com");
-        when(allowedEmailRepository.findAll())
-                .thenReturn(Arrays.asList(a1, a2));
-
-        // Act
-        List<String> whitelist = adminService.getWhitelist();
-
-        // Assert
-        assertNotNull(whitelist);
-        assertEquals(2, whitelist.size());
-        assertTrue(whitelist.contains("a@example.com"));
-        assertTrue(whitelist.contains("b@example.com"));
-    }
-
-    // ************** Admin Password Verification Tests **************
-
-    @Test
-    void verifyAdminPassword_shouldReturnTrue_whenCredentialsValid() {
-        // Arrange
-        Role adminRole = createAdminRole();
-        testUser.setRoles(Set.of(adminRole));
-        when(userRepository.findByEmail(TestConstants.ADMIN_EMAIL))
-                .thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("correctPassword", testUser.getPassword()))
-                .thenReturn(true);
-
-        // Act
-        boolean result = adminService.verifyAdminPassword(TestConstants.ADMIN_EMAIL, "correctPassword");
-
-        // Assert
-        assertTrue(result);
-    }
-
-    @Test
-    void verifyAdminPassword_shouldThrowException_whenUserNotFound() {
-        // Arrange
-        when(userRepository.findByEmail(TestConstants.TEST_EMAIL))
-                .thenReturn(Optional.empty());
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class,
-            () -> adminService.verifyAdminPassword(TestConstants.TEST_EMAIL, "anyPassword"));
-        assertEquals("User not found", ex.getMessage());
-    }
-
-    @Test
-    void verifyAdminPassword_shouldThrowException_whenInsufficientPermissions() {
-        // Arrange
-        testUser.setRoles(Set.of(userRole));
-        when(userRepository.findByEmail(TestConstants.TEST_EMAIL))
-                .thenReturn(Optional.of(testUser));
-
-        // Act & Assert
-        RuntimeException ex = assertThrows(RuntimeException.class,
-            () -> adminService.verifyAdminPassword(TestConstants.TEST_EMAIL, "anyPassword"));
-        assertEquals("Insufficient permissions", ex.getMessage());
-    }
-
-    @Test
-    void verifyAdminPassword_shouldReturnFalse_whenPasswordInvalid() {
-        // Arrange
-        Role adminRole = createAdminRole();
-        testUser.setRoles(Set.of(adminRole));
-        when(userRepository.findByEmail(TestConstants.ADMIN_EMAIL))
-                .thenReturn(Optional.of(testUser));
-        when(passwordEncoder.matches("wrongPassword", testUser.getPassword()))
-                .thenReturn(false);
-
-        // Act
-        boolean result = adminService.verifyAdminPassword(TestConstants.ADMIN_EMAIL, "wrongPassword");
-
-        // Assert
-        assertFalse(result);
+            // Assert
+            assertFalse(result);
+        }
     }
 
     // ************** Helper Methods **************
@@ -469,8 +509,8 @@ class AdminServiceTest {
     private User createTestUser() {
         User user = new User();
         user.setId(1L);
-        user.setName(TestConstants.TEST_USERNAME);
-        user.setEmail(TestConstants.TEST_EMAIL);
+        user.setName(TestConstants.UserData.TEST_USERNAME);
+        user.setEmail(TestConstants.UserData.TEST_EMAIL);
         user.setEnabled(true);
         user.setBlocked(false);
         user.setBlockReason(null);
@@ -479,13 +519,13 @@ class AdminServiceTest {
 
     private Role createUserRole() {
         Role role = new Role();
-        role.setName(TestConstants.ROLE_USER);
+        role.setName(TestConstants.Roles.ROLE_USER);
         return role;
     }
 
     private Role createAdminRole() {
         Role role = new Role();
-        role.setName(TestConstants.ROLE_ADMIN);
+        role.setName(TestConstants.Roles.ROLE_ADMIN);
         return role;
     }
 
@@ -493,7 +533,7 @@ class AdminServiceTest {
         AdminUpdateUserRequest request = new AdminUpdateUserRequest();
         request.setUsername("newusername");
         request.setEmail("new@example.com");
-        request.setRoles(Arrays.asList(TestConstants.ROLE_USER));
+        request.setRoles(List.of(TestConstants.Roles.ROLE_USER));
         request.setIsAktiv(true);
         request.setIsBlocked(false);
         request.setBlockReason(null);
@@ -504,7 +544,7 @@ class AdminServiceTest {
         AdminUpdateUserRequest request = new AdminUpdateUserRequest();
         request.setEmail("create@example.com");
         request.setUsername("Create User");
-        request.setRoles(Arrays.asList(TestConstants.ROLE_USER));
+        request.setRoles(List.of(TestConstants.Roles.ROLE_USER));
         request.setIsAktiv(true);
         request.setIsBlocked(false);
         return request;
@@ -512,7 +552,7 @@ class AdminServiceTest {
 
     private void setupAdminAuthentication() {
         when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn(TestConstants.ADMIN_EMAIL);
+        when(authentication.getName()).thenReturn(TestConstants.UserData.ADMIN_EMAIL);
         SecurityContextHolder.setContext(securityContext);
     }
 }

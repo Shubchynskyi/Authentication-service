@@ -1,8 +1,7 @@
-// ProfileService.java (примерный код, адаптируй под свой проект)
 package com.authenticationservice.service;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,12 +16,12 @@ import com.authenticationservice.repository.UserRepository;
 public class ProfileService {
 
     private final UserRepository userRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional(readOnly = true)
     public ProfileResponse getProfile(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Пользователь не найден"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         ProfileResponse profileResponse = new ProfileResponse();
         profileResponse.setEmail(user.getEmail());

@@ -1,7 +1,10 @@
 package com.authenticationservice.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 @Entity
 @Table(name = "roles")
 public class Role {
@@ -10,8 +13,9 @@ public class Role {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Setter
     @Column(unique = true, nullable = false)
-    private String name; // "ROLE_USER" или "ROLE_ADMIN"
+    private String name;
 
     public Role() {
     }
@@ -20,15 +24,4 @@ public class Role {
         this.name = name;
     }
 
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
 }
