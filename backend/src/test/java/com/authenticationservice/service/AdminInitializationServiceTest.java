@@ -53,16 +53,35 @@ class AdminInitializationServiceTest {
 
         @BeforeEach
         void setUp() {
-                existingUser = new User();
-                adminRole = new Role();
-                adminRole.setName(TestConstants.Roles.ROLE_ADMIN);
-
-                existingUser.setId(1L);
-                existingUser.setName("existinguser");
-                existingUser.setEmail(TestConstants.UserData.ADMIN_EMAIL);
-                existingUser.setEnabled(true);
-                existingUser.getRoles().add(adminRole);
-
+                // Create admin user and role for testing
+                existingUser = createAdminUser();
+                adminRole = createAdminRole();
+        }
+        
+        /**
+         * Creates an admin user for testing
+         * 
+         * @return User with admin role and default test data
+         */
+        private User createAdminUser() {
+                User user = new User();
+                user.setId(1L);
+                user.setName("existinguser");
+                user.setEmail(TestConstants.UserData.ADMIN_EMAIL);
+                user.setEnabled(true);
+                user.getRoles().add(createAdminRole());
+                return user;
+        }
+        
+        /**
+         * Creates an admin role for testing
+         * 
+         * @return Admin role with default test data
+         */
+        private Role createAdminRole() {
+                Role role = new Role();
+                role.setName(TestConstants.Roles.ROLE_ADMIN);
+                return role;
         }
 
         @Nested
@@ -122,7 +141,17 @@ class AdminInitializationServiceTest {
                         verify(userRepository).findByEmail(TestConstants.UserData.ADMIN_EMAIL);
                         verify(roleRepository).findByName(TestConstants.Roles.ROLE_ADMIN);
                         verify(passwordEncoder).encode(anyString());
-                        verify(userRepository).save(any(User.class));
+                        
+                        // Verify new admin user is saved
+                        org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+                        verify(userRepository).save(userCaptor.capture());
+                        
+                        User savedUser = userCaptor.getValue();
+                        assertEquals(TestConstants.UserData.ADMIN_EMAIL, savedUser.getEmail(), 
+                                    "Admin email should match configured value");
+                        assertTrue(savedUser.isEnabled(), "Admin user should be enabled");
+                        assertEquals(TestConstants.UserData.ENCODED_PASSWORD, savedUser.getPassword(), 
+                                    "Password should be encoded");
                 }
 
                 @Test
@@ -138,8 +167,10 @@ class AdminInitializationServiceTest {
 
                         // Act & Assert
                         RuntimeException ex = assertThrows(RuntimeException.class,
-                                        () -> adminInitializationService.initializeAdmin());
-                        assertEquals(TestConstants.ErrorMessages.ADMIN_ROLE_NOT_FOUND, ex.getMessage());
+                                        () -> adminInitializationService.initializeAdmin(),
+                                        "Should throw exception when admin role is not found");
+                        assertEquals(TestConstants.ErrorMessages.ADMIN_ROLE_NOT_FOUND, ex.getMessage(),
+                                    "Exception message should indicate admin role not found");
                         verify(userRepository).findByEmail(TestConstants.UserData.ADMIN_EMAIL);
                         verify(roleRepository).findByName(TestConstants.Roles.ROLE_ADMIN);
                         verifyNoMoreInteractions(userRepository, roleRepository, passwordEncoder);

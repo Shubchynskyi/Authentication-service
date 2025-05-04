@@ -66,7 +66,7 @@ class AdminServiceTest {
     void setUp() {
         // Arrange: Setup test user
         testUser = createTestUser();
-        userRole = createUserRole();
+        userRole = createRole(TestConstants.Roles.ROLE_USER);
         testUser.setRoles(Set.of(userRole));
 
         // Arrange: Setup update request
@@ -83,7 +83,7 @@ class AdminServiceTest {
         @DisplayName("Should return page of users when admin is authenticated")
         void getAllUsers_shouldReturnPageOfUsers_whenAdminAuthenticated() {
             // Arrange
-            setupAdminAuthentication();
+            setupAdminAuthentication(TestConstants.UserData.ADMIN_EMAIL);
             Page<User> userPage = new PageImpl<>(Collections.singletonList(testUser));
             when(userRepository.findByEmailNot(anyString(), any(Pageable.class)))
                     .thenReturn(userPage);
@@ -92,9 +92,9 @@ class AdminServiceTest {
             Page<UserDTO> users = adminService.getAllUsers(mock(Pageable.class), null);
 
             // Assert
-            assertNotNull(users);
-            assertEquals(1, users.getTotalElements());
-            assertEquals(testUser.getName(), users.getContent().get(0).getUsername());
+            assertNotNull(users, "Returned user page should not be null");
+            assertEquals(1, users.getTotalElements(), "Page should contain one user");
+            assertEquals(testUser.getName(), users.getContent().get(0).getUsername(), "Username should match test user");
             verify(userRepository).findByEmailNot(anyString(), any(Pageable.class));
         }
 
@@ -117,12 +117,12 @@ class AdminServiceTest {
             UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
 
             // Assert
-            assertNotNull(updatedUser);
-            assertEquals(TestConstants.UserData.TEST_USERNAME, updatedUser.getUsername());
-            assertEquals(TestConstants.UserData.TEST_EMAIL, updatedUser.getEmail());
-            assertTrue(updatedUser.isEnabled());
-            assertFalse(updatedUser.isBlocked());
-            assertNull(updatedUser.getBlockReason());
+            assertNotNull(updatedUser, "Updated user should not be null");
+            assertEquals(TestConstants.UserData.TEST_USERNAME, updatedUser.getUsername(), "Username should be preserved");
+            assertEquals(TestConstants.UserData.TEST_EMAIL, updatedUser.getEmail(), "Email should be preserved");
+            assertTrue(updatedUser.isEnabled(), "User should be enabled");
+            assertFalse(updatedUser.isBlocked(), "User should not be blocked");
+            assertNull(updatedUser.getBlockReason(), "Block reason should be null");
             verify(userRepository).findById(1L);
             verify(userRepository).save(any(User.class));
         }
@@ -135,7 +135,9 @@ class AdminServiceTest {
                     .thenReturn(Optional.empty());
 
             // Act & Assert
-            assertThrows(RuntimeException.class, () -> adminService.updateUser(1L, updateRequest));
+            assertThrows(RuntimeException.class, 
+                () -> adminService.updateUser(1L, updateRequest),
+                "Should throw RuntimeException when user not found");
             verify(userRepository).findById(1L);
         }
 
@@ -154,9 +156,9 @@ class AdminServiceTest {
             UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
 
             // Assert
-            assertNotNull(updatedUser);
-            assertTrue(updatedUser.isBlocked());
-            assertEquals("Test block reason", updatedUser.getBlockReason());
+            assertNotNull(updatedUser, "Updated user should not be null");
+            assertTrue(updatedUser.isBlocked(), "User should be blocked");
+            assertEquals("Test block reason", updatedUser.getBlockReason(), "Block reason should match");
             verify(userRepository).findById(1L);
             verify(userRepository).save(any(User.class));
         }
@@ -177,9 +179,9 @@ class AdminServiceTest {
             UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
 
             // Assert
-            assertNotNull(updatedUser);
-            assertFalse(updatedUser.isBlocked());
-            assertNull(updatedUser.getBlockReason());
+            assertNotNull(updatedUser, "Updated user should not be null");
+            assertFalse(updatedUser.isBlocked(), "User should be unblocked");
+            assertNull(updatedUser.getBlockReason(), "Block reason should be null");
             verify(userRepository).findById(1L);
             verify(userRepository).save(any(User.class));
         }
@@ -188,7 +190,7 @@ class AdminServiceTest {
         @DisplayName("Should throw exception when admin tries to block self")
         void updateUser_shouldThrowException_whenAdminTriesToBlockSelf() {
             // Arrange
-            Role adminRole = createAdminRole();
+            Role adminRole = createRole(TestConstants.Roles.ROLE_ADMIN);
             testUser.setEmail(TestConstants.UserData.ADMIN_EMAIL);
             testUser.setRoles(Set.of(adminRole));
             updateRequest.setIsBlocked(true);
@@ -196,7 +198,9 @@ class AdminServiceTest {
                     .thenReturn(Optional.of(testUser));
 
             // Act & Assert
-            assertThrows(RuntimeException.class, () -> adminService.updateUser(1L, updateRequest));
+            assertThrows(RuntimeException.class, 
+                () -> adminService.updateUser(1L, updateRequest),
+                "Should throw RuntimeException when admin tries to block self");
             verify(userRepository).findById(1L);
         }
     }
@@ -444,7 +448,7 @@ class AdminServiceTest {
         @DisplayName("Should return true when credentials are valid")
         void verifyAdminPassword_shouldReturnTrue_whenCredentialsValid() {
             // Arrange
-            Role adminRole = createAdminRole();
+            Role adminRole = createRole(TestConstants.Roles.ROLE_ADMIN);
             testUser.setRoles(Set.of(adminRole));
             when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
                     .thenReturn(Optional.of(testUser));
@@ -489,7 +493,7 @@ class AdminServiceTest {
         @DisplayName("Should return false when password is invalid")
         void verifyAdminPassword_shouldReturnFalse_whenPasswordInvalid() {
             // Arrange
-            Role adminRole = createAdminRole();
+            Role adminRole = createRole(TestConstants.Roles.ROLE_ADMIN);
             testUser.setRoles(Set.of(adminRole));
             when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
                     .thenReturn(Optional.of(testUser));
@@ -506,53 +510,107 @@ class AdminServiceTest {
 
     // ************** Helper Methods **************
 
+    /**
+     * Creates a test user with default values
+     * 
+     * @return User with default test data
+     */
     private User createTestUser() {
+        return createTestUser(1L, TestConstants.UserData.TEST_USERNAME, 
+                             TestConstants.UserData.TEST_EMAIL, true, false, null);
+    }
+    
+    /**
+     * Creates a test user with specified parameters
+     * 
+     * @param id User ID
+     * @param name Username
+     * @param email User email
+     * @param enabled Whether user is enabled
+     * @param blocked Whether user is blocked
+     * @param blockReason Reason for blocking
+     * @return User with specified parameters
+     */
+    private User createTestUser(Long id, String name, String email, 
+                               boolean enabled, boolean blocked, String blockReason) {
         User user = new User();
-        user.setId(1L);
-        user.setName(TestConstants.UserData.TEST_USERNAME);
-        user.setEmail(TestConstants.UserData.TEST_EMAIL);
-        user.setEnabled(true);
-        user.setBlocked(false);
-        user.setBlockReason(null);
+        user.setId(id);
+        user.setName(name);
+        user.setEmail(email);
+        user.setEnabled(enabled);
+        user.setBlocked(blocked);
+        user.setBlockReason(blockReason);
         return user;
     }
 
-    private Role createUserRole() {
+    /**
+     * Creates a role with specified name
+     * 
+     * @param roleName Name of the role
+     * @return Role with specified name
+     */
+    private Role createRole(String roleName) {
         Role role = new Role();
-        role.setName(TestConstants.Roles.ROLE_USER);
+        role.setName(roleName);
         return role;
     }
 
-    private Role createAdminRole() {
-        Role role = new Role();
-        role.setName(TestConstants.Roles.ROLE_ADMIN);
-        return role;
-    }
-
+    /**
+     * Creates an update request with default values
+     * 
+     * @return AdminUpdateUserRequest with default test data
+     */
     private AdminUpdateUserRequest createUpdateRequest() {
+        return createUpdateRequest(TestConstants.UserData.NEW_USERNAME, 
+                                  TestConstants.UserData.TEST_EMAIL, 
+                                  List.of(TestConstants.Roles.ROLE_USER), 
+                                  true, false, null);
+    }
+    
+    /**
+     * Creates an update request with specified parameters
+     * 
+     * @param username New username
+     * @param email New email
+     * @param roles List of roles
+     * @param isActive Whether user should be active
+     * @param isBlocked Whether user should be blocked
+     * @param blockReason Reason for blocking
+     * @return AdminUpdateUserRequest with specified parameters
+     */
+    private AdminUpdateUserRequest createUpdateRequest(String username, String email, 
+                                                      List<String> roles, boolean isActive,
+                                                      boolean isBlocked, String blockReason) {
         AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setUsername("newusername");
-        request.setEmail("new@example.com");
-        request.setRoles(List.of(TestConstants.Roles.ROLE_USER));
-        request.setIsAktiv(true);
-        request.setIsBlocked(false);
-        request.setBlockReason(null);
+        request.setUsername(username);
+        request.setEmail(email);
+        request.setRoles(roles);
+        request.setIsAktiv(isActive);
+        request.setIsBlocked(isBlocked);
+        request.setBlockReason(blockReason);
         return request;
     }
 
+    /**
+     * Creates a user creation request with default values
+     * 
+     * @return AdminUpdateUserRequest for user creation
+     */
     private AdminUpdateUserRequest createUserCreationRequest() {
-        AdminUpdateUserRequest request = new AdminUpdateUserRequest();
-        request.setEmail("create@example.com");
-        request.setUsername("Create User");
-        request.setRoles(List.of(TestConstants.Roles.ROLE_USER));
-        request.setIsAktiv(true);
-        request.setIsBlocked(false);
-        return request;
+        return createUpdateRequest(TestConstants.UserData.ADMIN_USERNAME,
+                                  TestConstants.UserData.CREATE_EMAIL, 
+                                  List.of(TestConstants.Roles.ROLE_USER), 
+                                  true, false, null);
     }
 
-    private void setupAdminAuthentication() {
+    /**
+     * Sets up admin authentication for testing
+     * 
+     * @param adminEmail Email of the admin user
+     */
+    private void setupAdminAuthentication(String adminEmail) {
         when(securityContext.getAuthentication()).thenReturn(authentication);
-        when(authentication.getName()).thenReturn(TestConstants.UserData.ADMIN_EMAIL);
+        when(authentication.getName()).thenReturn(adminEmail);
         SecurityContextHolder.setContext(securityContext);
     }
 }

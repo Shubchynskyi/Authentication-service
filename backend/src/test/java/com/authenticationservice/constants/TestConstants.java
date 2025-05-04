@@ -1,14 +1,11 @@
 package com.authenticationservice.constants;
 
-/**
- * Constants used in test classes.
- */
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public final class TestConstants {
     
     public static Object REFRESH_TOKEN;
-
-    // Prevent instantiation
-    private TestConstants() {}
     
     // ************** User Data Constants **************
     public static final class UserData {
@@ -18,6 +15,7 @@ public final class TestConstants {
         public static final String ADMIN_EMAIL = "admin@example.com";
         public static final String TEST_EMAIL = "test@example.com";
         public static final String INVALID_EMAIL = "invalid@example.com";
+        public static final String CREATE_EMAIL = "create@example.com";
         
         // Usernames
         public static final String ADMIN_USERNAME = "admin";
@@ -63,7 +61,6 @@ public final class TestConstants {
         private ErrorMessages() {}
         
         public static final String USER_NOT_FOUND = "User not found";
-        public static final String USER_NOT_FOUND_RUSSIAN = "Пользователь не найден";
         public static final String INCORRECT_PASSWORD = "Incorrect current password";
         public static final String EMAIL_SEND_ERROR = "Failed to send email";
         public static final String ADMIN_ROLE_NOT_FOUND = "Admin role not found";
@@ -73,6 +70,7 @@ public final class TestConstants {
         public static final String INSUFFICIENT_PERMISSIONS = "Insufficient permissions";
         public static final String USER_ALREADY_EXISTS = "User with this email already exists";
         public static final String INVALID_VERIFICATION_CODE = "Invalid verification code";
+        public static final String ACCOUNT_BLOCKED = "Account is blocked.";
     }
     
     // ************** Email Constants **************

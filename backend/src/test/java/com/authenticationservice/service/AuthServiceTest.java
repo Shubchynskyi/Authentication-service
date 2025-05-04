@@ -68,29 +68,55 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Arrange: Setup test user
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setName(TestConstants.UserData.TEST_USERNAME);
-        testUser.setEmail(TestConstants.UserData.TEST_EMAIL);
-        testUser.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
-        testUser.setEnabled(true);
-        testUser.setBlocked(false);
-        testUser.setEmailVerified(true);
-        testUser.setFailedLoginAttempts(0);
-
-        Role userRole = new Role();
-        userRole.setName(SecurityConstants.ROLE_USER);
-        testUser.setRoles(Set.of(userRole));
-
-        // Arrange: Setup login request
-        loginRequest = new LoginRequest();
-        loginRequest.setEmail(TestConstants.UserData.TEST_EMAIL);
-        loginRequest.setPassword(TestConstants.UserData.TEST_PASSWORD);
+        // Create a fresh test user for each test
+        testUser = createTestUser();
+        
+        // Create a login request
+        loginRequest = createLoginRequest(
+            TestConstants.UserData.TEST_EMAIL,
+            TestConstants.UserData.TEST_PASSWORD
+        );
 
         // Setup service configuration
         ReflectionTestUtils.setField(authService, "frontendUrl", TestConstants.Urls.FRONTEND_URL);
         ReflectionTestUtils.setField(authService, "passwordEncoder", passwordEncoder);
+    }
+    
+    /**
+     * Creates a test user with default values
+     * 
+     * @return User with default test data
+     */
+    private User createTestUser() {
+        User user = new User();
+        user.setId(1L);
+        user.setName(TestConstants.UserData.TEST_USERNAME);
+        user.setEmail(TestConstants.UserData.TEST_EMAIL);
+        user.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
+        user.setEnabled(true);
+        user.setBlocked(false);
+        user.setEmailVerified(true);
+        user.setFailedLoginAttempts(0);
+
+        Role userRole = new Role();
+        userRole.setName(SecurityConstants.ROLE_USER);
+        user.setRoles(Set.of(userRole));
+        
+        return user;
+    }
+    
+    /**
+     * Creates a login request with specified credentials
+     * 
+     * @param email User email
+     * @param password User password
+     * @return Configured login request
+     */
+    private LoginRequest createLoginRequest(String email, String password) {
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword(password);
+        return request;
     }
 
     @Nested
@@ -300,11 +326,19 @@ class AuthServiceTest {
             Map<String, String> tokens = authService.login(loginRequest);
 
             // Assert
-            assertNotNull(tokens);
-            assertEquals(TestConstants.Tokens.ACCESS_TOKEN, tokens.get("accessToken"));
-            assertEquals(TestConstants.Tokens.REFRESH_TOKEN, tokens.get("refreshToken"));
+            assertNotNull(tokens, "Returned tokens map should not be null");
+            assertEquals(TestConstants.Tokens.ACCESS_TOKEN, tokens.get("accessToken"), 
+                         "Access token should match expected value");
+            assertEquals(TestConstants.Tokens.REFRESH_TOKEN, tokens.get("refreshToken"),
+                         "Refresh token should match expected value");
             verify(userRepository).findByEmail(loginRequest.getEmail());
             verify(passwordEncoder).matches(loginRequest.getPassword(), testUser.getPassword());
+            
+            // Verify failed attempts are reset on successful login
+            org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+            assertEquals(0, userCaptor.getValue().getFailedLoginAttempts(), 
+                         "Failed login attempts should be reset to 0 on successful login");
         }
 
         @Test
@@ -320,10 +354,70 @@ class AuthServiceTest {
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class,
-                    () -> authService.login(loginRequest));
-            assertEquals(SecurityConstants.INVALID_PASSWORD_ERROR, ex.getMessage());
+                    () -> authService.login(loginRequest),
+                    "Should throw RuntimeException when password is invalid");
+            assertEquals(SecurityConstants.INVALID_PASSWORD_ERROR, ex.getMessage(),
+                         "Exception message should indicate invalid password");
             verify(userRepository).findByEmail(loginRequest.getEmail());
             verify(passwordEncoder).matches(loginRequest.getPassword(), testUser.getPassword());
+            
+            // Verify failed attempts are incremented
+            org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(userCaptor.capture());
+            assertTrue(userCaptor.getValue().getFailedLoginAttempts() > 0, 
+                       "Failed login attempts should be incremented");
+        }
+        
+        @Test
+        @DisplayName("Should handle multiple failed login attempts")
+        void login_shouldHandleMultipleFailedAttempts() {
+            // Arrange - Set up a user with multiple failed attempts
+            testUser.setFailedLoginAttempts(5); // Assuming a high number of failed attempts
+            
+            // Get the maxFailedAttempts value from the service
+            Integer maxFailedAttempts = 10; // Default value
+            try {
+                Object value = ReflectionTestUtils.getField(authService, "maxFailedAttempts");
+                if (value != null) {
+                    maxFailedAttempts = (Integer) value;
+                }
+            } catch (Exception e) {
+                // Service might not have this field, use default value
+            }
+            
+            when(userRepository.findByEmail(loginRequest.getEmail()))
+                    .thenReturn(Optional.of(testUser));
+            when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
+                    .thenReturn(false);
+            when(userRepository.save(any(User.class)))
+                    .thenAnswer(invocation -> {
+                        User user = invocation.getArgument(0);
+                        // Store the updated user for verification
+                        testUser = user;
+                        return user;
+                    });
+
+            // Act & Assert
+            RuntimeException ex = assertThrows(RuntimeException.class,
+                    () -> authService.login(loginRequest),
+                    "Should throw RuntimeException when password is invalid");
+            assertEquals(SecurityConstants.INVALID_PASSWORD_ERROR, ex.getMessage(),
+                         "Exception message should indicate invalid password");
+            
+            // Verify failed attempts handling
+            verify(userRepository).save(any(User.class));
+            int newFailedAttempts = testUser.getFailedLoginAttempts();
+            assertEquals(6, newFailedAttempts, 
+                       "Failed login attempts should be incremented by one from the previous value");
+            
+            // If the implementation automatically blocks accounts after certain number of attempts
+            // we can verify that behavior here by checking if the account is blocked
+            if (newFailedAttempts >= maxFailedAttempts) {
+                assertTrue(testUser.isBlocked(),
+                          "User should be blocked after reaching maximum failed attempts");
+                assertNotNull(testUser.getBlockReason(),
+                             "Block reason should be set when account is blocked");
+            }
         }
 
         @Test
@@ -338,8 +432,12 @@ class AuthServiceTest {
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class,
-                    () -> authService.login(loginRequest));
-            assertEquals("Account is disabled", ex.getMessage());
+                    () -> authService.login(loginRequest),
+                    "Should throw RuntimeException when user is disabled");
+            assertEquals("Account is disabled", ex.getMessage(),
+                         "Exception message should indicate disabled account");
+            verify(userRepository).findByEmail(loginRequest.getEmail());
+            verifyNoInteractions(jwtTokenProvider);
         }
 
         @Test
@@ -355,9 +453,13 @@ class AuthServiceTest {
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class,
-                    () -> authService.login(loginRequest));
-            assertTrue(ex.getMessage().contains("Account is blocked"));
-            assertTrue(ex.getMessage().contains("Test block reason"));
+                    () -> authService.login(loginRequest),
+                    "Should throw RuntimeException when user is blocked");
+            String expectedMessage = TestConstants.ErrorMessages.ACCOUNT_BLOCKED + " Test block reason";
+            assertEquals(expectedMessage, ex.getMessage(),
+                       "Exception message should match expected blocked account message");
+            verify(userRepository).findByEmail(loginRequest.getEmail());
+            verifyNoInteractions(jwtTokenProvider);
         }
 
         @Test
@@ -535,14 +637,19 @@ class AuthServiceTest {
         }
 
         @Test
-        @DisplayName("Should generate 12 character random password")
-        void generateRandomPassword_shouldReturn12CharString() {
+        @DisplayName("Should return secure password when generating random password")
+        void generateRandomPassword_shouldReturnSecurePassword_whenCalled() {
             // Act
-            String randomPassword = authService.generateRandomPassword();
-
+            String randomPassword1 = authService.generateRandomPassword();
+            String randomPassword2 = authService.generateRandomPassword();
+            
             // Assert
-            assertNotNull(randomPassword);
-            assertEquals(12, randomPassword.length());
+            assertNotNull(randomPassword1, "Generated password should not be null");
+            assertEquals(12, randomPassword1.length(), "Password should be 12 characters long");
+            
+            // Check for randomness by generating two passwords and comparing
+            assertNotEquals(randomPassword1, randomPassword2, 
+                           "Two generated passwords should not be identical");
         }
     }
 
@@ -634,6 +741,11 @@ class AuthServiceTest {
 
     // ************** Helper Methods **************
 
+    /**
+     * Creates a registration request with default values
+     * 
+     * @return RegistrationRequest with default test data
+     */
     private RegistrationRequest createRegistrationRequest() {
         RegistrationRequest request = new RegistrationRequest();
         request.setEmail(TestConstants.UserData.TEST_EMAIL);
@@ -642,18 +754,33 @@ class AuthServiceTest {
         return request;
     }
 
+    /**
+     * Creates an allowed email with default values
+     * 
+     * @return AllowedEmail with default test data
+     */
     private AllowedEmail createAllowedEmail() {
         AllowedEmail allowedEmail = new AllowedEmail();
         allowedEmail.setEmail(TestConstants.UserData.TEST_EMAIL);
         return allowedEmail;
     }
 
+    /**
+     * Creates a user role with default values
+     * 
+     * @return Role with default test data
+     */
     private Role createUserRole() {
         Role userRole = new Role();
         userRole.setName(SecurityConstants.ROLE_USER);
         return userRole;
     }
 
+    /**
+     * Creates a verification request with default values
+     * 
+     * @return VerificationRequest with default test data
+     */
     private VerificationRequest createVerificationRequest() {
         VerificationRequest request = new VerificationRequest();
         request.setEmail(TestConstants.UserData.TEST_EMAIL);
@@ -662,6 +789,14 @@ class AuthServiceTest {
         return request;
     }
 
+    /**
+     * Creates a new user with specified parameters
+     * 
+     * @param email User email
+     * @param name Username
+     * @param role User role
+     * @return User with specified parameters
+     */
     private User createNewUser(String email, String name, Role role) {
         User user = new User();
         user.setEmail(email);

@@ -41,20 +41,47 @@ class ProfileServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Arrange: Setup test user
-        testUser = new User();
-        testUser.setId(1L);
-        testUser.setName(TestConstants.UserData.TEST_USERNAME);
-        testUser.setRoles(Set.of(new Role(TestConstants.Roles.ROLE_USER)));
-        testUser.setEmail(TestConstants.UserData.TEST_EMAIL);
-        testUser.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
-        testUser.setEnabled(true);
-
-        // Arrange: Setup update request
-        updateRequest = new ProfileUpdateRequest();
-        updateRequest.setName(TestConstants.UserData.NEW_USERNAME);
-        updateRequest.setCurrentPassword(TestConstants.UserData.CURRENT_PASSWORD);
-        updateRequest.setPassword(TestConstants.UserData.NEW_PASSWORD);
+        // Create a fresh test user for each test to ensure isolation
+        testUser = createTestUser();
+        
+        // Create a fresh update request for each test
+        updateRequest = createUpdateRequest(
+            TestConstants.UserData.NEW_USERNAME,
+            TestConstants.UserData.CURRENT_PASSWORD,
+            TestConstants.UserData.NEW_PASSWORD
+        );
+    }
+    
+    /**
+     * Creates a test user with default values
+     * 
+     * @return User with test data
+     */
+    private User createTestUser() {
+        User user = new User();
+        user.setId(1L);
+        user.setName(TestConstants.UserData.TEST_USERNAME);
+        user.setRoles(Set.of(new Role(TestConstants.Roles.ROLE_USER)));
+        user.setEmail(TestConstants.UserData.TEST_EMAIL);
+        user.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
+        user.setEnabled(true);
+        return user;
+    }
+    
+    /**
+     * Creates a profile update request with specified parameters
+     * 
+     * @param name New username or null
+     * @param currentPassword Current password or null
+     * @param newPassword New password or null
+     * @return Configured ProfileUpdateRequest
+     */
+    private ProfileUpdateRequest createUpdateRequest(String name, String currentPassword, String newPassword) {
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        request.setName(name);
+        request.setCurrentPassword(currentPassword);
+        request.setPassword(newPassword);
+        return request;
     }
 
     @Nested
@@ -86,8 +113,11 @@ class ProfileServiceTest {
             verify(userRepository).save(userCaptor.capture());
 
             User savedUser = userCaptor.getValue();
-            assertEquals(TestConstants.UserData.NEW_USERNAME, savedUser.getName());
-            assertEquals(expectedNewEncodedPassword, savedUser.getPassword());
+            assertEquals(TestConstants.UserData.NEW_USERNAME, savedUser.getName(), 
+                         "Username should be updated to new value");
+            assertEquals(expectedNewEncodedPassword, savedUser.getPassword(), 
+                         "Password should be updated to newly encoded value");
+            assertTrue(savedUser.isEnabled(), "User should remain enabled");
         }
 
         @Test
@@ -99,9 +129,12 @@ class ProfileServiceTest {
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class,
-                    () -> profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest));
-            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND, ex.getMessage());
+                    () -> profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest),
+                    "Should throw RuntimeException when user not found");
+            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND, ex.getMessage(),
+                         "Exception message should indicate user not found");
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
+            verifyNoInteractions(passwordEncoder);
         }
 
         @Test
@@ -115,10 +148,14 @@ class ProfileServiceTest {
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class,
-                    () -> profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest));
-            assertEquals(TestConstants.ErrorMessages.INCORRECT_PASSWORD, ex.getMessage());
+                    () -> profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest),
+                    "Should throw RuntimeException when password is incorrect");
+            assertEquals(TestConstants.ErrorMessages.INCORRECT_PASSWORD, ex.getMessage(),
+                         "Exception message should indicate incorrect password");
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
             verify(passwordEncoder).matches(TestConstants.UserData.CURRENT_PASSWORD, testUser.getPassword());
+            verifyNoMoreInteractions(passwordEncoder);
+            verify(userRepository, never()).save(any(User.class));
         }
     }
 
@@ -136,11 +173,14 @@ class ProfileServiceTest {
             ProfileResponse profile = profileService.getProfile(TestConstants.UserData.TEST_EMAIL);
 
             // Assert
-            assertNotNull(profile);
-            assertEquals(TestConstants.UserData.TEST_USERNAME, profile.getName());
-            assertEquals(TestConstants.UserData.TEST_EMAIL, profile.getEmail());
-            assertNotNull(profile.getRoles());
-            assertTrue(profile.getRoles().contains(TestConstants.Roles.ROLE_USER));
+            assertNotNull(profile, "Returned profile should not be null");
+            assertEquals(TestConstants.UserData.TEST_USERNAME, profile.getName(), 
+                         "Profile name should match test user name");
+            assertEquals(TestConstants.UserData.TEST_EMAIL, profile.getEmail(), 
+                         "Profile email should match test user email");
+            assertNotNull(profile.getRoles(), "Roles list should not be null");
+            assertTrue(profile.getRoles().contains(TestConstants.Roles.ROLE_USER), 
+                       "Roles should include USER role");
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
         }
 
@@ -153,9 +193,10 @@ class ProfileServiceTest {
 
             // Act & Assert
             RuntimeException exception = assertThrows(RuntimeException.class, () -> 
-                profileService.getProfile(TestConstants.UserData.TEST_EMAIL)
-            );
-            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND_RUSSIAN, exception.getMessage());
+                profileService.getProfile(TestConstants.UserData.TEST_EMAIL),
+                "Should throw RuntimeException when user not found");
+            assertEquals(TestConstants.ErrorMessages.USER_NOT_FOUND, exception.getMessage(),
+                         "Exception message should be in Russian as required");
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
         }
     }
@@ -166,30 +207,38 @@ class ProfileServiceTest {
         @Test
         @DisplayName("Should update name only when password is null")
         void updateProfile_shouldUpdateNameOnly_whenPasswordIsNull() {
-            // Arrange
+            // Arrange - Create a new request with null password for this specific test
+            ProfileUpdateRequest nameOnlyRequest = createUpdateRequest(
+                TestConstants.UserData.NEW_USERNAME, null, null
+            );
+            
             when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                     .thenReturn(Optional.of(testUser));
-            updateRequest.setPassword(null);
             when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // Act
-            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest);
+            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, nameOnlyRequest);
 
             // Assert
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
             verify(userRepository).save(any(User.class));
-            assertEquals(TestConstants.UserData.NEW_USERNAME, testUser.getName());
-            assertEquals(TestConstants.UserData.ENCODED_PASSWORD, testUser.getPassword());
+            assertEquals(TestConstants.UserData.NEW_USERNAME, testUser.getName(),
+                         "Username should be updated");
+            assertEquals(TestConstants.UserData.ENCODED_PASSWORD, testUser.getPassword(),
+                         "Password should remain unchanged");
             verifyNoInteractions(passwordEncoder);
         }
 
         @Test
         @DisplayName("Should update password only when name is null")
         void updateProfile_shouldUpdatePasswordOnly_whenNameIsNull() {
-            // Arrange
+            // Arrange - Create a new request with null name for this specific test
+            ProfileUpdateRequest passwordOnlyRequest = createUpdateRequest(
+                null, TestConstants.UserData.CURRENT_PASSWORD, TestConstants.UserData.NEW_PASSWORD
+            );
+            
             when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                     .thenReturn(Optional.of(testUser));
-            updateRequest.setName(null);
             when(passwordEncoder.matches(TestConstants.UserData.CURRENT_PASSWORD, TestConstants.UserData.ENCODED_PASSWORD))
                     .thenReturn(true);
             when(passwordEncoder.encode(TestConstants.UserData.NEW_PASSWORD))
@@ -197,35 +246,66 @@ class ProfileServiceTest {
             when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // Act
-            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest);
+            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, passwordOnlyRequest);
 
             // Assert
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
             verify(passwordEncoder).matches(TestConstants.UserData.CURRENT_PASSWORD, TestConstants.UserData.ENCODED_PASSWORD);
             verify(passwordEncoder).encode(TestConstants.UserData.NEW_PASSWORD);
             verify(userRepository).save(any(User.class));
-            assertEquals(TestConstants.UserData.TEST_USERNAME, testUser.getName());
-            assertEquals(TestConstants.UserData.NEW_ENCODED_PASSWORD, testUser.getPassword());
+            assertEquals(TestConstants.UserData.TEST_USERNAME, testUser.getName(),
+                         "Username should remain unchanged");
+            assertEquals(TestConstants.UserData.NEW_ENCODED_PASSWORD, testUser.getPassword(),
+                         "Password should be updated");
         }
 
         @Test
-        @DisplayName("Should not update fields when no changes provided")
-        void updateProfile_shouldNotUpdateFields_whenNoChangesProvided() {
-            // Arrange
+        @DisplayName("Should not update fields when username is empty")
+        void updateProfile_shouldNotUpdateFields_whenUsernameEmpty() {
+            // Arrange - Create a request with empty username
+            ProfileUpdateRequest emptyNameRequest = createUpdateRequest(
+                "   ", null, null
+            );
+            
             when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                     .thenReturn(Optional.of(testUser));
-            updateRequest.setName("   ");
-            updateRequest.setPassword("   ");
             when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // Act
-            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, updateRequest);
+            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, emptyNameRequest);
 
             // Assert
             verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
             verify(userRepository).save(any(User.class));
-            assertEquals(TestConstants.UserData.TEST_USERNAME, testUser.getName());
-            assertEquals(TestConstants.UserData.ENCODED_PASSWORD, testUser.getPassword());
+            assertEquals(TestConstants.UserData.TEST_USERNAME, testUser.getName(),
+                         "Username should remain unchanged when empty input provided");
+            assertEquals(TestConstants.UserData.ENCODED_PASSWORD, testUser.getPassword(),
+                         "Password should remain unchanged");
+            verifyNoInteractions(passwordEncoder);
+        }
+        
+        @Test
+        @DisplayName("Should not update fields when password is empty")
+        void updateProfile_shouldNotUpdateFields_whenPasswordEmpty() {
+            // Arrange - Create a request with empty password
+            ProfileUpdateRequest emptyPasswordRequest = createUpdateRequest(
+                null, null, "   "
+            );
+            
+            when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
+                    .thenReturn(Optional.of(testUser));
+            when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+            // Act
+            profileService.updateProfile(TestConstants.UserData.TEST_EMAIL, emptyPasswordRequest);
+
+            // Assert
+            verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
+            verify(userRepository).save(any(User.class));
+            assertEquals(TestConstants.UserData.TEST_USERNAME, testUser.getName(),
+                         "Username should remain unchanged");
+            assertEquals(TestConstants.UserData.ENCODED_PASSWORD, testUser.getPassword(),
+                         "Password should remain unchanged when empty input provided");
             verifyNoInteractions(passwordEncoder);
         }
     }
