@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { API_URL } from './config';
+import { getAccessToken, getRefreshToken, isJwtExpired, clearTokens } from './utils/token';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -26,15 +27,17 @@ const processQueue = (error: any = null) => {
 };
 
 const clearAuthAndRedirect = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    window.location.replace('/login');
+    clearTokens();
+    if (window.location.pathname !== '/login') {
+        window.location.replace('/login');
+    }
 };
 
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
-        if (token) {
+        const token = getAccessToken();
+        // Attach only a non-expired access token
+        if (token && !isJwtExpired(token)) {
             config.headers.Authorization = `Bearer ${token}`;
         }
         return config;
@@ -64,18 +67,20 @@ api.interceptors.response.use(
             isRefreshing = true;
 
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
+                const refreshToken = getRefreshToken();
                 if (!refreshToken) {
                     throw new Error('No refresh token available');
                 }
 
-                const response = await axios.post('http://localhost:8080/api/auth/refresh', {
+                const response = await axios.post(`${API_URL}/api/auth/refresh`, {
                     refreshToken: refreshToken
                 });
 
                 const { accessToken, refreshToken: newRefreshToken } = response.data;
                 localStorage.setItem('accessToken', accessToken);
-                localStorage.setItem('refreshToken', newRefreshToken);
+                if (newRefreshToken) {
+                    localStorage.setItem('refreshToken', newRefreshToken);
+                }
 
                 api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
                 processQueue();
@@ -107,5 +112,19 @@ export const checkAccess = async (resource: string): Promise<boolean> => {
         return false;
     }
 };
+
+// Cross-tab logout synchronization
+if (typeof window !== 'undefined') {
+    window.addEventListener('storage', (e) => {
+        if (e.key === 'accessToken' || e.key === 'refreshToken') {
+            const access = getAccessToken();
+            const refresh = getRefreshToken();
+            if (!access || !refresh) {
+                // If tokens are removed in another tab, redirect to login in this tab
+                clearAuthAndRedirect();
+            }
+        }
+    });
+}
 
 export default api;

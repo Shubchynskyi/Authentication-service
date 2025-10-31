@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import api from '../api';
 import axios from 'axios';
+import { isJwtExpired, clearTokens, getAccessToken, getRefreshToken } from '../utils/token';
 
 interface AuthContextType {
     isAuthenticated: boolean;
@@ -20,13 +21,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check tokens on initialization
     useEffect(() => {
-        const accessToken = localStorage.getItem('accessToken');
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (accessToken && refreshToken) {
+        const accessToken = getAccessToken();
+        const refreshToken = getRefreshToken();
+
+        if (accessToken && !isJwtExpired(accessToken)) {
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             setIsAuthenticated(true);
+        } else {
+            // If access token is missing/expired, don't consider authenticated
+            // Optionally, we could try silent refresh here if refresh exists
+            if (!refreshToken) {
+                clearTokens();
+            }
+            setIsAuthenticated(false);
         }
+
         setIsLoading(false);
+
+        // Sync auth state across tabs
+        const onStorage = (e: StorageEvent) => {
+            if (e.key === 'accessToken' || e.key === 'refreshToken') {
+                const at = getAccessToken();
+                if (at && !isJwtExpired(at)) {
+                    api.defaults.headers.common['Authorization'] = `Bearer ${at}`;
+                    setIsAuthenticated(true);
+                } else {
+                    delete api.defaults.headers.common['Authorization'];
+                    setIsAuthenticated(false);
+                }
+            }
+        };
+        window.addEventListener('storage', onStorage);
+        return () => window.removeEventListener('storage', onStorage);
     }, []);
 
     const login = useCallback(async (email: string, password: string) => {
@@ -63,11 +89,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const logout = useCallback(() => {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
+        clearTokens();
         delete api.defaults.headers.common['Authorization'];
         setIsAuthenticated(false);
-        window.location.href = '/login';
+        window.location.href = '/';
     }, []);
 
     const setTokens = useCallback((accessToken: string, refreshToken: string) => {

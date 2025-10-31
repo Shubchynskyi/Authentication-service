@@ -108,8 +108,7 @@ public class AdminService {
         }
         user.setRoles(roles);
         
-        // Set statuses
-        user.setEnabled(request.getIsAktiv());
+        // Set statuses (enabled is managed implicitly; admin UI controls only blocking)
         user.setBlocked(request.getIsBlocked());
         user.setEmailVerified(false);
         
@@ -119,18 +118,8 @@ public class AdminService {
             log.info("User saved to database: {}", user.getEmail());
 
             // Send welcome email with temporary password and verification link
-            String verificationLink = String.format("%s/verify/email?verificationToken=%s&email=%s", 
-                frontendUrl, verificationToken, user.getEmail());
-                
-            String emailContent = String.format(
-                "Your account has been created by administrator.\n\n" +
-                "Your temporary password: %s\n" +
-                "Please verify your email by clicking this link: %s\n\n" +
-                "After verification, you can log in and change your password.\n" +
-                "For security reasons, please change your password after first login.",
-                tempPassword, verificationLink
-            );
-            
+            String emailContent = getContent(verificationToken, user, tempPassword);
+
             emailService.sendEmail(
                 user.getEmail(), 
                 "Welcome to Authentication Service", 
@@ -144,32 +133,61 @@ public class AdminService {
         }
     }
 
+    private String getContent(String verificationToken, User user, String tempPassword) {
+        String verificationLink = String.format("%s/verify/email?verificationToken=%s&email=%s",
+            frontendUrl, verificationToken, user.getEmail());
+
+        return String.format(
+            "Your account has been created by administrator.\n\n" +
+            "Your temporary password: %s\n" +
+            "Please verify your email by clicking this link: %s\n\n" +
+            "After verification, you can log in and change your password.\n" +
+            "For security reasons, please change your password after first login.",
+                tempPassword, verificationLink
+        );
+    }
+
     @Transactional
     public UserDTO updateUser(Long id, AdminUpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Check if admin is trying to block themselves
+        // Check if admin is trying to block themselves (use current persisted email)
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getName().equals(user.getEmail()) && Boolean.TRUE.equals(request.getIsBlocked())) {
+        if (auth != null && auth.getName().equalsIgnoreCase(user.getEmail()) && Boolean.TRUE.equals(request.getIsBlocked())) {
             throw new RuntimeException("Admin cannot block themselves");
         }
 
-        // If user is being blocked, save blocking information
-        if (Boolean.TRUE.equals(request.getIsBlocked()) && !user.isBlocked()) {
-            user.setBlockedAt(LocalDateTime.now());
-            user.setBlockReason(request.getBlockReason());
-            log.info("User {} blocked. Reason: {}", user.getEmail(), request.getBlockReason());
+        // Update basic info (admin-only endpoint, but roles are handled separately)
+        if (request.getUsername() != null && !request.getUsername().isBlank()) {
+            user.setName(request.getUsername());
         }
-        // If user is being unblocked, save unblocking information
-        else if (Boolean.FALSE.equals(request.getIsBlocked()) && user.isBlocked()) {
-            user.setUnblockedAt(LocalDateTime.now());
-            log.info("User {} unblocked", user.getEmail());
+        if (request.getEmail() != null && !request.getEmail().isBlank() &&
+                !request.getEmail().equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmail(request.getEmail())) {
+                throw new RuntimeException("User with this email already exists");
+            }
+            user.setEmail(request.getEmail());
         }
 
-        user.setBlocked(request.getIsBlocked());
-        user.setBlockReason(request.getBlockReason());
-        user.setEnabled(request.getIsAktiv());
+        // Handle blocking/unblocking and timestamps
+        if (request.getIsBlocked() != null) {
+            if (Boolean.TRUE.equals(request.getIsBlocked()) && !user.isBlocked()) {
+                user.setBlockedAt(LocalDateTime.now());
+                user.setBlockReason(request.getBlockReason());
+                log.info("User {} blocked. Reason: {}", user.getEmail(), request.getBlockReason());
+            } else if (Boolean.FALSE.equals(request.getIsBlocked()) && user.isBlocked()) {
+                user.setUnblockedAt(LocalDateTime.now());
+                log.info("User {} unblocked", user.getEmail());
+            }
+            user.setBlocked(request.getIsBlocked());
+        }
+        if (request.getBlockReason() != null) {
+            user.setBlockReason(request.getBlockReason());
+        }
+
+        // Roles from this request are intentionally ignored.
+        // Use the dedicated roles endpoint to change roles.
 
         return UserDTO.fromUser(userRepository.save(user));
     }
@@ -202,5 +220,35 @@ public class AdminService {
         }
 
         return passwordEncoder.matches(password, user.getPassword());
+    }
+
+    @Transactional
+    public UserDTO updateUserRoles(Long id, List<String> roles) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (roles == null || roles.isEmpty()) {
+            throw new RuntimeException("Roles list cannot be empty");
+        }
+
+        // Build new roles set from provided names
+        Set<Role> newRoles = new HashSet<>();
+        for (String roleName : roles) {
+            Role role = roleRepository.findByName(roleName)
+                    .orElseThrow(() -> new RuntimeException("Role not found: " + roleName));
+            newRoles.add(role);
+        }
+
+        // Prevent removing admin role from yourself
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean editingSelf = auth != null && auth.getName().equalsIgnoreCase(user.getEmail());
+        boolean hadAdmin = user.getRoles().stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        boolean willHaveAdmin = newRoles.stream().anyMatch(r -> "ROLE_ADMIN".equals(r.getName()));
+        if (editingSelf && hadAdmin && !willHaveAdmin) {
+            throw new RuntimeException("Admin cannot remove their own admin role");
+        }
+
+        user.setRoles(newRoles);
+        return UserDTO.fromUser(userRepository.save(user));
     }
 }

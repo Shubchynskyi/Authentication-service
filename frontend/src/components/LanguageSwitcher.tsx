@@ -5,9 +5,12 @@ import { availableLanguages } from '../i18n/i18n';
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n, t } = useTranslation();
+  const currentLang = (i18n.resolvedLanguage || i18n.language).split('-')[0];
 
   const handleLanguageChange = (event: SelectChangeEvent<string>) => {
-    const language = event.target.value;
+    const language = String(event.target.value);
+    try { localStorage.setItem('language', language); } catch {}
+    try { document.documentElement.lang = language; } catch {}
     i18n.changeLanguage(language);
   };
 
@@ -17,7 +20,7 @@ const LanguageSwitcher: React.FC = () => {
       <Select
         labelId="language-select-label"
         id="language-select"
-        value={i18n.language}
+        value={currentLang}
         label={t('common.language')}
         onChange={handleLanguageChange}
       >

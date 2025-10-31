@@ -131,10 +131,6 @@ public class AuthService {
             throw new RuntimeException(SecurityConstants.INVALID_PASSWORD_ERROR);
         }
 
-        if (!user.isEnabled()) {
-            throw new RuntimeException("Account is disabled");
-        }
-
         if (user.isBlocked()) {
             throw new RuntimeException("Account is blocked. " + 
                 (user.getBlockReason() != null ? user.getBlockReason() : ""));
@@ -204,6 +200,14 @@ public class AuthService {
                 .orElse(null);
 
         if (user == null) {
+            return;
+        }
+
+        if (user.getAuthProvider() == AuthProvider.GOOGLE) {
+            String emailContent = "We noticed you requested a password reset, but your account is linked with Google.\n" +
+                                  "Please sign in using the 'Continue with Google' option.\n" +
+                                  "If you forgot your Google password, use Google's account recovery.";
+            emailService.sendEmail(user.getEmail(), "Password reset unavailable for Google sign-in", emailContent);
             return;
         }
 

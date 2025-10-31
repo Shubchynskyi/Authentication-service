@@ -72,7 +72,7 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
         fetchProfile();
     }, [isAuthenticated]);
 
-    const isAdmin = profile?.roles.includes('ADMIN') || false;
+    const isAdmin = profile?.roles.includes('ROLE_ADMIN') || false;
 
     return (
         <ProfileContext.Provider value={{ profile, isLoading, error, isAdmin, updateProfile }}>

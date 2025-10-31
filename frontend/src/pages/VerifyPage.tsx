@@ -1,19 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Box,
     Typography,
     Container,
     CircularProgress,
-    Alert,
+    Paper
 } from '@mui/material';
-import api from '../services/api';  
+import { styled } from '@mui/material/styles';
+import api from '../api';
+import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/NotificationContext';
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(4),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    borderRadius: theme.spacing(1),
+    backgroundColor: theme.palette.background.paper,
+    width: '100%',
+    maxWidth: 480,
+}));
 
 const VerifyPage = () => {
     const navigate = useNavigate();
     const [searchParams] = useSearchParams();
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-    const [errorMessage, setErrorMessage] = useState('');
+    const { t } = useTranslation();
+    const { showNotification } = useNotification();
 
     useEffect(() => {
         const verifyEmail = async () => {
@@ -23,7 +38,7 @@ const VerifyPage = () => {
 
                 if (!verificationToken || !email) {
                     setStatus('error');
-                    setErrorMessage('Invalid confirmation link');
+                    showNotification(t('auth.verification.invalidLink'), 'error');
                     return;
                 }
 
@@ -33,53 +48,41 @@ const VerifyPage = () => {
                 });
 
                 setStatus('success');
+                showNotification(t('auth.verification.successRedirect'), 'success');
                 setTimeout(() => {
                     navigate('/login', {
-                        state: { message: 'Email successfully verified. Now you can login.' }
+                        state: { message: t('auth.verificationSuccess') }
                     });
-                }, 2000);
+                }, 1500);
             } catch (error: any) {
                 setStatus('error');
-                setErrorMessage(error.response?.data || 'Error verifying email');
+                showNotification(t('auth.verification.error'), 'error');
             }
         };
 
         verifyEmail();
-    }, [navigate, searchParams]);
+    }, [navigate, searchParams, showNotification, t]);
 
     return (
-        <Container component="main" maxWidth="xs">
+        <Container component="main" maxWidth="sm">
             <Box sx={{
-                marginTop: 8,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 2
             }}>
-                <Typography component="h1" variant="h5">
-                    Email verification
-                </Typography>
-
-                {status === 'loading' && (
-                    <>
-                        <CircularProgress />
-                        <Typography>
-                            Verifying your email...
-                        </Typography>
-                    </>
-                )}
-
-                {status === 'success' && (
-                    <Alert severity="success">
-                        Email successfully verified! Redirecting to login page...
-                    </Alert>
-                )}
-
-                {status === 'error' && (
-                    <Alert severity="error">
-                        {errorMessage}
-                    </Alert>
-                )}
+                <StyledPaper elevation={3}>
+                    <Typography component="h1" variant="h5" gutterBottom>
+                        {t('auth.verificationTitle')}
+                    </Typography>
+                    {status === 'loading' && (
+                        <>
+                            <CircularProgress />
+                            <Typography sx={{ mt: 2 }}>
+                                {t('auth.verification.verifying')}
+                            </Typography>
+                        </>
+                    )}
+                </StyledPaper>
             </Box>
         </Container>
     );

@@ -12,6 +12,8 @@ import {
 import { styled } from '@mui/material/styles';
 import { useProfile } from '../context/ProfileContext';
 import { useNotification } from '../context/NotificationContext';
+import axios from 'axios';
+import { useTranslation } from 'react-i18next';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -20,12 +22,15 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     alignItems: 'center',
     borderRadius: theme.spacing(1),
     backgroundColor: theme.palette.background.paper,
+    width: '100%',
+    maxWidth: 480,
 }));
 
 const EditProfilePage: React.FC = () => {
     const navigate = useNavigate();
     const { profile, updateProfile, isLoading } = useProfile();
     const { showNotification } = useNotification();
+    const { t } = useTranslation();
     
     const [name, setName] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
@@ -41,7 +46,7 @@ const EditProfilePage: React.FC = () => {
         e.preventDefault();
 
         if (newPassword && !currentPassword) {
-            showNotification('Current password is required to change password', 'error');
+            showNotification(t('profile.notifications.currentPasswordRequired'), 'error');
             return;
         }
 
@@ -51,16 +56,25 @@ const EditProfilePage: React.FC = () => {
                 password: newPassword,
                 currentPassword: currentPassword,
             });
-            showNotification('Profile updated successfully', 'success');
+            showNotification(t('profile.notifications.updateSuccess'), 'success');
             navigate('/profile', { replace: true });
         } catch (error) {
-            showNotification('Error updating profile', 'error');
+            if (axios.isAxiosError(error)) {
+                const msg = String(error.response?.data || '').toLowerCase();
+                if (msg.includes('incorrect current password') || msg.includes('wrong current password')) {
+                    showNotification(t('profile.notifications.incorrectCurrentPassword'), 'error');
+                } else {
+                    showNotification(t('profile.notifications.updateError'), 'error');
+                }
+            } else {
+                showNotification(t('profile.notifications.updateError'), 'error');
+            }
         }
     };
 
     if (isLoading) {
         return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
                 <CircularProgress />
             </Box>
         );
@@ -69,7 +83,7 @@ const EditProfilePage: React.FC = () => {
     const isGoogleUser = profile?.authProvider === 'GOOGLE';
 
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
             <StyledPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
                     Edit Profile
@@ -86,8 +100,7 @@ const EditProfilePage: React.FC = () => {
                     />
                     {isGoogleUser ? (
                         <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
-                            Password change is not available for Google-authenticated accounts. 
-                            Please use Google account settings to manage your password.
+                            {t('profile.googleAuthInfo')}
                         </Alert>
                     ) : (
                         <>
@@ -117,7 +130,16 @@ const EditProfilePage: React.FC = () => {
                         sx={{ mt: 3, mb: 2 }}
                         disabled={isLoading}
                     >
-                        {isLoading ? <CircularProgress size={24} /> : 'Save Changes'}
+                        {isLoading ? <CircularProgress size={24} /> : t('common.save')}
+                    </Button>
+                    <Button
+                        variant="outlined"
+                        fullWidth
+                        component={Link}
+                        to="/"
+                        sx={{ mb: 2 }}
+                    >
+                        {t('notFound.backHome')}
                     </Button>
                     <Button
                         variant="outlined"
@@ -125,7 +147,7 @@ const EditProfilePage: React.FC = () => {
                         component={Link}
                         to="/profile"
                     >
-                        Back to Profile
+                        {t('profile.backToProfile')}
                     </Button>
                 </form>
             </StyledPaper>

@@ -6,11 +6,13 @@ import {
   TextField,
   Button,
   Typography,
-  Alert,
   Paper,
   CircularProgress,
+  Link as MuiLink,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/NotificationContext';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -19,20 +21,21 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   alignItems: 'center',
   borderRadius: theme.spacing(1),
   backgroundColor: theme.palette.background.paper,
+  width: '100%',
+  maxWidth: 480,
 }));
 
 const VerificationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
+  const { showNotification } = useNotification();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [messageType, setMessageType] = useState<'error' | 'success'>('success');
 
   useEffect(() => {
-    // Если email передан через state, используем его
     if (location.state?.email) {
       setEmail(location.state.email);
     }
@@ -46,21 +49,14 @@ const VerificationPage: React.FC = () => {
         'http://localhost:8080/api/auth/verify',
         { email, code }
       );
-      setMessage(response.data);
-      setMessageType('success')
+      showNotification(response.data || t('auth.verificationSuccess'), 'success');
       navigate('/login');
     } catch (err) {
-      setMessageType('error');
-      if (axios.isAxiosError(err) && err.response?.data) {
-        if (typeof err.response.data === 'string') {
-          setMessage(err.response.data);
-        } else if (typeof err.response.data.message === 'string') {
-          setMessage(err.response.data.message);
-        } else {
-          setMessage('Ошибка при подтверждении');
-        }
+      if (axios.isAxiosError(err)) {
+        const msg = String(err.response?.data || t('auth.verification.error'));
+        showNotification(msg, 'error');
       } else {
-        setMessage('Непредвиденная ошибка');
+        showNotification(t('auth.verification.error'), 'error');
       }
     } finally {
       setIsLoading(false);
@@ -74,27 +70,23 @@ const VerificationPage: React.FC = () => {
         'http://localhost:8080/api/auth/resend-verification',
         { email }
       );
-      setMessage(response.data);
-      setMessageType('success');
-
+      showNotification(response.data || t('auth.verification.codeResent'), 'success');
     } catch (error) {
-      setMessage("Не удалось отправить код повторно")
-      setMessageType('error')
-      console.error("Ошибка при повторной отправке кода:", error);
+      showNotification(t('auth.verification.resendError'), 'error');
     } finally {
       setResendLoading(false);
     }
   };
 
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
       <StyledPaper elevation={3}>
         <Typography component="h1" variant="h5" align="center" marginBottom={3}>
-          Подтверждение Email
+          {t('auth.verificationTitle')}
         </Typography>
         <form onSubmit={handleVerify} style={{ width: '100%' }}>
           <TextField
-            label="Email"
+            label={t('common.email')}
             fullWidth
             margin="normal"
             type="email"
@@ -103,7 +95,7 @@ const VerificationPage: React.FC = () => {
             required
           />
           <TextField
-            label="Код подтверждения"
+            label={t('auth.verificationCode')}
             fullWidth
             margin="normal"
             type="text"
@@ -118,7 +110,7 @@ const VerificationPage: React.FC = () => {
             sx={{ mt: 3, mb: 2 }}
             disabled={isLoading}
           >
-            {isLoading ? <CircularProgress size={24} /> : 'Подтвердить'}
+            {isLoading ? <CircularProgress size={24} /> : t('auth.verify')}
           </Button>
           <Button
             onClick={handleResendVerification}
@@ -127,20 +119,15 @@ const VerificationPage: React.FC = () => {
             sx={{ mb: 2 }}
             disabled={resendLoading}
           >
-            {resendLoading ? <CircularProgress size={24} /> : 'Отправить код повторно'}
+            {resendLoading ? <CircularProgress size={24} /> : t('auth.resendCode')}
           </Button>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>
-            <Link to="/">
-              <Typography variant="body2">Вернуться на главную</Typography>
-            </Link>
+            <MuiLink component={Link} to="/" color="primary" underline="hover">
+              {t('notFound.backHome')}
+            </MuiLink>
           </Box>
         </form>
-        {message && (
-          <Alert severity={messageType} sx={{ mt: 2, width: '100%' }}>
-            {message}
-          </Alert>
-        )}
       </StyledPaper>
     </Box>
   );

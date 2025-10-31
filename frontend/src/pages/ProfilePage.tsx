@@ -12,6 +12,7 @@ import { styled } from '@mui/material/styles';
 import AdminSection from './AdminSection';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -20,11 +21,14 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
   alignItems: 'center',
   borderRadius: theme.spacing(1),
   backgroundColor: theme.palette.background.paper,
+  width: '100%',
+  maxWidth: 480,
 }));
 
 const ProfilePage: React.FC = () => {
   const { profile, isLoading } = useProfile();
   const { logout } = useAuth();
+  const { t } = useTranslation();
 
   if (isLoading) {
     return (
@@ -39,20 +43,20 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
       <StyledPaper elevation={3}>
         <Typography component="h1" variant="h5" align="center" marginBottom={3}>
-          My Profile
+          {t('profile.title')}
         </Typography>
         <Grid container spacing={2} sx={{ width: '100%' }}>
           <Grid item xs={12}>
             <Typography variant="body1">
-              <strong>Email:</strong> {profile.email}
+              <strong>{t('common.email')}:</strong> {profile.email}
             </Typography>
           </Grid>
           <Grid item xs={12}>
             <Typography variant="body1">
-              <strong>Name:</strong> {profile.name}
+              <strong>{t('common.username')}:</strong> {profile.name}
             </Typography>
           </Grid>
           <Grid item xs={12}>
@@ -62,7 +66,7 @@ const ProfilePage: React.FC = () => {
               component={Link}
               to="/profile/edit"
             >
-              Edit Profile
+              {t('common.editProfile')}
             </Button>
           </Grid>
           <Grid item xs={12}>
@@ -74,9 +78,19 @@ const ProfilePage: React.FC = () => {
                 to="/admin"
                 color="secondary"
               >
-                Admin Panel
+                {t('profile.adminPanel')}
               </Button>
             </AdminSection>
+          </Grid>
+          <Grid item xs={12}>
+            <Button
+              variant="outlined"
+              fullWidth
+              component={Link}
+              to="/"
+            >
+              {t('notFound.backHome')}
+            </Button>
           </Grid>
           <Grid item xs={12}>
             <Button
@@ -85,7 +99,7 @@ const ProfilePage: React.FC = () => {
               onClick={logout}
               color="error"
             >
-              Logout
+              {t('common.logout')}
             </Button>
           </Grid>
         </Grid>

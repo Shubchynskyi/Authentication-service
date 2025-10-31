@@ -8,9 +8,23 @@ import {
     Typography,
     Container,
     Grid,
-    Alert,
+    Link as MuiLink,
+    Paper
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/NotificationContext';
+
+const StyledPaper = styled(Paper)(({ theme }) => ({
+    padding: theme.spacing(4),
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    borderRadius: theme.spacing(1),
+    backgroundColor: theme.palette.background.paper,
+    width: '100%',
+    maxWidth: 480,
+}));
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -18,16 +32,26 @@ const LoginPage = () => {
     const [errorMsg, setErrorMsg] = useState('');
     const { t } = useTranslation();
     const location = useLocation();
+    const { showNotification } = useNotification();
 
     useEffect(() => {
         if (location.state?.error) {
-            setErrorMsg(location.state.error);
+            showNotification(location.state.error, 'error');
         }
-    }, [location]);
+    }, [location, showNotification]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMsg('');
+
+        if (!email) {
+            showNotification(t('errors.emailRequired'), 'error');
+            return;
+        }
+        if (!password) {
+            showNotification(t('errors.passwordRequired'), 'error');
+            return;
+        }
 
         try {
             const response = await axios.post('http://localhost:8080/api/auth/login', {
@@ -45,97 +69,87 @@ const LoginPage = () => {
             if (error.response?.data) {
                 const errorMessage = error.response.data;
                 if (errorMessage.includes('User not found') || errorMessage.includes('Incorrect password')) {
-                    setErrorMsg(t('auth.loginError.invalidCredentials'));
+                    showNotification(t('auth.loginError.invalidCredentials'), 'error');
                 } else if (errorMessage.includes('Account is blocked')) {
                     const blockReason = errorMessage.split('Account is blocked.')[1]?.trim();
-                    setErrorMsg(t('auth.loginError.accountBlocked') + 
-                        (blockReason ? `: ${blockReason}` : ''));
+                    showNotification(t('auth.loginError.accountBlocked') + (blockReason ? `: ${blockReason}` : ''), 'error');
                 } else if (errorMessage.includes('Email not verified')) {
-                    setErrorMsg(t('auth.loginError.emailNotVerified'));
+                    showNotification(t('auth.loginError.emailNotVerified'), 'error');
                 } else {
-                    setErrorMsg(t('auth.loginError.generalError'));
+                    showNotification(t('auth.loginError.generalError'), 'error');
                 }
             } else {
-                setErrorMsg(t('auth.loginError.generalError'));
+                showNotification(t('auth.loginError.generalError'), 'error');
             }
         }
     };
 
     return (
-        <Container maxWidth="xs">
-            <Box
-                sx={{
-                    marginTop: 8,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                }}
-            >
-                <Typography component="h1" variant="h5">
-                    {t('auth.loginTitle')}
-                </Typography>
-                
-                {errorMsg && (
-                    <Alert severity="error" sx={{ mt: 2, mb: 2, width: '100%' }}>
-                        {errorMsg}
-                    </Alert>
-                )}
-                
-                <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        label={t('common.email')}
-                        name="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        error={!!errorMsg}
-                    />
-                    <TextField
-                        margin="normal"
-                        required
-                        fullWidth
-                        name="password"
-                        label={t('common.password')}
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        error={!!errorMsg}
-                    />
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        sx={{ mt: 3, mb: 2 }}
-                    >
-                        {t('common.login')}
-                    </Button>
-                    
-                    <Button
-                        fullWidth
-                        variant="outlined"
-                        sx={{ mb: 2 }}
-                        onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
-                    >
-                        {t('auth.loginWithGoogle')}
-                    </Button>
-                    
-                    <Grid container>
-                        <Grid item xs>
-                            <Link to="/forgot-password">
-                                {t('common.forgotPassword')}
-                            </Link>
+        <Container maxWidth="sm">
+            <Box sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+            }}>
+                <StyledPaper elevation={3}>
+                    <Typography component="h1" variant="h5">
+                        {t('auth.loginTitle')}
+                    </Typography>
+
+                    <Box component="form" noValidate onSubmit={handleSubmit} sx={{ mt: 1, width: '100%' }}>
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            label={t('common.email')}
+                            name="email"
+                            autoComplete="email"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                        />
+                        <TextField
+                            margin="normal"
+                            required
+                            fullWidth
+                            name="password"
+                            label={t('common.password')}
+                            type="password"
+                            autoComplete="current-password"
+                            value={password}
+                            onChange={(e) => setPassword(e.target.value)}
+                        />
+                        <Button
+                            type="submit"
+                            fullWidth
+                            variant="contained"
+                            sx={{ mt: 3, mb: 2 }}
+                        >
+                            {t('common.login')}
+                        </Button>
+
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            sx={{ mb: 2 }}
+                            onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+                        >
+                            {t('auth.loginWithGoogle')}
+                        </Button>
+
+                        <Grid container alignItems="center" justifyContent="space-between" sx={{ mt: 1 }}>
+                            <Grid item>
+                                <MuiLink component={Link} to="/forgot-password" color="primary" underline="hover">
+                                    {t('common.forgotPassword')}
+                                </MuiLink>
+                            </Grid>
+                            <Grid item>
+                                <MuiLink component={Link} to="/register" color="primary" underline="hover">
+                                    {t('common.register')}
+                                </MuiLink>
+                            </Grid>
                         </Grid>
-                        <Grid item>
-                            <Link to="/register">
-                                {t('common.register')}
-                            </Link>
-                        </Grid>
-                    </Grid>
-                </Box>
+                    </Box>
+                </StyledPaper>
             </Box>
         </Container>
     );

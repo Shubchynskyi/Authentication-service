@@ -29,7 +29,13 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import api from '../services/api';
+import api from '../api';
+import axios from 'axios';
+import { useTranslation } from 'react-i18next';
+import { useNotification } from '../context/NotificationContext';
+import AddIcon from '@mui/icons-material/Add';
+import GoogleIcon from '@mui/icons-material/Google';
+import PersonIcon from '@mui/icons-material/Person';
 
 interface User {
     id: number;
@@ -40,6 +46,8 @@ interface User {
     blocked: boolean;
     emailVerified: boolean;
     blockReason?: string;
+    lastLoginAt?: string;
+    authProvider?: 'LOCAL' | 'GOOGLE';
 }
 
 interface TabPanelProps {
@@ -66,6 +74,8 @@ function TabPanel(props: TabPanelProps) {
 }
 
 const AdminPage = () => {
+    const { t } = useTranslation();
+    const { showNotification } = useNotification();
     const [tabValue, setTabValue] = useState(0);
     const [users, setUsers] = useState<User[]>([]);
     const [whitelist, setWhitelist] = useState<string[]>([]);
@@ -83,14 +93,18 @@ const AdminPage = () => {
         blocked: false,
         blockReason: ''
     });
-    const [confirmAdminDialog, setConfirmAdminDialog] = useState(false);
-    const [adminPassword, setAdminPassword] = useState('');
     const [confirmActionDialog, setConfirmActionDialog] = useState(false);
     const [confirmActionPassword, setConfirmActionPassword] = useState('');
     const [pendingAction, setPendingAction] = useState<{
         type: 'DELETE_USER' | 'ADD_WHITELIST' | 'REMOVE_WHITELIST';
         data: any;
     } | null>(null);
+
+    const [confirmAdminDialog, setConfirmAdminDialog] = useState(false);
+    const [adminPassword, setAdminPassword] = useState('');
+
+    // Limit for block reason length
+    const MAX_BLOCK_REASON_LENGTH = 200; // Maximum symbols for block reason
 
     const fetchWhitelist = async () => {
         try {
@@ -183,9 +197,7 @@ const AdminPage = () => {
         } else {
             setFormData({
                 ...formData,
-                roles: isAdmin 
-                    ? ['ROLE_USER', 'ROLE_ADMIN']
-                    : ['ROLE_USER']
+                roles: ['ROLE_USER']
             });
         }
     };
@@ -193,16 +205,14 @@ const AdminPage = () => {
     const handleConfirmAdmin = async () => {
         try {
             await api.post('/api/admin/verify-admin', { password: adminPassword });
-            
-            setFormData({ 
-                ...formData, 
-                roles: [...formData.roles, 'ROLE_ADMIN'] 
-            });
+            const nextRoles = Array.from(new Set([...(formData.roles || []), 'ROLE_ADMIN', 'ROLE_USER']));
+            setFormData({ ...formData, roles: nextRoles });
             setConfirmAdminDialog(false);
             setAdminPassword('');
+            showNotification(t('admin.notifications.adminGranted'), 'success');
         } catch (error) {
-            console.error('Error verifying admin:', error);
-            alert('Invalid admin password');
+            setAdminPassword('');
+            showNotification(t('admin.errors.invalidAdminPassword'), 'error');
         }
     };
 
@@ -216,7 +226,6 @@ const AdminPage = () => {
                 username: formData.username,
                 email: formData.email,
                 roles: formData.roles,
-                isAktiv: true,
                 isBlocked: formData.blocked,
                 blockReason: formData.blocked ? formData.blockReason : null
             };
@@ -225,12 +234,33 @@ const AdminPage = () => {
             const response = await api[method](url, requestData);
 
             if (response.status === 200 || response.status === 201) {
+                if (selectedUser) {
+                    const prev = selectedUser.roles || [];
+                    const next = Array.from(new Set(formData.roles || []));
+                    const rolesChanged = prev.length !== next.length || !prev.every(r => next.includes(r));
+                    if (rolesChanged) {
+                        await api.put(`/api/admin/users/${selectedUser.id}/roles`, { roles: next });
+                    }
+                }
+
                 handleCloseDialog();
                 fetchUsers();
+                showNotification(t('admin.notifications.userSaved'), 'success');
             }
         } catch (error) {
-            console.error('Error saving user:', error);
-            alert('Error saving user');
+            if (axios.isAxiosError(error)) {
+                const status = error.response?.status;
+                const data = String(error.response?.data || '').toLowerCase();
+                if (status === 409 || data.includes('already') || data.includes('exists')) {
+                    showNotification(t('admin.errors.emailAlreadyExists'), 'error');
+                } else if (status === 400 && data.includes('email')) {
+                    showNotification(t('errors.invalidEmail'), 'error');
+                } else {
+                    showNotification(t('common.error'), 'error');
+                }
+            } else {
+                showNotification(t('common.error'), 'error');
+            }
         }
     };
 
@@ -242,19 +272,38 @@ const AdminPage = () => {
                 case 'DELETE_USER':
                     await api.delete(`/api/admin/users/${pendingAction.data}`);
                     fetchUsers();
+                    showNotification(t('admin.notifications.userDeleted'), 'success');
                     break;
                 case 'ADD_WHITELIST':
-                    await api.post('/api/admin/whitelist/add', null, {
-                        params: { email: pendingAction.data }
-                    });
-                    setNewEmail('');
-                    fetchWhitelist();
+                    try {
+                        await api.post('/api/admin/whitelist/add', null, {
+                            params: { email: pendingAction.data }
+                        });
+                        setNewEmail('');
+                        fetchWhitelist();
+                        showNotification(t('admin.whitelist.added'), 'success');
+                    } catch (addErr) {
+                        if (axios.isAxiosError(addErr)) {
+                            const status = addErr.response?.status;
+                            const data = String(addErr.response?.data || '').toLowerCase();
+                            if (data.includes('already') || data.includes('exists')) {
+                                showNotification(t('admin.whitelist.emailAlreadyExists'), 'error');
+                            } else if (status === 400 && (data.includes('email') || data.includes('invalid'))) {
+                                showNotification(t('admin.whitelist.invalidEmail'), 'error');
+                            } else {
+                                showNotification(t('common.error'), 'error');
+                            }
+                        } else {
+                            showNotification(t('common.error'), 'error');
+                        }
+                    }
                     break;
                 case 'REMOVE_WHITELIST':
                     await api.delete('/api/admin/whitelist/remove', {
                         params: { email: pendingAction.data }
                     });
                     fetchWhitelist();
+                    showNotification(t('admin.whitelist.removed'), 'success');
                     break;
             }
             
@@ -262,8 +311,13 @@ const AdminPage = () => {
             setConfirmActionPassword('');
             setPendingAction(null);
         } catch (error) {
-            console.error('Error during action:', error);
-            alert('Неверный пароль администратора');
+            if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+                showNotification(t('admin.errors.invalidAdminPassword'), 'error');
+            } else {
+                showNotification(t('common.error'), 'error');
+            }
+            setConfirmActionDialog(false);
+            setConfirmActionPassword('');
         }
     };
 
@@ -274,6 +328,10 @@ const AdminPage = () => {
 
     const handleAddToWhitelist = () => {
         if (!newEmail) return;
+        if (!newEmail.includes('@')) {
+            showNotification(t('admin.whitelist.invalidEmail'), 'error');
+            return;
+        }
         setPendingAction({ type: 'ADD_WHITELIST', data: newEmail });
         setConfirmActionDialog(true);
     };
@@ -285,20 +343,21 @@ const AdminPage = () => {
 
     return (
         <Box sx={{ width: '100%' }}>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
                 <Tabs value={tabValue} onChange={handleTabChange}>
-                    <Tab label="Users" />
-                    <Tab label="Whitelist" />
+                    <Tab label={t('admin.users')} />
+                    <Tab label={t('admin.whitelistTab')} />
                 </Tabs>
             </Box>
 
             <TabPanel value={tabValue} index={0}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
                     <Button
                         variant="contained"
                         onClick={() => handleOpenDialog()}
+                        sx={{ width: 240 }}
                     >
-                        Add user
+                        {t('admin.addUser')}
                     </Button>
                 </Box>
 
@@ -306,34 +365,75 @@ const AdminPage = () => {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>ID</TableCell>
-                                <TableCell>Username</TableCell>
-                                <TableCell>Email</TableCell>
-                                <TableCell>Roles</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Actions</TableCell>
+                                <TableCell>{t('common.id')}</TableCell>
+                                <TableCell>{t('common.username')}</TableCell>
+                                <TableCell>{t('common.email')}</TableCell>
+                                <TableCell>{t('admin.lastLogin')}</TableCell>
+                                <TableCell>{t('admin.source')}</TableCell>
+                                <TableCell>{t('admin.status')}</TableCell>
+                                <TableCell>{t('admin.actions')}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
                             {users.map((user) => (
                                 <TableRow key={user.id}>
                                     <TableCell>{user.id}</TableCell>
-                                    <TableCell>{user.username}</TableCell>
+                                    <TableCell>{user.username} {user.roles.includes('ROLE_ADMIN') && (
+  <span
+    title="Administrator"
+    aria-label="Administrator"
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 18,
+      height: 18,
+      marginLeft: 6,
+      borderRadius: '50%',
+      backgroundColor: '#e53935',
+      color: '#ffffff',
+      fontWeight: 'bold',
+      fontSize: 12,
+      lineHeight: '18px'
+    }}
+  >A</span>
+)}</TableCell>
                                     <TableCell>{user.email}</TableCell>
-                                    <TableCell>{user.roles.join(', ')}</TableCell>
                                     <TableCell>
-                                        {user.blocked ? 'Blocked' : 
-                                         !user.enabled ? 'Disabled' :
-                                         !user.emailVerified ? 'Not verified' :
-                                         'Active'}
+                                        {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, {
+                                            year: 'numeric', month: '2-digit', day: '2-digit',
+                                            hour: '2-digit', minute: '2-digit'
+                                        }) : '—'}
                                     </TableCell>
                                     <TableCell>
-                                        <Tooltip title="Edit">
+                                        {user.authProvider === 'GOOGLE' ? (
+                                            <Tooltip title={t('admin.sourceGoogle')}><GoogleIcon fontSize="small" /></Tooltip>
+                                        ) : (
+                                            <Tooltip title={t('admin.sourceLocal')}><PersonIcon fontSize="small" /></Tooltip>
+                                        )}
+                                    </TableCell>
+                                    <TableCell>
+                                        {user.blocked ? (
+                                            <React.Fragment>
+                                                <span style={{ fontWeight: 'bold', color: 'red' }}>{t('admin.statusBlocked')}</span>
+                                                {user.blockReason && (
+                                                    <div style={{ fontSize: '0.92em', color: '#cc3535', marginTop: 2, fontWeight: 'bold' }}>
+                                                        {user.blockReason}
+                                                    </div>
+                                                )}
+                                            </React.Fragment>
+                                        ) :
+                                            !user.enabled ? t('admin.statusDisabled')
+                                                : !user.emailVerified ? t('admin.statusNotVerified')
+                                                    : t('admin.statusActive')}
+                                    </TableCell>
+                                    <TableCell>
+                                        <Tooltip title={t('admin.edit')}>
                                             <IconButton onClick={() => handleOpenDialog(user)}>
                                                 <EditIcon />
                                             </IconButton>
                                         </Tooltip>
-                                        <Tooltip title="Delete">
+                                        <Tooltip title={t('admin.delete')}>
                                             <IconButton onClick={() => handleDelete(user.id)}>
                                                 <DeleteIcon />
                                             </IconButton>
@@ -343,24 +443,28 @@ const AdminPage = () => {
                             ))}
                         </TableBody>
                     </Table>
-                    <TablePagination
-                        component="div"
-                        count={totalElements}
-                        page={page}
-                        onPageChange={handleChangePage}
-                        rowsPerPage={rowsPerPage}
-                        onRowsPerPageChange={handleChangeRowsPerPage}
-                        rowsPerPageOptions={[5, 10, 25]}
-                    />
+                    {(totalElements > rowsPerPage) && (
+                        <TablePagination
+                            component="div"
+                            count={totalElements}
+                            page={page}
+                            onPageChange={handleChangePage}
+                            rowsPerPage={rowsPerPage}
+                            onRowsPerPageChange={handleChangeRowsPerPage}
+                            rowsPerPageOptions={[5, 10, 25]}
+                            labelDisplayedRows={({ from, to, count }) => `${from}–${to} ${t('common.of')} ${count}`}
+                            labelRowsPerPage={t('common.rowsPerPage')}
+                        />
+                    )}
                 </TableContainer>
             </TabPanel>
 
             <TabPanel value={tabValue} index={1}>
                 <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-                    <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+                    <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
                         <TextField
                             fullWidth
-                            label="Email адрес"
+                            label={t('admin.whitelistEmailLabel')}
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
                         />
@@ -368,8 +472,10 @@ const AdminPage = () => {
                             variant="contained"
                             onClick={handleAddToWhitelist}
                             disabled={!newEmail}
+                            startIcon={<AddIcon />}
+                            sx={{ width: 180 }}
                         >
-                            Добавить
+                            {t('admin.whitelistAdd')}
                         </Button>
                     </Box>
 
@@ -393,20 +499,20 @@ const AdminPage = () => {
 
             <Dialog open={openDialog} onClose={handleCloseDialog}>
                 <DialogTitle>
-                    {selectedUser ? 'Edit user' : 'Add user'}
+                    {selectedUser ? t('admin.editUser') : t('admin.addUser')}
                 </DialogTitle>
                 <DialogContent>
                     <TextField
                         margin="normal"
                         fullWidth
-                        label="Username"
+                        label={t('common.username')}
                         value={formData.username}
                         onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                     />
                     <TextField
                         margin="normal"
                         fullWidth
-                        label="Email"
+                        label={t('common.email')}
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     />
@@ -417,7 +523,7 @@ const AdminPage = () => {
                                 onChange={(e) => handleRoleChange(e.target.checked)}
                             />
                         }
-                        label="Admin"
+                        label={t('admin.adminLabel')}
                     />
                     <FormControlLabel
                         control={
@@ -430,66 +536,46 @@ const AdminPage = () => {
                                 })}
                             />
                         }
-                        label="Blocked"
+                        label={t('admin.blockedLabel')}
                     />
                     {formData.blocked && (
                         <TextField
                             margin="normal"
                             fullWidth
-                            label="Block Reason"
+                            label={t('admin.blockReasonLabel')}
                             value={formData.blockReason}
-                            onChange={(e) => setFormData({ ...formData, blockReason: e.target.value })}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setFormData({ ...formData, blockReason: value.slice(0, MAX_BLOCK_REASON_LENGTH) });
+                            }}
                             required
                             error={formData.blocked && !formData.blockReason}
-                            helperText={formData.blocked && !formData.blockReason ? "Block reason is required" : ""}
+                            helperText={formData.blocked && !formData.blockReason ? t('admin.blockReasonRequired') : `${formData.blockReason.length}/${MAX_BLOCK_REASON_LENGTH}`}
+                            inputProps={{ maxLength: MAX_BLOCK_REASON_LENGTH }}
                         />
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseDialog}>Cancel</Button>
+                    <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
                     <Button 
                         onClick={handleSubmit}
                         disabled={formData.blocked && !formData.blockReason}
                     >
-                        Save
-                    </Button>
-                </DialogActions>
-            </Dialog>
-
-            <Dialog open={confirmAdminDialog} onClose={() => setConfirmAdminDialog(false)}>
-                <DialogTitle>Подтверждение прав администратора</DialogTitle>
-                <DialogContent>
-                    <Box sx={{ pt: 2 }}>
-                        <Typography gutterBottom>
-                            Для назначения прав администратора введите ваш пароль:
-                        </Typography>
-                        <TextField
-                            type="password"
-                            label="Admin password"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            fullWidth
-                        />
-                    </Box>
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setConfirmAdminDialog(false)}>Отмена</Button>
-                    <Button onClick={handleConfirmAdmin} variant="contained">
-                        Подтвердить
+                        {t('common.save')}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             <Dialog open={confirmActionDialog} onClose={() => setConfirmActionDialog(false)}>
-                <DialogTitle>Подтверждение действия</DialogTitle>
+                <DialogTitle>{t('admin.confirmActionTitle')}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 2 }}>
                         <Typography gutterBottom>
-                            Для подтверждения действия введите ваш пароль:
+                            {t('admin.confirmActionPrompt')}
                         </Typography>
                         <TextField
                             type="password"
-                            label="Admin password"
+                            label={t('admin.adminPasswordLabel')}
                             value={confirmActionPassword}
                             onChange={(e) => setConfirmActionPassword(e.target.value)}
                             fullWidth
@@ -501,9 +587,33 @@ const AdminPage = () => {
                         setConfirmActionDialog(false);
                         setConfirmActionPassword('');
                         setPendingAction(null);
-                    }}>Отмена</Button>
+                    }}>{t('common.cancel')}</Button>
                     <Button onClick={handleConfirmAction} variant="contained">
-                        Подтвердить
+                        {t('common.submit')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={confirmAdminDialog} onClose={() => setConfirmAdminDialog(false)}>
+                <DialogTitle>{t('admin.assignAdminTitle')}</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ pt: 2 }}>
+                        <Typography gutterBottom>
+                            {t('admin.assignAdminPrompt')}
+                        </Typography>
+                        <TextField
+                            type="password"
+                            label={t('admin.adminPasswordLabel')}
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                            fullWidth
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setConfirmAdminDialog(false)}>{t('common.cancel')}</Button>
+                    <Button onClick={handleConfirmAdmin} variant="contained">
+                        {t('common.submit')}
                     </Button>
                 </DialogActions>
             </Dialog>

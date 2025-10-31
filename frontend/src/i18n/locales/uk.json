@@ -17,7 +17,14 @@
     "submit": "Відправити",
     "verification": "Підтвердження",
     "admin": "Адміністратор",
-    "language": "Мова"
+    "language": "Мова",
+    "error": "Сталася помилка. Спробуйте пізніше",
+    "errorTitle": "Помилка",
+    "ok": "Ок",
+    "id": "ID",
+    "of": "з",
+    "rowsPerPage": "Рядків на сторінці",
+    "home": "На головну"
   },
   "auth": {
     "loginTitle": "Вхід у систему",
@@ -36,19 +43,96 @@
       "accountBlocked": "Обліковий запис заблоковано",
       "emailNotVerified": "Email не підтверджено",
       "serverError": "Помилка сервера, спробуйте пізніше",
-      "networkError": "Помилка мережі, перевірте підключення"
-    }
+      "networkError": "Помилка мережі, перевірте підключення",
+      "generalError": "Не вдалося виконати вхід"
+    },
+    "forgotPasswordDescription": "Введіть ваш email, ми надішлемо посилання для скидання.",
+    "forgotPasswordSuccessGeneric": "Якщо обліковий запис існує, ми надіслали лист для скидання пароля.",
+    "verification": {
+      "verifying": "Перевіряємо ваш email...",
+      "successRedirect": "Email підтверджено! Перенаправляємо до входу...",
+      "invalidLink": "Некоректне посилання підтвердження",
+      "error": "Помилка підтвердження email",
+      "codeResent": "Код підтвердження надіслано повторно",
+      "resendError": "Не вдалося надіслати код повторно"
+    },
+    "verificationCode": "Код підтвердження",
+    "verify": "Підтвердити",
+    "resendCode": "Надіслати код повторно"
   },
   "profile": {
     "title": "Профіль користувача",
     "editTitle": "Редагування профілю",
     "personalInfo": "Особиста інформація",
-    "accountSettings": "Налаштування облікового запису"
+    "accountSettings": "Налаштування облікового запису",
+    "backToProfile": "Назад до профілю",
+    "adminPanel": "Адмін панель",
+    "goToProfile": "До профілю",
+    "notifications": {
+      "currentPasswordRequired": "Для зміни пароля введіть поточний пароль",
+      "updateSuccess": "Профіль успішно оновлено",
+      "updateError": "Помилка під час оновлення профілю",
+      "incorrectCurrentPassword": "Невірний поточний пароль"
+    }
   },
   "admin": {
     "dashboard": "Панель керування",
     "users": "Користувачі",
-    "settings": "Налаштування"
+    "settings": "Налаштування",
+    "whitelistTab": "Білий список",
+    "addUser": "Додати користувача",
+    "editUser": "Редагувати користувача",
+    "roles": "Ролі",
+    "status": "Статус",
+    "actions": "Дії",
+    "edit": "Редагувати",
+    "delete": "Видалити",
+    "statusBlocked": "Заблоковано",
+    "statusDisabled": "Вимкнено",
+    "statusNotVerified": "Не підтверджено",
+    "statusActive": "Активний",
+    "adminLabel": "Адміністратор",
+    "blockedLabel": "Блокування",
+    "blockReasonLabel": "Причина блокування",
+    "blockReasonRequired": "Вкажіть причину блокування",
+    "confirmActionTitle": "Підтвердження дії",
+    "confirmActionPrompt": "Для підтвердження дії введіть ваш пароль:",
+    "whitelistEmailLabel": "Email адреса",
+    "whitelistAdd": "Додати",
+    "whitelist": {
+      "emailAlreadyExists": "Адреса вже у білому списку",
+      "added": "Email додано до білого списку",
+      "removed": "Email видалено з білого списку",
+      "invalidEmail": "Введіть коректний email (має містити @)"
+    },
+    "errors": {
+      "invalidAdminPassword": "Невірний пароль адміністратора",
+      "emailAlreadyExists": "Користувач з таким email вже існує"
+    },
+    "notifications": {
+      "userDeleted": "Користувача видалено",
+      "adminGranted": "Права адміністратора надано",
+      "userSaved": "Користувача збережено"
+    },
+    "assignAdminTitle": "Призначення адміністратора",
+    "assignAdminPrompt": "Щоб надати права адміністратора, введіть ваш пароль:",
+    "adminPasswordLabel": "Пароль адміністратора",
+    "lastLogin": "Останній вхід",
+    "source": "Джерело",
+    "sourceGoogle": "Google",
+    "sourceLocal": "Локально"
+  },
+  "home": {
+    "title": "Головна сторінка",
+    "subtitle": "Ласкаво просимо! Оберіть потрібний розділ:",
+    "links": {
+      "login": "Сторінка логіну",
+      "register": "Сторінка реєстрації",
+      "verify": "Сторінка підтвердження",
+      "profile": "Мій профіль (захищено)",
+      "editProfile": "Редагувати профіль (захищено)",
+      "adminPanel": "Адмін панель"
+    }
   },
   "errors": {
     "requiredField": "Це поле обов'язкове",
@@ -56,6 +140,14 @@
     "passwordMismatch": "Паролі не співпадають",
     "minLength": "Мінімальна довжина: {{count}} символів",
     "serverError": "Помилка сервера, спробуйте пізніше",
-    "networkError": "Помилка мережі, перевірте підключення"
+    "networkError": "Помилка мережі, перевірте підключення",
+    "emailRequired": "Введіть email",
+    "passwordRequired": "Введіть пароль",
+    "usernameRequired": "Введіть ім'я"
+  },
+  "notFound": {
+    "title": "Сторінку не знайдено",
+    "description": "Схоже, такої сторінки не існує або її було переміщено.",
+    "backHome": "На головну"
   }
 } 

@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
-import { Box } from '@mui/material';
+import { Box, Toolbar } from '@mui/material';
 import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { NotificationProvider } from './context/NotificationContext';
@@ -17,9 +17,10 @@ const App: React.FC = () => {
                 <AuthProvider>
                     <ProfileProvider>
                         <Router>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                 <Navbar />
-                                <Box sx={{ pt: 8, flex: 1 }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    <Toolbar />
                                     <NotificationContainer />
                                     <AppRoutes />
                                 </Box>

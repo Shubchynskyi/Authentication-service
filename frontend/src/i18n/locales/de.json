@@ -18,7 +18,14 @@
     "verification": "Verifizierung",
     "admin": "Administrator",
     "language": "Sprache",
-    "newPassword": "Neues Passwort"
+    "newPassword": "Neues Passwort",
+    "error": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
+    "errorTitle": "Fehler",
+    "ok": "OK",
+    "id": "ID",
+    "of": "von",
+    "rowsPerPage": "Zeilen pro Seite",
+    "home": "Startseite"
   },
   "auth": {
     "loginTitle": "Anmelden",
@@ -37,20 +44,97 @@
       "accountBlocked": "Konto gesperrt",
       "emailNotVerified": "E-Mail nicht verifiziert",
       "serverError": "Serverfehler, bitte versuchen Sie es später erneut",
-      "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung"
-    }
+      "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung",
+      "generalError": "Anmeldung fehlgeschlagen"
+    },
+    "forgotPasswordDescription": "Geben Sie Ihre E-Mail ein, wir senden einen Zurücksetzungslink.",
+    "forgotPasswordSuccessGeneric": "Falls ein Konto existiert, haben wir eine E-Mail zum Zurücksetzen gesendet.",
+    "verification": {
+      "verifying": "E-Mail wird verifiziert...",
+      "successRedirect": "E-Mail verifiziert! Weiterleitung zur Anmeldung...",
+      "invalidLink": "Ungültiger Bestätigungslink",
+      "error": "Fehler bei der E-Mail-Verifizierung",
+      "codeResent": "Bestätigungscode erneut gesendet",
+      "resendError": "Bestätigungscode konnte nicht erneut gesendet werden"
+    },
+    "verificationCode": "Bestätigungscode",
+    "verify": "Bestätigen",
+    "resendCode": "Code erneut senden"
   },
   "profile": {
     "title": "Benutzerprofil",
     "editTitle": "Profil bearbeiten",
     "personalInfo": "Persönliche Informationen",
     "accountSettings": "Kontoeinstellungen",
-    "googleAuthInfo": "Die Passwortänderung ist für mit Google authentifizierte Konten nicht verfügbar. Bitte verwenden Sie die Google-Kontoeinstellungen, um Ihr Passwort zu verwalten."
+    "googleAuthInfo": "Die Passwortänderung ist für mit Google authentifizierte Konten nicht verfügbar. Bitte verwenden Sie die Google-Kontoeinstellungen, um Ihr Passwort zu verwalten.",
+    "backToProfile": "Zurück zum Profil",
+    "adminPanel": "Admin-Panel",
+    "goToProfile": "Zum Profil",
+    "notifications": {
+      "currentPasswordRequired": "Geben Sie das aktuelle Passwort ein, um es zu ändern",
+      "updateSuccess": "Profil erfolgreich aktualisiert",
+      "updateError": "Fehler beim Aktualisieren des Profils",
+      "incorrectCurrentPassword": "Falsches aktuelles Passwort"
+    }
   },
   "admin": {
     "dashboard": "Dashboard",
     "users": "Benutzer",
-    "settings": "Einstellungen"
+    "settings": "Einstellungen",
+    "whitelistTab": "Whitelist",
+    "addUser": "Benutzer hinzufügen",
+    "editUser": "Benutzer bearbeiten",
+    "roles": "Rollen",
+    "status": "Status",
+    "actions": "Aktionen",
+    "edit": "Bearbeiten",
+    "delete": "Löschen",
+    "statusBlocked": "Gesperrt",
+    "statusDisabled": "Deaktiviert",
+    "statusNotVerified": "Nicht verifiziert",
+    "statusActive": "Aktiv",
+    "adminLabel": "Administrator",
+    "blockedLabel": "Sperre",
+    "blockReasonLabel": "Sperrgrund",
+    "blockReasonRequired": "Sperrgrund ist erforderlich",
+    "confirmActionTitle": "Aktion bestätigen",
+    "confirmActionPrompt": "Geben Sie Ihr Passwort zur Bestätigung ein:",
+    "whitelistEmailLabel": "E-Mail-Adresse",
+    "whitelistAdd": "Hinzufügen",
+    "whitelist": {
+      "emailAlreadyExists": "E-Mail ist bereits auf der Whitelist",
+      "added": "E-Mail zur Whitelist hinzugefügt",
+      "removed": "E-Mail von der Whitelist entfernt",
+      "invalidEmail": "Geben Sie eine gültige E-Mail ein (muss @ enthalten)"
+    },
+    "errors": {
+      "invalidAdminPassword": "Ungültiges Admin-Passwort",
+      "emailAlreadyExists": "Ein Benutzer mit dieser E-Mail existiert bereits"
+    },
+    "notifications": {
+      "userDeleted": "Benutzer gelöscht",
+      "adminGranted": "Administratorrechte vergeben",
+      "userSaved": "Benutzer gespeichert"
+    },
+    "assignAdminTitle": "Administrator zuweisen",
+    "assignAdminPrompt": "Geben Sie Ihr Passwort ein, um Admin-Rechte zu vergeben:",
+    "adminPasswordLabel": "Admin-Passwort",
+    "lastLogin": "Letzte Anmeldung",
+    "source": "Quelle",
+    "sourceGoogle": "Google",
+    "sourceLocal": "Lokal"
+  },
+  "home": {
+    "title": "Startseite",
+    "subtitle": "Willkommen! Wählen Sie einen Bereich:",
+    "links": {
+      "login": "Login-Seite",
+      "register": "Registrierungsseite",
+      "verify": "Bestätigungsseite",
+      "profile": "Mein Profil (geschützt)",
+      "editProfile": "Profil bearbeiten (geschützt)",
+      "adminPanel": "Admin-Panel"
+    }
   },
   "errors": {
     "requiredField": "Dieses Feld ist erforderlich",
@@ -58,6 +142,14 @@
     "passwordMismatch": "Passwörter stimmen nicht überein",
     "minLength": "Mindestlänge: {{count}} Zeichen",
     "serverError": "Serverfehler, bitte versuchen Sie es später erneut",
-    "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung"
+    "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung",
+    "emailRequired": "E-Mail eingeben",
+    "passwordRequired": "Passwort eingeben",
+    "usernameRequired": "Name eingeben"
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "description": "Diese Seite existiert nicht oder wurde verschoben.",
+    "backHome": "Zur Startseite"
   }
 } 

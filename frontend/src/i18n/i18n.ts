@@ -39,6 +39,9 @@ i18n
     },
     lng: getBrowserLanguage(),
     fallbackLng: 'en',
+    supportedLngs: Object.keys(availableLanguages),
+    nonExplicitSupportedLngs: true,
+    load: 'languageOnly',
     interpolation: {
       escapeValue: false
     },
@@ -49,4 +52,11 @@ i18n
     },
   });
 
-export default i18n; 
+// Keep <html lang> in sync and persist selection
+i18n.on('languageChanged', (lng) => {
+  const code = (lng || 'en').split('-')[0];
+  try { document.documentElement.lang = code; } catch {}
+  try { localStorage.setItem('language', code); } catch {}
+});
+
+export default i18n;

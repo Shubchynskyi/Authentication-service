@@ -54,7 +54,6 @@ yarn-error.log*
 # Logs
 logs
 *.log
-npm-debug.log*
 
 # Runtime data
 pids
@@ -66,4 +65,19 @@ pids
 .npm
 
 # Optional eslint cache
-.eslintcache 
+.eslintcache
+
+# Docker
+*.env
+docker-compose.override.yml
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Logs
+*.log
+logs/ 

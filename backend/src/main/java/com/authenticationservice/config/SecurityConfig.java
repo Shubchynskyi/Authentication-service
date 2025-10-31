@@ -38,7 +38,7 @@ public class SecurityConfig {
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    @SuppressWarnings("unused")
+    // @SuppressWarnings("unused")
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http

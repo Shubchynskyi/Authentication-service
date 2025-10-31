@@ -17,7 +17,14 @@
     "submit": "Submit",
     "verification": "Verification",
     "admin": "Administrator",
-    "language": "Language"
+    "language": "Language",
+    "error": "An error occurred. Please try again.",
+    "errorTitle": "Error",
+    "ok": "OK",
+    "id": "ID",
+    "of": "of",
+    "rowsPerPage": "Rows per page",
+    "home": "Home"
   },
   "auth": {
     "loginTitle": "Sign In",
@@ -36,20 +43,85 @@
       "accountBlocked": "Account is blocked",
       "emailNotVerified": "Email is not verified",
       "serverError": "Server error, please try again later",
-      "networkError": "Network error, check your connection"
-    }
+      "networkError": "Network error, check your connection",
+      "generalError": "Login failed"
+    },
+    "forgotPasswordDescription": "Enter your email and we'll send you a reset link.",
+    "forgotPasswordSuccessGeneric": "If an account exists, we've sent a password reset email.",
+    "verification": {
+      "verifying": "Verifying your email...",
+      "successRedirect": "Email verified! Redirecting to login...",
+      "invalidLink": "Invalid confirmation link",
+      "error": "Error verifying email",
+      "codeResent": "Verification code resent",
+      "resendError": "Failed to resend verification code"
+    },
+    "verificationCode": "Verification code",
+    "verify": "Verify",
+    "resendCode": "Resend code"
   },
   "profile": {
     "title": "User Profile",
     "editTitle": "Edit Profile",
     "personalInfo": "Personal Information",
     "accountSettings": "Account Settings",
-    "googleAuthInfo": "Password change is not available for Google-authenticated accounts. Please use Google account settings to manage your password."
+    "googleAuthInfo": "Password change is not available for Google-authenticated accounts. Please use Google account settings to manage your password.",
+    "backToProfile": "Back to Profile",
+    "adminPanel": "Admin Panel",
+    "goToProfile": "Go to profile",
+    "notifications": {
+      "currentPasswordRequired": "Enter current password to change password",
+      "updateSuccess": "Profile updated successfully",
+      "updateError": "Error updating profile",
+      "incorrectCurrentPassword": "Incorrect current password"
+    }
   },
   "admin": {
     "dashboard": "Dashboard",
     "users": "Users",
-    "settings": "Settings"
+    "settings": "Settings",
+    "whitelistTab": "Whitelist",
+    "addUser": "Add user",
+    "editUser": "Edit user",
+    "roles": "Roles",
+    "status": "Status",
+    "actions": "Actions",
+    "edit": "Edit",
+    "delete": "Delete",
+    "statusBlocked": "Blocked",
+    "statusDisabled": "Disabled",
+    "statusNotVerified": "Not verified",
+    "statusActive": "Active",
+    "adminLabel": "Admin",
+    "blockedLabel": "Blocked",
+    "blockReasonLabel": "Block reason",
+    "blockReasonRequired": "Block reason is required",
+    "confirmActionTitle": "Confirm action",
+    "confirmActionPrompt": "Enter your password to confirm:",
+    "whitelistEmailLabel": "Email address",
+    "whitelistAdd": "Add",
+    "whitelist": {
+      "emailAlreadyExists": "Email is already in whitelist",
+      "added": "Email added to whitelist",
+      "removed": "Email removed from whitelist",
+      "invalidEmail": "Enter a valid email (must contain @)"
+    },
+    "errors": {
+      "invalidAdminPassword": "Invalid admin password",
+      "emailAlreadyExists": "A user with this email already exists"
+    },
+    "notifications": {
+      "userDeleted": "User deleted",
+      "adminGranted": "Admin rights granted",
+      "userSaved": "User saved"
+    },
+    "assignAdminTitle": "Assign administrator",
+    "assignAdminPrompt": "Enter your password to grant admin rights:",
+    "adminPasswordLabel": "Admin password",
+    "lastLogin": "Last login",
+    "source": "Source",
+    "sourceGoogle": "Google",
+    "sourceLocal": "Local"
   },
   "errors": {
     "requiredField": "This field is required",
@@ -57,6 +129,26 @@
     "passwordMismatch": "Passwords do not match",
     "minLength": "Minimum length: {{count}} characters",
     "serverError": "Server error, please try again later",
-    "networkError": "Network error, check your connection"
+    "networkError": "Network error, check your connection",
+    "emailRequired": "Enter email",
+    "passwordRequired": "Enter password",
+    "usernameRequired": "Enter name"
+  },
+  "home": {
+    "title": "Home Page",
+    "subtitle": "Welcome! Choose a section:",
+    "links": {
+      "login": "Login page",
+      "register": "Register page",
+      "verify": "Verification page",
+      "profile": "My profile (protected)",
+      "editProfile": "Edit profile (protected)",
+      "adminPanel": "Admin panel"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "It looks like this page doesn't exist or has been moved.",
+    "backHome": "Go to Home"
   }
 } 

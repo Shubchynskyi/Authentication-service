@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, TextField, Button, Typography, Alert, Paper, CircularProgress } from '@mui/material';
+import { Box, TextField, Button, Typography, Paper, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import api from '../api';
 import axios from 'axios';
+import { useNotification } from '../context/NotificationContext';
+import { useTranslation } from 'react-i18next';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -12,17 +14,19 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
     alignItems: 'center',
     borderRadius: theme.spacing(1),
     backgroundColor: theme.palette.background.paper,
+    width: '100%',
+    maxWidth: 480,
 }));
 
 const ResetPasswordPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { showNotification } = useNotification();
+    const { t } = useTranslation();
     const [token, setToken] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [messageType, setMessageType] = useState<'error' | 'success'>('success');
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
@@ -30,17 +34,15 @@ const ResetPasswordPage: React.FC = () => {
         if (tokenFromUrl) {
             setToken(tokenFromUrl);
         } else {
-            setMessage('Invalid reset link.');
-            setMessageType('error')
+            showNotification(t('auth.verification.invalidLink'), 'error');
         }
-    }, [location]);
+    }, [location, showNotification, t]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (newPassword !== confirmPassword) {
-            setMessage('Passwords do not match.');
-            setMessageType('error')
+            showNotification(t('errors.passwordMismatch'), 'error');
             return;
         }
 
@@ -51,17 +53,14 @@ const ResetPasswordPage: React.FC = () => {
                 newPassword,
                 confirmPassword,
             });
-            setMessage('Your password has been reset successfully.');
-            setMessageType('success');
+            showNotification(t('auth.passwordResetSuccess'), 'success');
             navigate('/login', { replace: true });
         } catch (error) {
-            let message = 'An error occurred. Please try again.';
+            let message = t('common.error');
             if (axios.isAxiosError(error)) {
-                message = error.response?.data || 'An error occurred. Please try again.';
+                message = String(error.response?.data || t('common.error'));
             }
-
-            setMessage(message);
-            setMessageType('error')
+            showNotification(message, 'error');
         } finally {
             setIsLoading(false);
         }
@@ -71,11 +70,11 @@ const ResetPasswordPage: React.FC = () => {
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <StyledPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
-                    Reset Password
+                    {t('common.resetPassword')}
                 </Typography>
                 <form onSubmit={handleSubmit} style={{ width: '100%' }}>
                     <TextField
-                        label="New Password"
+                        label={t('common.newPassword')}
                         fullWidth
                         margin="normal"
                         type="password"
@@ -84,7 +83,7 @@ const ResetPasswordPage: React.FC = () => {
                         required
                     />
                     <TextField
-                        label="Confirm Password"
+                        label={t('common.confirmPassword')}
                         fullWidth
                         margin="normal"
                         type="password"
@@ -99,14 +98,9 @@ const ResetPasswordPage: React.FC = () => {
                         sx={{ mt: 3, mb: 2 }}
                         disabled={isLoading}
                     >
-                        {isLoading ? <CircularProgress size={24} /> : 'Reset Password'}
+                        {isLoading ? <CircularProgress size={24} /> : t('common.resetPassword')}
                     </Button>
                 </form>
-                {message && (
-                    <Alert severity={messageType} sx={{ mt: 2, width: '100%' }}>
-                        {message}
-                    </Alert>
-                )}
             </StyledPaper>
         </Box>
     );

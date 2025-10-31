@@ -11,9 +11,9 @@ const NotificationContainer: React.FC = () => {
                 <Snackbar
                     key={notification.id}
                     open={true}
-                    autoHideDuration={6000}
+                    autoHideDuration={1500}
                     onClose={() => removeNotification(notification.id)}
-                    anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+                    anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
                 >
                     <Alert
                         onClose={() => removeNotification(notification.id)}

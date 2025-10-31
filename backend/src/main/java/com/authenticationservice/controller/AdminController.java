@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.UserDTO;
+import com.authenticationservice.dto.UpdateUserRolesRequest;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.service.AdminService;
 import com.authenticationservice.repository.RoleRepository;
@@ -49,6 +50,7 @@ public class AdminController {
     public ResponseEntity<String> createUser(@RequestBody AdminUpdateUserRequest request) {
         try {
             adminService.createUser(request);
+            adminService.addToWhitelist(request.getEmail());
             return ResponseEntity.ok("User created");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -79,6 +81,16 @@ public class AdminController {
         try {
             adminService.deleteUser(id);
             return ResponseEntity.ok("User deleted");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/users/{id}/roles")
+    public ResponseEntity<?> updateUserRoles(@PathVariable Long id, @RequestBody UpdateUserRolesRequest request) {
+        try {
+            UserDTO updated = adminService.updateUserRoles(id, request.getRoles());
+            return ResponseEntity.ok(updated);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
