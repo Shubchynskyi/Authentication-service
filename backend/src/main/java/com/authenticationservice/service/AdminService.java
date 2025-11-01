@@ -178,11 +178,13 @@ public class AdminService {
                 log.info("User {} blocked. Reason: {}", user.getEmail(), request.getBlockReason());
             } else if (Boolean.FALSE.equals(request.getIsBlocked()) && user.isBlocked()) {
                 user.setUnblockedAt(LocalDateTime.now());
+                user.setBlockReason(null); // Clear block reason when unblocking
                 log.info("User {} unblocked", user.getEmail());
             }
             user.setBlocked(request.getIsBlocked());
         }
-        if (request.getBlockReason() != null) {
+        // Only set block reason if user is being blocked (not unblocked)
+        if (request.getBlockReason() != null && Boolean.TRUE.equals(request.getIsBlocked())) {
             user.setBlockReason(request.getBlockReason());
         }
 

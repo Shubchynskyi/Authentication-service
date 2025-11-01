@@ -114,6 +114,11 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
+        // Check disabled account before any other validation
+        if (!user.isEnabled()) {
+            throw new RuntimeException("Account is disabled");
+        }
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             user.incrementFailedLoginAttempts();
             userRepository.save(user);

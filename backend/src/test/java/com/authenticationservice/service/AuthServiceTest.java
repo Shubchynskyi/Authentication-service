@@ -425,8 +425,6 @@ class AuthServiceTest {
         void login_shouldThrowException_whenUserDisabled() {
             // Arrange
             testUser.setEnabled(false);
-            when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
-                    .thenReturn(true);
             when(userRepository.findByEmail(loginRequest.getEmail()))
                     .thenReturn(Optional.of(testUser));
 
@@ -437,7 +435,7 @@ class AuthServiceTest {
             assertEquals("Account is disabled", ex.getMessage(),
                          "Exception message should indicate disabled account");
             verify(userRepository).findByEmail(loginRequest.getEmail());
-            verifyNoInteractions(jwtTokenProvider);
+            verifyNoInteractions(jwtTokenProvider, passwordEncoder);
         }
 
         @Test

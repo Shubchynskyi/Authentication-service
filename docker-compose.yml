@@ -1,0 +1,58 @@
+services:
+  nginx:
+    container_name: auth-nginx
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+      - auth-service
+
+  auth-service:
+    container_name: auth-service
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_URL=jdbc:postgresql://db:5432/auth
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=postgres
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - FRONTEND_URL=http://localhost
+      - ADMIN_ENABLED=${ADMIN_ENABLED}
+    env_file:
+      - .env
+    depends_on:
+      - db
+
+  frontend:
+    container_name: auth-frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost/api
+    depends_on:
+      - auth-service
+
+  db:
+    container_name: auth-db
+    image: postgres:17.2
+    environment:
+      - POSTGRES_DB=auth
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data: 

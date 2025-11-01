@@ -29,7 +29,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import api from '../api';
+import api from '../services/api';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';

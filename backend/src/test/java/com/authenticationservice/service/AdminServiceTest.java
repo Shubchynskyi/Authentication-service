@@ -101,7 +101,14 @@ class AdminServiceTest {
         @Test
         @DisplayName("Should update user when user exists")
         void updateUser_shouldUpdateUser_whenUserExists() {
-            // Arrange
+            // Arrange - Create update request without username to preserve it
+            AdminUpdateUserRequest preserveUsernameRequest = createUpdateRequest(
+                null, // Don't update username
+                TestConstants.UserData.TEST_EMAIL, 
+                List.of(TestConstants.Roles.ROLE_USER), 
+                true, false, null
+            );
+            
             when(userRepository.findById(1L))
                     .thenReturn(Optional.of(testUser));
             when(userRepository.save(any(User.class)))
@@ -110,11 +117,12 @@ class AdminServiceTest {
                         testUser.setBlocked(savedUser.isBlocked());
                         testUser.setBlockReason(savedUser.getBlockReason());
                         testUser.setEnabled(savedUser.isEnabled());
+                        testUser.setName(savedUser.getName());
                         return testUser;
                     });
 
             // Act
-            UserDTO updatedUser = adminService.updateUser(1L, updateRequest);
+            UserDTO updatedUser = adminService.updateUser(1L, preserveUsernameRequest);
 
             // Assert
             assertNotNull(updatedUser, "Updated user should not be null");
