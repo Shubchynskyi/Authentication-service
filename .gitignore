@@ -70,18 +70,12 @@ pids
 .eslintcache
 
 # Docker
-*.env
 docker-compose.override.yml
 
 # IDE
 .idea/
-.vscode/
-*.iml
-*.iws
-*.ipr
 
 # Logs
-*.log
 logs/ 
 
 # Scripts
