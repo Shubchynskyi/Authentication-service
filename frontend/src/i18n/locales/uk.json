@@ -6,6 +6,7 @@
     "logout": "Вийти",
     "email": "Електронна пошта",
     "password": "Пароль",
+    "newPassword": "Новий пароль",
     "confirmPassword": "Підтвердіть пароль",
     "forgotPassword": "Забули пароль?",
     "resetPassword": "Скинути пароль",

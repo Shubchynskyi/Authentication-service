@@ -14,6 +14,7 @@ import {
 import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
+import { API_BASE_URL, API_URL } from '../config';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -29,7 +30,6 @@ const StyledPaper = styled(Paper)(({ theme }) => ({
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [errorMsg, setErrorMsg] = useState('');
     const { t } = useTranslation();
     const location = useLocation();
     const { showNotification } = useNotification();
@@ -42,7 +42,6 @@ const LoginPage = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setErrorMsg('');
 
         if (!email) {
             showNotification(t('errors.emailRequired'), 'error');
@@ -54,7 +53,7 @@ const LoginPage = () => {
         }
 
         try {
-            const response = await axios.post('http://localhost:8080/api/auth/login', {
+            const response = await axios.post(`${API_BASE_URL}/auth/login`, {
                 email,
                 password
             });
@@ -131,7 +130,7 @@ const LoginPage = () => {
                             fullWidth
                             variant="outlined"
                             sx={{ mb: 2 }}
-                            onClick={() => window.location.href = 'http://localhost:8080/oauth2/authorization/google'}
+                            onClick={() => window.location.href = `${API_URL}/oauth2/authorization/google`}
                         >
                             {t('auth.loginWithGoogle')}
                         </Button>

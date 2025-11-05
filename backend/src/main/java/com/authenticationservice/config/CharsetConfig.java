@@ -24,6 +24,9 @@ public class CharsetConfig implements WebMvcConfigurer {
         ResourceBundleMessageSource source = new ResourceBundleMessageSource();
         source.setBasename("messages");
         source.setDefaultEncoding(StandardCharsets.UTF_8.name());
+        source.setFallbackToSystemLocale(false);
+        // Don't throw exception if messages file doesn't exist
+        source.setUseCodeAsDefaultMessage(true);
         return source;
     }
 } 

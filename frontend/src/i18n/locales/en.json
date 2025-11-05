@@ -6,6 +6,7 @@
     "logout": "Logout",
     "email": "Email",
     "password": "Password",
+    "newPassword": "New Password",
     "confirmPassword": "Confirm Password",
     "forgotPassword": "Forgot Password?",
     "resetPassword": "Reset Password",

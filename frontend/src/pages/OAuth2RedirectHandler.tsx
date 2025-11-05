@@ -24,7 +24,7 @@ const OAuth2RedirectHandler = () => {
                 errorMessage = t('auth.loginError.accountDisabled');
             }
             
-            navigate('/login', { 
+            navigate('/', { 
                 replace: true,
                 state: { error: errorMessage }
             });
@@ -32,7 +32,7 @@ const OAuth2RedirectHandler = () => {
             setTokens(accessToken, refreshToken);
             navigate('/', { replace: true });
         } else {
-            navigate('/login', { 
+            navigate('/', { 
                 replace: true,
                 state: { error: t('auth.loginError.generalError') }
             });

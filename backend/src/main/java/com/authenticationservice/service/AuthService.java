@@ -272,11 +272,15 @@ public class AuthService {
 
     @Transactional
     public Map<String, String> handleOAuth2Login(String email, String name) {
+        log.debug("Handling OAuth2 login for email: {}, name: {}", email, name);
+        
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
+                    log.info("Creating new OAuth2 user: {}", email);
                     User newUser = new User();
                     newUser.setEmail(email);
-                    newUser.setName(name);
+                    // Use email as fallback if name is null or empty
+                    newUser.setName((name != null && !name.isEmpty()) ? name : email);
                     newUser.setEnabled(true);
                     newUser.setEmailVerified(true);
                     newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
@@ -286,8 +290,17 @@ public class AuthService {
                             .orElseThrow(() -> new RuntimeException("Role ROLE_USER not found"));
                     newUser.setRoles(Set.of(userRole));
                     
-                    return userRepository.save(newUser);
+                    User savedUser = userRepository.save(newUser);
+                    log.info("Created new OAuth2 user with ID: {}", savedUser.getId());
+                    return savedUser;
                 });
+
+        // Update name if it changed (for existing users)
+        if (name != null && !name.isEmpty() && !name.equals(user.getName())) {
+            log.debug("Updating user name from {} to {}", user.getName(), name);
+            user.setName(name);
+            userRepository.save(user);
+        }
 
         if (!user.isEnabled()) {
             throw new RuntimeException("Account is disabled");
@@ -301,6 +314,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 
+        log.debug("Generated tokens for OAuth2 user: {}", email);
         return Map.of(
             "accessToken", accessToken,
             "refreshToken", refreshToken

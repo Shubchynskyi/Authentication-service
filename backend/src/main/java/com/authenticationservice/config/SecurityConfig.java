@@ -95,7 +95,13 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(CorsConstants.FRONTEND_URL));
+        // Allow both local dev (5173) and Docker (3000) frontend URLs
+        configuration.setAllowedOrigins(List.of(
+            frontendUrl,
+            "http://localhost:3000",
+            "http://localhost:5173",
+            CorsConstants.FRONTEND_URL
+        ));
         configuration.setAllowedMethods(CorsConstants.ALLOWED_METHODS);
         configuration.setAllowedHeaders(CorsConstants.ALLOWED_HEADERS);
         configuration.setAllowCredentials(true);

@@ -16,11 +16,13 @@ target/
 
 ### IntelliJ IDEA ###
 .idea
+.junie
 *.iws
 *.iml
 *.ipr
 
 ### VS Code ###
+.cursorignore
 .vscode/
 
 # Frontend (React)
@@ -81,3 +83,6 @@ docker-compose.override.yml
 # Logs
 *.log
 logs/ 
+
+# Scripts
+scripts/

@@ -3,9 +3,11 @@ package com.authenticationservice.config;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 
 import com.authenticationservice.model.Role;
 import com.authenticationservice.repository.RoleRepository;
+import com.authenticationservice.service.AdminInitializationService;
 
 import java.util.Optional;
 
@@ -13,14 +15,32 @@ import java.util.Optional;
 public class DatabaseInitializer {
 
     private final RoleRepository roleRepository;
+    private final AdminInitializationService adminInitializationService;
 
-    public DatabaseInitializer(RoleRepository roleRepository) {
+    public DatabaseInitializer(RoleRepository roleRepository, AdminInitializationService adminInitializationService) {
         this.roleRepository = roleRepository;
+        this.adminInitializationService = adminInitializationService;
     }
 
     @Bean
+    @Order(1)
     CommandLineRunner initRoles() {
         return this::initializeRoles;
+    }
+
+    @Bean
+    @Order(2)
+    CommandLineRunner initAdmin() {
+        return args -> {
+            // Ensure roles exist before creating admin
+            ensureRolesExist();
+            adminInitializationService.initializeAdmin();
+        };
+    }
+
+    private void ensureRolesExist() {
+        createRoleIfNotExists("ROLE_USER");
+        createRoleIfNotExists("ROLE_ADMIN");
     }
 
     private void initializeRoles(String... args) {
