@@ -25,6 +25,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
+import java.util.HashSet;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -67,7 +68,9 @@ class AdminServiceTest {
         // Arrange: Setup test user
         testUser = createTestUser();
         userRole = createRole(TestConstants.Roles.ROLE_USER);
-        testUser.setRoles(Set.of(userRole));
+        Set<Role> roles = new HashSet<>();
+        roles.add(userRole);
+        testUser.setRoles(roles);
 
         // Arrange: Setup update request
         updateRequest = createUpdateRequest();
@@ -200,7 +203,9 @@ class AdminServiceTest {
             // Arrange
             Role adminRole = createRole(TestConstants.Roles.ROLE_ADMIN);
             testUser.setEmail(TestConstants.UserData.ADMIN_EMAIL);
-            testUser.setRoles(Set.of(adminRole));
+            Set<Role> adminRoles = new HashSet<>();
+            adminRoles.add(adminRole);
+            testUser.setRoles(adminRoles);
             updateRequest.setIsBlocked(true);
             when(userRepository.findById(1L))
                     .thenReturn(Optional.of(testUser));
@@ -457,7 +462,9 @@ class AdminServiceTest {
         void verifyAdminPassword_shouldReturnTrue_whenCredentialsValid() {
             // Arrange
             Role adminRole = createRole(TestConstants.Roles.ROLE_ADMIN);
-            testUser.setRoles(Set.of(adminRole));
+            Set<Role> adminRoles = new HashSet<>();
+            adminRoles.add(adminRole);
+            testUser.setRoles(adminRoles);
             when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
                     .thenReturn(Optional.of(testUser));
             when(passwordEncoder.matches("correctPassword", testUser.getPassword()))
@@ -487,7 +494,9 @@ class AdminServiceTest {
         @DisplayName("Should throw exception when user has insufficient permissions")
         void verifyAdminPassword_shouldThrowException_whenInsufficientPermissions() {
             // Arrange
-            testUser.setRoles(Set.of(userRole));
+            Set<Role> userRoles = new HashSet<>();
+            userRoles.add(userRole);
+            testUser.setRoles(userRoles);
             when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                     .thenReturn(Optional.of(testUser));
 
@@ -502,7 +511,9 @@ class AdminServiceTest {
         void verifyAdminPassword_shouldReturnFalse_whenPasswordInvalid() {
             // Arrange
             Role adminRole = createRole(TestConstants.Roles.ROLE_ADMIN);
-            testUser.setRoles(Set.of(adminRole));
+            Set<Role> adminRoles = new HashSet<>();
+            adminRoles.add(adminRole);
+            testUser.setRoles(adminRoles);
             when(userRepository.findByEmail(TestConstants.UserData.ADMIN_EMAIL))
                     .thenReturn(Optional.of(testUser));
             when(passwordEncoder.matches("wrongPassword", testUser.getPassword()))

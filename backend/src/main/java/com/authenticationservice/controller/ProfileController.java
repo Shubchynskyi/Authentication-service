@@ -6,6 +6,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import com.authenticationservice.constants.ApiConstants;
+import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.dto.ProfileUpdateRequest;
 import com.authenticationservice.service.ProfileService;
 
@@ -31,7 +32,7 @@ public class ProfileController {
     public ResponseEntity<String> updateProfile(@RequestBody ProfileUpdateRequest request, Principal principal) {
         try {
             profileService.updateProfile(principal.getName(), request);
-            return ResponseEntity.ok("Профиль успешно обновлен");
+            return ResponseEntity.ok(MessageConstants.PROFILE_UPDATED_SUCCESS);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

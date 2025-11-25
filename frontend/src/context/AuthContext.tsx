@@ -77,7 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } else if (errorData && typeof errorData.message === 'string') {
                     setError(errorData.message);
                 } else {
-                    setError('Error	whileиloggingеinу');
+                    setError('Error while logging in');
                 }
             } else {
                 setError('Unexpected error');

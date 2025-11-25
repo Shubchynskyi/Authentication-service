@@ -45,7 +45,7 @@ public class AuthService {
 
     public void register(RegistrationRequest request) {
         log.info("Starting registration process for email: {}", request.getEmail());
-        
+
         Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(request.getEmail());
         if (allowed.isEmpty()) {
             log.error("Email {} is not in whitelist", request.getEmail());
@@ -111,60 +111,82 @@ public class AuthService {
 
     @Transactional
     public Map<String, String> login(LoginRequest request) {
+        log.debug("Login attempt for email: {}", request.getEmail());
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
+                .orElseThrow(() -> {
+                    log.error("User not found for email: {}", request.getEmail());
+                    return new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR);
+                });
+        log.debug("User found: {}", user.getEmail());
+        log.debug("User enabled: {}", user.isEnabled());
+        log.debug("User blocked: {}", user.isBlocked());
+        log.debug("User verified: {}", user.isEmailVerified());
 
         // Check disabled account before any other validation
         if (!user.isEnabled()) {
+            log.error("Account is disabled for email: {}", request.getEmail());
             throw new RuntimeException("Account is disabled");
         }
 
-        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+        log.debug("Checking password for email: {}", request.getEmail());
+        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
+        log.debug("Password matches: {}", passwordMatches);
+        if (!passwordMatches) {
             user.incrementFailedLoginAttempts();
             userRepository.save(user);
 
             if (user.getFailedLoginAttempts() >= 10) {
                 String emailContent = String.format(
-                    "Your account was blocked due to exceeding the number of login attempts.\n" +
-                    "To unlock your account, you need to reset your password.\n" +
-                    "Follow the link to reset your password: %s/reset-password",
-                    frontendUrl
-                );
+                        "Your account was blocked due to exceeding the number of login attempts.\n" +
+                                "To unlock your account, you need to reset your password.\n" +
+                                "Follow the link to reset your password: %s/reset-password",
+                        frontendUrl);
                 emailService.sendEmail(user.getEmail(), "Account blocked", emailContent);
             }
 
+            log.error("Invalid password for email: {}", request.getEmail());
             throw new RuntimeException(SecurityConstants.INVALID_PASSWORD_ERROR);
         }
 
         if (user.isBlocked()) {
-            throw new RuntimeException("Account is blocked. " + 
-                (user.getBlockReason() != null ? user.getBlockReason() : ""));
+            log.error("Account is blocked for email: {}", request.getEmail());
+            throw new RuntimeException("Account is blocked. " +
+                    (user.getBlockReason() != null ? user.getBlockReason() : ""));
         }
 
         if (!user.isEmailVerified()) {
+            log.error("Email not verified for email: {}", request.getEmail());
             String verificationToken = UUID.randomUUID().toString();
             user.setVerificationToken(verificationToken);
             userRepository.save(user);
 
             String emailContent = String.format(
-                "To verify your email, use the code: %s",
-                verificationToken
-            );
+                    "To verify your email, use the code: %s",
+                    verificationToken);
             emailService.sendEmail(user.getEmail(), "Email verification", emailContent);
 
             throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
         }
 
+        log.debug("All validations passed for email: {}", request.getEmail());
         user.resetFailedLoginAttempts();
         userRepository.save(user);
 
-        String accessToken = jwtTokenProvider.generateAccessToken(user);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+        try {
+            String accessToken = jwtTokenProvider.generateAccessToken(user);
+            log.debug("Access token generated successfully for email: {}", request.getEmail());
+            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+            log.debug("Refresh token generated successfully for email: {}", request.getEmail());
+            log.debug("Tokens generated successfully for email: {}", request.getEmail());
 
-        return Map.of(
-            "accessToken", accessToken,
-            "refreshToken", refreshToken
-        );
+            Map<String, String> tokens = new java.util.HashMap<>();
+            tokens.put("accessToken", accessToken);
+            tokens.put("refreshToken", refreshToken);
+            return tokens;
+        } catch (Exception e) {
+            log.error("Error generating tokens for email: {}, error: {}", request.getEmail(), e.getMessage(), e);
+            throw new RuntimeException("Error generating tokens: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+        }
     }
 
     public Map<String, String> refresh(String refreshToken) {
@@ -177,7 +199,7 @@ public class AuthService {
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(user);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user);
-        
+
         Map<String, String> result = new HashMap<>();
         result.put("accessToken", newAccessToken);
         result.put("refreshToken", newRefreshToken);
@@ -209,9 +231,10 @@ public class AuthService {
         }
 
         if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            String emailContent = "We noticed you requested a password reset, but your account is linked with Google.\n" +
-                                  "Please sign in using the 'Continue with Google' option.\n" +
-                                  "If you forgot your Google password, use Google's account recovery.";
+            String emailContent = "We noticed you requested a password reset, but your account is linked with Google.\n"
+                    +
+                    "Please sign in using the 'Continue with Google' option.\n" +
+                    "If you forgot your Google password, use Google's account recovery.";
             emailService.sendEmail(user.getEmail(), "Password reset unavailable for Google sign-in", emailContent);
             return;
         }
@@ -255,7 +278,7 @@ public class AuthService {
 
     public String generatePasswordResetToken(String email) {
         User user = userRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         String token = UUID.randomUUID().toString();
         user.setResetPasswordToken(token);
@@ -273,7 +296,7 @@ public class AuthService {
     @Transactional
     public Map<String, String> handleOAuth2Login(String email, String name) {
         log.debug("Handling OAuth2 login for email: {}, name: {}", email, name);
-        
+
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     log.info("Creating new OAuth2 user: {}", email);
@@ -285,11 +308,11 @@ public class AuthService {
                     newUser.setEmailVerified(true);
                     newUser.setPassword(passwordEncoder.encode(UUID.randomUUID().toString()));
                     newUser.setAuthProvider(AuthProvider.GOOGLE);
-                    
+
                     Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
                             .orElseThrow(() -> new RuntimeException("Role ROLE_USER not found"));
                     newUser.setRoles(Set.of(userRole));
-                    
+
                     User savedUser = userRepository.save(newUser);
                     log.info("Created new OAuth2 user with ID: {}", savedUser.getId());
                     return savedUser;
@@ -307,8 +330,8 @@ public class AuthService {
         }
 
         if (user.isBlocked()) {
-            throw new RuntimeException("Account is blocked. " + 
-                (user.getBlockReason() != null ? user.getBlockReason() : ""));
+            throw new RuntimeException("Account is blocked. " +
+                    (user.getBlockReason() != null ? user.getBlockReason() : ""));
         }
 
         String accessToken = jwtTokenProvider.generateAccessToken(user);
@@ -316,8 +339,7 @@ public class AuthService {
 
         log.debug("Generated tokens for OAuth2 user: {}", email);
         return Map.of(
-            "accessToken", accessToken,
-            "refreshToken", refreshToken
-        );
+                "accessToken", accessToken,
+                "refreshToken", refreshToken);
     }
 }

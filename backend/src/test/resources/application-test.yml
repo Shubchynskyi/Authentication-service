@@ -1,0 +1,25 @@
+spring:
+  mail:
+    host: localhost
+    port: 587
+    username: test@test.com
+    password: test
+    properties:
+      mail:
+        smtp:
+          auth: false
+          starttls:
+            enable: false
+
+logging:
+  level:
+    root: WARN
+    '[com.authenticationservice]': INFO
+
+testcontainers:
+  docker:
+    api-version: "1.24"
+  ryuk:
+    enabled: false
+  checks:
+    disable: true

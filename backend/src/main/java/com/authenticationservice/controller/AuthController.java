@@ -1,7 +1,6 @@
 package com.authenticationservice.controller;
 
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -15,6 +14,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import com.authenticationservice.constants.ApiConstants;
+import com.authenticationservice.constants.MessageConstants;
+import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
@@ -25,7 +26,6 @@ import com.authenticationservice.security.JwtTokenProvider;
 import java.util.Map;
 import java.util.List;
 
-@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping(ApiConstants.AUTH_BASE_URL)
@@ -36,13 +36,10 @@ public class AuthController {
 
     @PostMapping(ApiConstants.REGISTER_URL)
     public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
-        log.info("Received registration request for email: {}", request.getEmail());
         try {
             authService.register(request);
-            log.info("Successfully registered user with email: {}", request.getEmail());
-            return ResponseEntity.ok("Check your email (verification code is in server console)!");
+            return ResponseEntity.ok(MessageConstants.REGISTRATION_SUCCESS);
         } catch (Exception e) {
-            log.error("Registration error for email: {}, error: {}", request.getEmail(), e.getMessage());
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
@@ -50,7 +47,7 @@ public class AuthController {
     @PostMapping(ApiConstants.VERIFY_URL)
     public ResponseEntity<String> verify(@RequestBody VerificationRequest request) {
         authService.verifyEmail(request);
-        return ResponseEntity.ok("Email verified. Now you can login.");
+        return ResponseEntity.ok(MessageConstants.EMAIL_VERIFIED_SUCCESS);
     }
 
     @PostMapping(ApiConstants.LOGIN_URL)
@@ -59,27 +56,29 @@ public class AuthController {
             Map<String, String> tokens = authService.login(req);
             return ResponseEntity.ok(tokens);
         } catch (RuntimeException e) {
-            log.error("Login error for email: {}, error: {}", req.getEmail(), e.getMessage());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+            String errorMessage = e.getMessage() != null ? e.getMessage() : MessageConstants.UNKNOWN_ERROR + e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorMessage);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(MessageConstants.INTERNAL_SERVER_ERROR);
         }
     }
 
     @PostMapping(ApiConstants.REFRESH_URL)
     public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> body) {
-        String refreshToken = body.get("refreshToken");
+        String refreshToken = body.get(SecurityConstants.REFRESH_TOKEN_KEY);
         Map<String, String> tokens = authService.refresh(refreshToken);
         return ResponseEntity.ok(tokens);
     }
 
     @PostMapping(ApiConstants.RESEND_VERIFICATION_URL)
     public ResponseEntity<String> resendVerification(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
+        String email = body.get(SecurityConstants.EMAIL_KEY);
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body("Email is required.");
+            return ResponseEntity.badRequest().body(MessageConstants.EMAIL_REQUIRED);
         }
         try {
             authService.resendVerification(email);
-            return ResponseEntity.ok("Verification code resent. Check your email (server console output).");
+            return ResponseEntity.ok(MessageConstants.VERIFICATION_RESENT_SUCCESS);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -87,13 +86,13 @@ public class AuthController {
 
     @PostMapping(ApiConstants.FORGOT_PASSWORD_URL)
     public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> body) {
-        String email = body.get("email");
+        String email = body.get(SecurityConstants.EMAIL_KEY);
         if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body("Email is required.");
+            return ResponseEntity.badRequest().body(MessageConstants.EMAIL_REQUIRED);
         }
         try {
             authService.initiatePasswordReset(email);
-            return ResponseEntity.ok("If an account with that email exists, a password reset link has been sent.");
+            return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_INITIATED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -104,33 +103,33 @@ public class AuthController {
         if (request.getToken() == null || request.getToken().isBlank() ||
                 request.getNewPassword() == null || request.getNewPassword().isBlank() ||
                 request.getConfirmPassword() == null || request.getConfirmPassword().isBlank()) {
-            return ResponseEntity.badRequest().body("Token, new password, and confirm password are required.");
+            return ResponseEntity.badRequest().body(MessageConstants.RESET_PASSWORD_FIELDS_REQUIRED);
         }
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            return ResponseEntity.badRequest().body("Passwords do not match.");
+            return ResponseEntity.badRequest().body(MessageConstants.PASSWORDS_DO_NOT_MATCH);
         }
 
         try {
             authService.resetPassword(request.getToken(), request.getNewPassword());
-            return ResponseEntity.ok("Password has been reset successfully.");
+            return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_SUCCESS);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @GetMapping("/check-access/{resource}")
-    public ResponseEntity<?> checkAccess(@PathVariable String resource, @RequestHeader("Authorization") String authHeader) {
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+    @GetMapping(ApiConstants.CHECK_ACCESS_URL)
+    public ResponseEntity<?> checkAccess(@PathVariable String resource, @RequestHeader(SecurityConstants.AUTHORIZATION_HEADER) String authHeader) {
+        if (authHeader == null || !authHeader.startsWith(SecurityConstants.BEARER_PREFIX)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.substring(SecurityConstants.BEARER_PREFIX_LENGTH);
         List<String> roles = jwtTokenProvider.getRolesFromAccess(token);
 
         // Check access based on roles and resource
         boolean hasAccess = switch (resource) {
-            case "admin-panel" -> roles.contains("ROLE_ADMIN");
-            case "user-management" -> roles.contains("ROLE_ADMIN");
+            case SecurityConstants.ADMIN_PANEL_RESOURCE -> roles.contains(SecurityConstants.ROLE_ADMIN);
+            case SecurityConstants.USER_MANAGEMENT_RESOURCE -> roles.contains(SecurityConstants.ROLE_ADMIN);
             default -> false;
         };
 
@@ -141,16 +140,16 @@ public class AuthController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/oauth2/success")
+    @GetMapping(ApiConstants.OAUTH2_SUCCESS_URL)
     public ResponseEntity<Map<String, String>> oauth2Success(@AuthenticationPrincipal OAuth2User oauth2User) {
-        String email = oauth2User.getAttribute("email");
-        String name = oauth2User.getAttribute("name");
-        
+        String email = oauth2User.getAttribute(SecurityConstants.OAUTH2_EMAIL_ATTRIBUTE);
+        String name = oauth2User.getAttribute(SecurityConstants.OAUTH2_NAME_ATTRIBUTE);
+
         try {
             Map<String, String> tokens = authService.handleOAuth2Login(email, name);
             return ResponseEntity.ok(tokens);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(SecurityConstants.ERROR_KEY, e.getMessage()));
         }
     }
 }

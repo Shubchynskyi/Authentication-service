@@ -38,7 +38,6 @@ public class SecurityConfig {
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    // @SuppressWarnings("unused")
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
@@ -96,6 +95,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow both local dev (5173) and Docker (3000) frontend URLs
+        // TODO: move to environment variables
         configuration.setAllowedOrigins(List.of(
             frontendUrl,
             "http://localhost:3000",

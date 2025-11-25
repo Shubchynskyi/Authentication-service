@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.authenticationservice.constants.ApiConstants;
+import com.authenticationservice.constants.MessageConstants;
+import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.dto.UpdateUserRolesRequest;
@@ -29,7 +31,7 @@ public class AdminController {
     private final AdminService adminService;
     private final RoleRepository roleRepository;
 
-    @GetMapping("/roles")
+    @GetMapping(ApiConstants.ROLES_URL)
     public ResponseEntity<List<String>> getAllRoles() {
         return ResponseEntity.ok(
             roleRepository.findAll().stream()
@@ -51,7 +53,7 @@ public class AdminController {
         try {
             adminService.createUser(request);
             adminService.addToWhitelist(request.getEmail());
-            return ResponseEntity.ok("User created");
+            return ResponseEntity.ok(MessageConstants.USER_CREATED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -70,7 +72,7 @@ public class AdminController {
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
         try {
             adminService.updateUser(id, request);
-            return ResponseEntity.ok("User updated");
+            return ResponseEntity.ok(MessageConstants.USER_UPDATED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -80,13 +82,13 @@ public class AdminController {
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
         try {
             adminService.deleteUser(id);
-            return ResponseEntity.ok("User deleted");
+            return ResponseEntity.ok(MessageConstants.USER_DELETED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PutMapping("/users/{id}/roles")
+    @PutMapping(ApiConstants.USERS_ID_ROLES_URL)
     public ResponseEntity<?> updateUserRoles(@PathVariable Long id, @RequestBody UpdateUserRolesRequest request) {
         try {
             UserDTO updated = adminService.updateUserRoles(id, request.getRoles());
@@ -105,7 +107,7 @@ public class AdminController {
     public ResponseEntity<String> addToWhitelist(@RequestParam String email) {
         try {
             adminService.addToWhitelist(email);
-            return ResponseEntity.ok("Email added to whitelist");
+            return ResponseEntity.ok(MessageConstants.EMAIL_ADDED_TO_WHITELIST);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
@@ -115,26 +117,26 @@ public class AdminController {
     public ResponseEntity<String> removeFromWhitelist(@RequestParam String email) {
         try {
             adminService.removeFromWhitelist(email);
-            return ResponseEntity.ok("Email removed from whitelist");
+            return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_WHITELIST);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
-    @PostMapping("/verify-admin")
+    @PostMapping(ApiConstants.VERIFY_ADMIN_URL)
     public ResponseEntity<String> verifyAdmin(@RequestBody Map<String, String> request, Principal principal) {
         try {
-            String password = request.get("password");
+            String password = request.get(SecurityConstants.PASSWORD_KEY);
             if (password == null || password.isBlank()) {
-                return ResponseEntity.badRequest().body("Password is required");
+                return ResponseEntity.badRequest().body(MessageConstants.PASSWORD_IS_REQUIRED);
             }
             
             boolean verified = adminService.verifyAdminPassword(principal.getName(), password);
             if (!verified) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid password");
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageConstants.INVALID_PASSWORD);
             }
             
-            return ResponseEntity.ok("Password verified");
+            return ResponseEntity.ok(MessageConstants.PASSWORD_VERIFIED);
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }

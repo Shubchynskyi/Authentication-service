@@ -80,4 +80,64 @@ public final class TestConstants {
         public static final String TEST_SUBJECT = "Test Subject";
         public static final String TEST_MESSAGE = "Test Message";
     }
+    
+    // ************** Test Database Constants **************
+    public static final class TestDatabase {
+        private TestDatabase() {}
+        
+        public static final String POSTGRES_IMAGE = "postgres:17.5";
+        public static final String DATABASE_NAME = "testdb";
+        public static final String USERNAME = "test";
+        public static final String PASSWORD = "test";
+    }
+    
+    // ************** Test Properties Constants **************
+    public static final class TestProperties {
+        private TestProperties() {}
+        
+        // JWT Properties
+        public static final String JWT_ACCESS_SECRET = "k3Cuu/bg8vP/q7W05bVeV+FcYdt6q+lqRj2acEwud3u+98Pp3rtMn1XF2/KjY4/d";
+        public static final String JWT_REFRESH_SECRET = "u+1t/7mY9rG/u4x12zN7z+B2d6Fp7p+T9v9w8x/y/z+1t/7mY9rG/u4x12zN7z+B";
+        public static final String JWT_ACCESS_EXPIRATION = "3600000"; // 1 hour
+        public static final String JWT_REFRESH_EXPIRATION = "86400000"; // 24 hours
+        
+        // Mail Properties
+        public static final String MAIL_HOST = "localhost";
+        public static final String MAIL_PORT = "587";
+        public static final String MAIL_USERNAME = "test@test.com";
+        public static final String MAIL_PASSWORD = "test";
+        
+        // Frontend Properties
+        public static final String FRONTEND_URL = "http://localhost:3000";
+        
+        // Admin Properties
+        public static final String ADMIN_ENABLED = "false";
+        
+        // OAuth Properties
+        public static final String OAUTH_GOOGLE_CLIENT_ID = "test-client-id";
+        public static final String OAUTH_GOOGLE_CLIENT_SECRET = "test-client-secret";
+    }
+    
+    // ************** Test Data Constants **************
+    public static final class TestData {
+        private TestData() {}
+        
+        // Additional test emails
+        public static final String SECOND_USER_EMAIL = "seconduser@example.com";
+        public static final String NEW_USER_EMAIL = "newuser@example.com";
+        public static final String WHITELIST_EMAIL = "test@example.com";
+        public static final String NEW_WHITELIST_EMAIL = "new@example.com";
+        
+        // Additional test usernames
+        public static final String ADMIN_NAME = "Admin";
+        public static final String SECOND_USER_NAME = "Second User";
+        public static final String NEW_USER_NAME = "New User";
+        public static final String UPDATED_NAME = "Updated Name";
+        
+        // Additional test passwords
+        public static final String ADMIN_PASSWORD = "admin123";
+        public static final String SECOND_USER_PASSWORD = "password123";
+        public static final String NEW_USER_PASSWORD = "password123";
+        public static final String NEW_PASSWORD_VALUE = "newPassword123";
+    }
 } 

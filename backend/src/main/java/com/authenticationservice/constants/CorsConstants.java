@@ -8,7 +8,7 @@ public final class CorsConstants {
         throw new IllegalStateException("Constants class");
     }
 
-    public static final String FRONTEND_URL = "http://localhost:5173";
+    public static final String FRONTEND_URL = "http://localhost:5173"; //TODO: move to environment variables, where is port 3000 for Docker?
     public static final List<String> ALLOWED_METHODS = Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS");
     public static final List<String> ALLOWED_HEADERS = Arrays.asList(
         SecurityConstants.AUTHORIZATION_HEADER,

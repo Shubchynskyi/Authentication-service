@@ -3,12 +3,11 @@ services:
     container_name: ${AUTH_SERVICE_CONTAINER_NAME:-auth-service}
     # Use pre-built image from deploy script
     # To build and test: ./build-and-test.sh (Linux/Mac)
-    # To deploy: ./deploy.sh (Linux/Mac)
+    # To deploy: ./deploy.sh server (Linux/Mac)
     image: ${FINAL_IMAGE_NAME:-auth-service:latest}
     volumes:
     - /var/run/docker.sock:/var/run/docker.sock 
-    ports:
-      - "8080:8080"
+    # No ports exposed - access via reverse proxy/load balancer
     environment:
       - DB_URL=${DB_URL:-jdbc:postgresql://db:5432/authenticationservice}
       - DB_USERNAME=${DB_USERNAME:-postgres}
@@ -17,7 +16,7 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - OAUTH2_REDIRECT_URI=${OAUTH2_REDIRECT_URI}
       - ADMIN_ENABLED=${ADMIN_ENABLED:-false}
       - ADMIN_EMAIL=${ADMIN_EMAIL}
@@ -28,6 +27,8 @@ services:
       - MAIL_PASSWORD=${MAIL_PASSWORD}
     env_file:
       - .env
+    networks:
+      - auth-network
     depends_on:
       db:
         condition: service_healthy
@@ -45,9 +46,10 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_URL=http://localhost:8080
-    ports:
-      - "3000:80"
+        - VITE_API_URL=${VITE_API_URL:-http://localhost:8080}
+    # No ports exposed - access via reverse proxy/load balancer
+    networks:
+      - auth-network
     depends_on:
       - auth-service
     restart: unless-stopped
@@ -61,8 +63,9 @@ services:
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5433:5432"
+    # No ports exposed - access only from internal network
+    networks:
+      - auth-network
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER || pg_isready -U postgres"]
@@ -70,5 +73,10 @@ services:
       timeout: 5s
       retries: 5
 
+networks:
+  auth-network:
+    driver: bridge
+
 volumes:
-  postgres_data: 
+  postgres_data:
+

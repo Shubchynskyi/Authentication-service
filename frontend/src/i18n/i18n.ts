@@ -15,7 +15,7 @@ export const availableLanguages = {
   de: 'Deutsch'
 };
 
-// Определяем язык браузера
+// Detect browser language
 const getBrowserLanguage = () => {
   const storedLanguage = localStorage.getItem('language');
   if (storedLanguage && Object.keys(availableLanguages).includes(storedLanguage)) {

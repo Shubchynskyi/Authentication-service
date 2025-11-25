@@ -32,7 +32,6 @@ public class DatabaseInitializer {
     @Order(2)
     CommandLineRunner initAdmin() {
         return args -> {
-            // Ensure roles exist before creating admin
             ensureRolesExist();
             adminInitializationService.initializeAdmin();
         };

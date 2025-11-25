@@ -66,7 +66,7 @@ class AdminInitializationServiceTest {
         private User createAdminUser() {
                 User user = new User();
                 user.setId(1L);
-                user.setName("existinguser");
+                user.setName(TestConstants.UserData.ADMIN_USERNAME);
                 user.setEmail(TestConstants.UserData.ADMIN_EMAIL);
                 user.setEnabled(true);
                 user.getRoles().add(createAdminRole());

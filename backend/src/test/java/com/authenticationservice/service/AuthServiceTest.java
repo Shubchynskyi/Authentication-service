@@ -26,6 +26,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -100,7 +101,9 @@ class AuthServiceTest {
 
         Role userRole = new Role();
         userRole.setName(SecurityConstants.ROLE_USER);
-        user.setRoles(Set.of(userRole));
+        Set<Role> roles = new HashSet<>();
+        roles.add(userRole);
+        user.setRoles(roles);
         
         return user;
     }
@@ -802,7 +805,9 @@ class AuthServiceTest {
         user.setEnabled(true);
         user.setEmailVerified(true);
         user.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
-        user.setRoles(Set.of(role));
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
         return user;
     }
 }

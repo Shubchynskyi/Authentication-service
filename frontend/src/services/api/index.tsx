@@ -54,7 +54,7 @@ api.interceptors.response.use(
       const newAccessToken = await refreshAccessToken();
 
       if (newAccessToken) {
-        console.log("api.ts: Token refreshed in interceptor, retrying original request"); // ЛОГ 6
+        console.log("api.ts: Token refreshed in interceptor, retrying original request");
         originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
         return api(originalRequest);
       } else {

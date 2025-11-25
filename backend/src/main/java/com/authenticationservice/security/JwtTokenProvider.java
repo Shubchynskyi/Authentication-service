@@ -2,7 +2,6 @@ package com.authenticationservice.security;
 
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.crypto.SecretKey;
 
@@ -38,31 +37,51 @@ public class JwtTokenProvider {
     }
 
     public String generateAccessToken(User user) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtProperties.getAccessExpiration());
-        
-        List<String> roles = user.getRoles().stream()
-            .map(Role::getName)
-            .collect(Collectors.toList());
+        try {
+            Date now = new Date();
+            long expiration = jwtProperties.getAccessExpiration();
+            if (expiration <= 0) {
+                throw new IllegalStateException("JWT access expiration is not set or is invalid: " + expiration);
+            }
+            Date expiry = new Date(now.getTime() + expiration);
+            
+            // Create a new ArrayList to avoid UnsupportedOperationException with Hibernate collections
+            List<String> roles = new java.util.ArrayList<>();
+            if (user.getRoles() != null) {
+                for (Role role : user.getRoles()) {
+                    roles.add(role.getName());
+                }
+            }
 
-        return Jwts.builder()
-                .subject(user.getEmail())
-                .issuedAt(now)
-                .expiration(expiry)
-                .claim(ROLES_CLAIM, roles)
-                .signWith(key)
-                .compact();
+            var builder = Jwts.builder();
+            builder.subject(user.getEmail());
+            builder.issuedAt(now);
+            builder.expiration(expiry);
+            builder.claim(ROLES_CLAIM, roles);
+            builder.signWith(key);
+            return builder.compact();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating access token: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
+        }
     }
 
     public String generateRefreshToken(User user) {
-        Date now = new Date();
-        Date expiry = new Date(now.getTime() + jwtProperties.getRefreshExpiration());
-        return Jwts.builder()
-                .subject(user.getEmail())
-                .issuedAt(now)
-                .expiration(expiry)
-                .signWith(refreshKey)
-                .compact();
+        try {
+            Date now = new Date();
+            long expiration = jwtProperties.getRefreshExpiration();
+            if (expiration <= 0) {
+                throw new IllegalStateException("JWT refresh expiration is not set or is invalid: " + expiration);
+            }
+            Date expiry = new Date(now.getTime() + expiration);
+            return Jwts.builder()
+                    .subject(user.getEmail())
+                    .issuedAt(now)
+                    .expiration(expiry)
+                    .signWith(refreshKey)
+                    .compact();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating refresh token: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
+        }
     }
 
     public boolean validateRefreshToken(String refreshToken) {

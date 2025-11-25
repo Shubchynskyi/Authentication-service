@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
+import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
@@ -61,7 +62,9 @@ class ProfileServiceTest {
         User user = new User();
         user.setId(1L);
         user.setName(TestConstants.UserData.TEST_USERNAME);
-        user.setRoles(Set.of(new Role(TestConstants.Roles.ROLE_USER)));
+        Set<Role> roles = new HashSet<>();
+        roles.add(new Role(TestConstants.Roles.ROLE_USER));
+        user.setRoles(roles);
         user.setEmail(TestConstants.UserData.TEST_EMAIL);
         user.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
         user.setEnabled(true);
