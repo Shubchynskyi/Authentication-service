@@ -19,6 +19,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import com.authenticationservice.constants.CorsConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.security.JwtAuthenticationFilter;
+import com.authenticationservice.security.RateLimitingFilter;
 import com.authenticationservice.service.AuthService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
@@ -33,8 +34,9 @@ import java.nio.charset.StandardCharsets;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitingFilter rateLimitingFilter;
     private final AuthService authService;
-    
+
     @Value("${frontend.url}")
     private String frontendUrl;
 
@@ -58,28 +60,29 @@ public class SecurityConfig {
                     auth.anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> oauth2
-                    .successHandler((request, response, authentication) -> {
-                        try {
-                            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
-                            String email = oauth2User.getAttribute("email");
-                            String name = oauth2User.getAttribute("name");
-                            
-                            // Generate JWT tokens
-                            Map<String, String> tokens = authService.handleOAuth2Login(email, name);
-                            
-                            // Redirect to frontend with tokens
-                            response.sendRedirect(frontendUrl + "/oauth2/success?" + 
-                                "accessToken=" + tokens.get("accessToken") + 
-                                "&refreshToken=" + tokens.get("refreshToken"));
-                        } catch (Exception e) {
-                            // Redirect to frontend with error
-                            response.sendRedirect(frontendUrl + "/oauth2/success?error=" + 
-                                URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
-                        }
-                    })
-                )
+                        .successHandler((request, response, authentication) -> {
+                            try {
+                                OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+                                String email = oauth2User.getAttribute("email");
+                                String name = oauth2User.getAttribute("name");
+
+                                // Generate JWT tokens
+                                Map<String, String> tokens = authService.handleOAuth2Login(email, name);
+
+                                // Redirect to frontend with tokens
+                                response.sendRedirect(frontendUrl + "/oauth2/success?" +
+                                        "accessToken=" + tokens.get("accessToken") +
+                                        "&refreshToken=" + tokens.get("refreshToken"));
+                            } catch (Exception e) {
+                                // Redirect to frontend with error
+                                response.sendRedirect(frontendUrl + "/oauth2/success?error=" +
+                                        URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+                            }
+                        }))
                 .httpBasic(Customizer.withDefaults());
 
+        http.addFilterBefore(rateLimitingFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter,
                 org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
@@ -97,15 +100,14 @@ public class SecurityConfig {
         // Allow both local dev (5173) and Docker (3000) frontend URLs
         // TODO: move to environment variables
         configuration.setAllowedOrigins(List.of(
-            frontendUrl,
-            "http://localhost:3000",
-            "http://localhost:5173",
-            CorsConstants.FRONTEND_URL
-        ));
+                frontendUrl,
+                "http://localhost:3000",
+                "http://localhost:5173",
+                CorsConstants.FRONTEND_URL));
         configuration.setAllowedMethods(CorsConstants.ALLOWED_METHODS);
         configuration.setAllowedHeaders(CorsConstants.ALLOWED_HEADERS);
         configuration.setAllowCredentials(true);
-        
+
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration(CorsConstants.ALL_PATHS, configuration);
         return source;

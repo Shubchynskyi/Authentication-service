@@ -115,7 +115,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> {
                     log.error("User not found for email: {}", request.getEmail());
-                    return new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR);
+                    return new RuntimeException(SecurityConstants.INVALID_CREDENTIALS_ERROR);
                 });
         log.debug("User found: {}", user.getEmail());
         log.debug("User enabled: {}", user.isEnabled());
@@ -128,11 +128,22 @@ public class AuthService {
             throw new RuntimeException("Account is disabled");
         }
 
+        if (user.getLockTime() != null && user.getLockTime().isAfter(LocalDateTime.now())) {
+            log.error("Account is temporarily locked for email: {}", request.getEmail());
+            long seconds = java.time.Duration.between(LocalDateTime.now(), user.getLockTime()).getSeconds();
+            throw new RuntimeException("Account is temporarily locked. Please try again in " + seconds + " seconds");
+        }
+
         log.debug("Checking password for email: {}", request.getEmail());
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
         log.debug("Password matches: {}", passwordMatches);
         if (!passwordMatches) {
             user.incrementFailedLoginAttempts();
+
+            if (user.getFailedLoginAttempts() >= 5) {
+                user.setLockTime(LocalDateTime.now().plusMinutes(5));
+            }
+
             userRepository.save(user);
 
             if (user.getFailedLoginAttempts() >= 10) {
@@ -145,7 +156,7 @@ public class AuthService {
             }
 
             log.error("Invalid password for email: {}", request.getEmail());
-            throw new RuntimeException(SecurityConstants.INVALID_PASSWORD_ERROR);
+            throw new RuntimeException(SecurityConstants.INVALID_CREDENTIALS_ERROR);
         }
 
         if (user.isBlocked()) {
@@ -170,6 +181,7 @@ public class AuthService {
 
         log.debug("All validations passed for email: {}", request.getEmail());
         user.resetFailedLoginAttempts();
+        user.setLockTime(null);
         userRepository.save(user);
 
         try {
@@ -185,7 +197,8 @@ public class AuthService {
             return tokens;
         } catch (Exception e) {
             log.error("Error generating tokens for email: {}, error: {}", request.getEmail(), e.getMessage(), e);
-            throw new RuntimeException("Error generating tokens: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+            throw new RuntimeException("Error generating tokens: "
+                    + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
     }
 

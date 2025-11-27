@@ -43,7 +43,7 @@ public class User {
     @Column(name = "reset_password_token_expiry")
     private LocalDateTime resetPasswordTokenExpiry;
 
-    @Column(name = "is_enabled")    //todo need this field?
+    @Column(name = "is_enabled")
     private boolean enabled = true;
 
     @Column(name = "is_blocked")
@@ -57,6 +57,9 @@ public class User {
 
     @Column(name = "last_login_attempt")
     private LocalDateTime lastLoginAttempt;
+
+    @Column(name = "lock_time")
+    private LocalDateTime lockTime;
 
     @Column(name = "last_login_at")
     private LocalDateTime lastLoginAt;
