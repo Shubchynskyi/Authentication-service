@@ -12,6 +12,8 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
+import com.authenticationservice.service.EmailService;
+import com.authenticationservice.service.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -56,10 +58,13 @@ class AuthServiceTest {
         private JavaMailSender mailSender;
 
         @Mock
-        private EmailService emailService;
+        private BCryptPasswordEncoder passwordEncoder;
 
         @Mock
-        private BCryptPasswordEncoder passwordEncoder;
+        private LoginAttemptService loginAttemptService;
+
+        @Mock
+        private EmailService emailService;
 
         @InjectMocks
         private AuthService authService;
@@ -97,6 +102,7 @@ class AuthServiceTest {
                 user.setBlocked(false);
                 user.setEmailVerified(true);
                 user.setFailedLoginAttempts(0);
+                user.setLockTime(null);
 
                 Role userRole = new Role();
                 userRole.setName(SecurityConstants.ROLE_USER);
@@ -351,8 +357,7 @@ class AuthServiceTest {
                                         .thenReturn(Optional.of(testUser));
                         when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
                                         .thenReturn(false);
-                        when(userRepository.save(any(User.class)))
-                                        .thenReturn(testUser);
+                        doNothing().when(loginAttemptService).handleFailedLogin(any(User.class), anyString());
 
                         // Act & Assert
                         RuntimeException ex = assertThrows(RuntimeException.class,
@@ -363,11 +368,8 @@ class AuthServiceTest {
                         verify(userRepository).findByEmail(loginRequest.getEmail());
                         verify(passwordEncoder).matches(loginRequest.getPassword(), testUser.getPassword());
 
-                        // Verify failed attempts are incremented
-                        org.mockito.ArgumentCaptor<User> userCaptor = org.mockito.ArgumentCaptor.forClass(User.class);
-                        verify(userRepository).save(userCaptor.capture());
-                        assertTrue(userCaptor.getValue().getFailedLoginAttempts() > 0,
-                                        "Failed login attempts should be incremented");
+                        // Verify that LoginAttemptService was called to handle failed login
+                        verify(loginAttemptService).handleFailedLogin(any(User.class), anyString());
                 }
 
                 @Test
@@ -376,28 +378,11 @@ class AuthServiceTest {
                         // Arrange - Set up a user with multiple failed attempts
                         testUser.setFailedLoginAttempts(5); // Assuming a high number of failed attempts
 
-                        // Get the maxFailedAttempts value from the service
-                        Integer maxFailedAttempts = 10; // Default value
-                        try {
-                                Object value = ReflectionTestUtils.getField(authService, "maxFailedAttempts");
-                                if (value != null) {
-                                        maxFailedAttempts = (Integer) value;
-                                }
-                        } catch (Exception e) {
-                                // Service might not have this field, use default value
-                        }
-
                         when(userRepository.findByEmail(loginRequest.getEmail()))
                                         .thenReturn(Optional.of(testUser));
                         when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
                                         .thenReturn(false);
-                        when(userRepository.save(any(User.class)))
-                                        .thenAnswer(invocation -> {
-                                                User user = invocation.getArgument(0);
-                                                // Store the updated user for verification
-                                                testUser = user;
-                                                return user;
-                                        });
+                        doNothing().when(loginAttemptService).handleFailedLogin(any(User.class), anyString());
 
                         // Act & Assert
                         RuntimeException ex = assertThrows(RuntimeException.class,
@@ -406,21 +391,8 @@ class AuthServiceTest {
                         assertEquals(SecurityConstants.INVALID_CREDENTIALS_ERROR, ex.getMessage(),
                                         "Exception message should indicate invalid password");
 
-                        // Verify failed attempts handling
-                        verify(userRepository).save(any(User.class));
-                        int newFailedAttempts = testUser.getFailedLoginAttempts();
-                        assertEquals(6, newFailedAttempts,
-                                        "Failed login attempts should be incremented by one from the previous value");
-
-                        // If the implementation automatically blocks accounts after certain number of
-                        // attempts
-                        // we can verify that behavior here by checking if the account is blocked
-                        if (newFailedAttempts >= maxFailedAttempts) {
-                                assertTrue(testUser.isBlocked(),
-                                                "User should be blocked after reaching maximum failed attempts");
-                                assertNotNull(testUser.getBlockReason(),
-                                                "Block reason should be set when account is blocked");
-                        }
+                        // Verify that LoginAttemptService was called to handle failed login
+                        verify(loginAttemptService).handleFailedLogin(any(User.class), anyString());
                 }
 
                 @Test

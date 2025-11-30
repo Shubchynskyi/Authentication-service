@@ -75,12 +75,18 @@ ALL_IMAGES=(
 
 # Remove all images related to the application
 echo -e "${YELLOW}Removing images...${NC}"
+# Remove all images related to the application
+echo -e "${YELLOW}Removing images...${NC}"
 for IMAGE in "${ALL_IMAGES[@]}"; do
-    if docker images -q "$IMAGE" > /dev/null 2>&1; then
-        echo "Removing image $IMAGE..."
-        docker rmi -f "$IMAGE" || true
+    # Find all image IDs associated with the repository name
+    IMAGE_IDS=$(docker images --format "{{.ID}} {{.Repository}}" | grep "$IMAGE" | awk '{print $1}')
+    
+    if [ -n "$IMAGE_IDS" ]; then
+        echo "Found images for $IMAGE. Removing..."
+        # Convert newlines to spaces
+        echo "$IMAGE_IDS" | xargs -r docker rmi -f || true
     else
-        echo "Image $IMAGE not found. Skipping..."
+        echo "No images found for $IMAGE. Skipping..."
     fi
 done
 

@@ -77,30 +77,6 @@ public class User {
     public User() {
     }
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public String getResetPasswordToken() {
-        return resetPasswordToken;
-    }
-
-    public void setResetPasswordToken(String resetPasswordToken) {
-        this.resetPasswordToken = resetPasswordToken;
-    }
-
-    public LocalDateTime getResetPasswordTokenExpiry() {
-        return resetPasswordTokenExpiry;
-    }
-
-    public void setResetPasswordTokenExpiry(LocalDateTime resetPasswordTokenExpiry) {
-        this.resetPasswordTokenExpiry = resetPasswordTokenExpiry;
-    }
-
     public void incrementFailedLoginAttempts() {
         this.failedLoginAttempts++;
         this.lastLoginAttempt = LocalDateTime.now();
@@ -115,6 +91,7 @@ public class User {
         this.lastLoginAt = LocalDateTime.now();
     }
 
+    //todo check usage
     public boolean isAccountNonLocked() {
         return !blocked;
     }

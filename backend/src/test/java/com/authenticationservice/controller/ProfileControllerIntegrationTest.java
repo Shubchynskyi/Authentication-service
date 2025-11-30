@@ -112,6 +112,7 @@ class ProfileControllerIntegrationTest {
             testUser.setEnabled(true);
             testUser.setBlocked(false);
             testUser.setEmailVerified(true);
+            testUser.setLockTime(null);
             Set<Role> userRoles = new HashSet<>();
             userRoles.add(userRole);
             testUser.setRoles(userRoles);

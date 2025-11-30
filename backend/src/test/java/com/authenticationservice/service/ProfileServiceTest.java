@@ -68,6 +68,7 @@ class ProfileServiceTest {
         user.setEmail(TestConstants.UserData.TEST_EMAIL);
         user.setPassword(TestConstants.UserData.ENCODED_PASSWORD);
         user.setEnabled(true);
+        user.setLockTime(null);
         return user;
     }
     

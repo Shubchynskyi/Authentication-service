@@ -34,21 +34,30 @@
     "forgotPasswordTitle": "Password Recovery",
     "resetPasswordTitle": "Password Reset",
     "loginSuccess": "Successfully logged in",
-    "registerSuccess": "Successfully registered",
+    "registerSuccess": "Registration successful",
     "verificationSuccess": "Email verified",
     "passwordResetSuccess": "Password successfully reset",
+    "forgotPasswordSuccessGeneric": "If an account exists, we've sent an email to reset your password.",
+    "verifying": "Verifying your email...",
+    "successRedirect": "Email verified! Redirecting to login...",
+    "invalidLink": "Invalid confirmation link",
+    "error": "Error verifying email",
+    "codeResent": "Verification code resent",
+    "resendError": "Failed to resend verification code",
+    "verificationCode": "Verification code",
+    "verify": "Verify",
+    "resendCode": "Resend code",
     "loginWithGoogle": "Sign in with Google",
+    "forgotPasswordDescription": "Enter your email address and we'll send you a link to reset your password.",
     "loginError": {
       "invalidCredentials": "Invalid login credentials",
-      "accountDisabled": "Account is disabled",
-      "accountBlocked": "Account is blocked",
-      "emailNotVerified": "Email is not verified",
+      "accountDisabled": "Account disabled",
+      "accountBlocked": "Account blocked",
+      "emailNotVerified": "Email not verified",
       "serverError": "Server error, please try again later",
       "networkError": "Network error, check your connection",
-      "generalError": "Login failed"
+      "generalError": "Failed to sign in"
     },
-    "forgotPasswordDescription": "Enter your email and we'll send you a reset link.",
-    "forgotPasswordSuccessGeneric": "If an account exists, we've sent a password reset email.",
     "verification": {
       "verifying": "Verifying your email...",
       "successRedirect": "Email verified! Redirecting to login...",
@@ -56,10 +65,7 @@
       "error": "Error verifying email",
       "codeResent": "Verification code resent",
       "resendError": "Failed to resend verification code"
-    },
-    "verificationCode": "Verification code",
-    "verify": "Verify",
-    "resendCode": "Resend code"
+    }
   },
   "profile": {
     "title": "User Profile",
@@ -133,7 +139,15 @@
     "networkError": "Network error, check your connection",
     "emailRequired": "Enter email",
     "passwordRequired": "Enter password",
-    "usernameRequired": "Enter name"
+    "usernameRequired": "Enter name",
+    "passwordRequirements": "Password must be at least 8 characters long, contain at least one digit, one uppercase letter, one lowercase letter, one special character (@#$%^&+=), and no spaces",
+    "passwordTooShort": "Password must be at least 8 characters long",
+    "passwordNoDigit": "Password must contain at least one digit",
+    "passwordNoUppercase": "Password must contain at least one uppercase letter",
+    "passwordNoLowercase": "Password must contain at least one lowercase letter",
+    "passwordNoSpecial": "Password must contain at least one special character (@#$%^&+=)",
+    "passwordNoSpaces": "Password must not contain spaces",
+    "loginFailed": "Invalid email or password"
   },
   "home": {
     "title": "Home Page",

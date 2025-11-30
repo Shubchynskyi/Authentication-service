@@ -1,8 +1,9 @@
 package com.authenticationservice.constants;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public final class SecurityConstants {
-    private SecurityConstants() {
-    }
 
     public static final String ROLE_USER = "ROLE_USER";
     public static final String ROLE_ADMIN = "ROLE_ADMIN";
@@ -11,11 +12,7 @@ public final class SecurityConstants {
     public static final String API_ADMIN_PREFIX = "/api/admin/**";
     public static final String API_PROTECTED_PREFIX = "/api/protected/**";
 
-    public static final long ONE_HOUR_IN_MS = 3600000;
-
-    public static final String EMAIL_VERIFIED_ERROR = "Email not verified";
     public static final String USER_NOT_FOUND_ERROR = "User not found";
-    public static final String INVALID_PASSWORD_ERROR = "Incorrect password";
     public static final String INVALID_CREDENTIALS_ERROR = "Invalid email or password";
 
     public static final String ROOT_PATH = "/";
@@ -29,8 +26,6 @@ public final class SecurityConstants {
     public static final String CONTENT_TYPE_HEADER = "Content-Type";
     public static final String BEARER_PREFIX = "Bearer ";
     public static final int BEARER_PREFIX_LENGTH = BEARER_PREFIX.length();
-
-    public static final String ALL_PATHS = "/**";
 
     // AuthController specific constants
     public static final String REFRESH_TOKEN_KEY = "refreshToken";

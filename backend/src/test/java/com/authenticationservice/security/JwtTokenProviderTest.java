@@ -54,6 +54,7 @@ class JwtTokenProviderTest {
         Set<Role> roles = new HashSet<>();
         roles.add(userRole);
         user.setRoles(roles);
+        user.setLockTime(null);
 
         return user;
     }

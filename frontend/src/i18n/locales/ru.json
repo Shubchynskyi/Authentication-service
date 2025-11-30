@@ -35,20 +35,29 @@
     "resetPasswordTitle": "Сброс пароля",
     "loginSuccess": "Вход выполнен успешно",
     "registerSuccess": "Регистрация прошла успешно",
-    "verificationSuccess": "Email подтвержден",
+    "verificationSuccess": "Email подтверждён",
     "passwordResetSuccess": "Пароль успешно сброшен",
+    "forgotPasswordSuccessGeneric": "Если аккаунт существует, мы отправили письмо для сброса пароля.",
+    "verifying": "Проверяем ваш email...",
+    "successRedirect": "Email подтверждён! Сейчас перенаправим на страницу входа...",
+    "invalidLink": "Некорректная ссылка подтверждения",
+    "error": "Ошибка подтверждения email",
+    "codeResent": "Код подтверждения отправлен повторно",
+    "resendError": "Не удалось отправить код повторно",
+    "verificationCode": "Код подтверждения",
+    "verify": "Подтвердить",
+    "resendCode": "Отправить код повторно",
     "loginWithGoogle": "Войти через Google",
+    "forgotPasswordDescription": "Введите ваш email, мы отправим ссылку для сброса пароля.",
     "loginError": {
       "invalidCredentials": "Неверные данные для входа",
-      "accountDisabled": "Аккаунт отключен",
+      "accountDisabled": "Аккаунт отключён",
       "accountBlocked": "Аккаунт заблокирован",
-      "emailNotVerified": "Email не подтвержден",
+      "emailNotVerified": "Email не подтверждён",
       "serverError": "Ошибка сервера, попробуйте позже",
       "networkError": "Ошибка сети, проверьте подключение",
       "generalError": "Не удалось выполнить вход"
     },
-    "forgotPasswordDescription": "Введите ваш email, мы отправим ссылку для сброса пароля.",
-    "forgotPasswordSuccessGeneric": "Если аккаунт существует, мы отправили письмо для сброса пароля.",
     "verification": {
       "verifying": "Проверяем ваш email...",
       "successRedirect": "Email подтверждён! Сейчас перенаправим на страницу входа...",
@@ -56,74 +65,71 @@
       "error": "Ошибка подтверждения email",
       "codeResent": "Код подтверждения отправлен повторно",
       "resendError": "Не удалось отправить код повторно"
-    },
-    "verificationCode": "Код подтверждения",
-    "verify": "Подтвердить",
-    "resendCode": "Отправить код повторно"
-  },
-  "profile": {
-    "title": "Профиль пользователя",
-    "editTitle": "Редактирование профиля",
-    "personalInfo": "Личная информация",
-    "accountSettings": "Настройки аккаунта",
-    "googleAuthInfo": "Смена пароля недоступна для аккаунтов с входом через Google. Пожалуйста, используйте настройки Google для управления паролем.",
-    "backToProfile": "Назад в профиль",
-    "adminPanel": "Админ панель",
-    "goToProfile": "В профиль",
-    "notifications": {
-      "currentPasswordRequired": "Для смены пароля введите текущий пароль",
-      "updateSuccess": "Профиль успешно обновлён",
-      "updateError": "Ошибка при обновлении профиля",
-      "incorrectCurrentPassword": "Неверный текущий пароль"
     }
   },
-  "admin": {
-    "dashboard": "Панель управления",
-    "users": "Пользователи",
-    "settings": "Настройки",
-    "whitelistTab": "Белый список",
-    "addUser": "Добавить пользователя",
-    "editUser": "Редактировать пользователя",
-    "roles": "Роли",
-    "status": "Статус",
-    "actions": "Действия",
-    "edit": "Редактировать",
-    "delete": "Удалить",
-    "statusBlocked": "Заблокирован",
-    "statusDisabled": "Отключен",
-    "statusNotVerified": "Не подтвержден",
-    "statusActive": "Активен",
-    "adminLabel": "Администратор",
-    "blockedLabel": "Блокировка",
-    "blockReasonLabel": "Причина блокировки",
-    "blockReasonRequired": "Укажите причину блокировки",
-    "confirmActionTitle": "Подтверждение действия",
-    "confirmActionPrompt": "Для подтверждения действия введите ваш пароль:",
-    "whitelistEmailLabel": "Email адрес",
-    "whitelistAdd": "Добавить",
-    "whitelist": {
-      "emailAlreadyExists": "Адрес уже находится в белом списке",
-      "added": "Email добавлен в белый список",
-      "removed": "Email удалён из белого списка",
-      "invalidEmail": "Введите корректный email (должен содержать @)"
-    },
-    "errors": {
-      "invalidAdminPassword": "Неверный пароль администратора",
-      "emailAlreadyExists": "Пользователь с таким email уже существует"
-    },
-    "notifications": {
-      "userDeleted": "Пользователь удалён",
-      "adminGranted": "Права администратора назначены",
-      "userSaved": "Пользователь сохранён"
-    },
-    "assignAdminTitle": "Назначение администратора",
-    "assignAdminPrompt": "Для назначения прав администратора введите ваш пароль:",
-    "adminPasswordLabel": "Пароль администратора",
-    "lastLogin": "Последний вход",
-    "source": "Источник",
-    "sourceGoogle": "Google",
-    "sourceLocal": "Локально"
+  "profile": {
+  "title": "Профиль пользователя",
+  "editTitle": "Редактирование профиля",
+  "personalInfo": "Личная информация",
+  "accountSettings": "Настройки аккаунта",
+  "googleAuthInfo": "Смена пароля недоступна для аккаунтов с входом через Google. Пожалуйста, используйте настройки Google для управления паролем.",
+  "backToProfile": "Назад в профиль",
+  "adminPanel": "Админ панель",
+  "goToProfile": "В профиль",
+  "notifications": {
+    "currentPasswordRequired": "Для смены пароля введите текущий пароль",
+    "updateSuccess": "Профиль успешно обновлён",
+    "updateError": "Ошибка при обновлении профиля",
+    "incorrectCurrentPassword": "Неверный текущий пароль"
+  }
+},
+"admin": {
+  "dashboard": "Панель управления",
+  "users": "Пользователи",
+  "settings": "Настройки",
+  "whitelistTab": "Белый список",
+  "addUser": "Добавить пользователя",
+  "editUser": "Редактировать пользователя",
+  "roles": "Роли",
+  "status": "Статус",
+  "actions": "Действия",
+  "edit": "Редактировать",
+  "delete": "Удалить",
+  "statusBlocked": "Заблокирован",
+  "statusDisabled": "Отключен",
+  "statusNotVerified": "Не подтвержден",
+  "statusActive": "Активен",
+  "adminLabel": "Администратор",
+  "blockedLabel": "Блокировка",
+  "blockReasonLabel": "Причина блокировки",
+  "blockReasonRequired": "Укажите причину блокировки",
+  "confirmActionTitle": "Подтверждение действия",
+  "confirmActionPrompt": "Для подтверждения действия введите ваш пароль:",
+  "whitelistEmailLabel": "Email адрес",
+  "whitelistAdd": "Добавить",
+  "whitelist": {
+    "emailAlreadyExists": "Адрес уже находится в белом списке",
+    "added": "Email добавлен в белый список",
+    "removed": "Email удалён из белого списка",
+    "invalidEmail": "Введите корректный email (должен содержать @)"
   },
+  "errors": {
+    "invalidAdminPassword": "Неверный пароль администратора",
+    "emailAlreadyExists": "Пользователь с таким email уже существует"
+  },
+  "notifications": {
+    "userDeleted": "Пользователь удалён",
+    "adminGranted": "Права администратора назначены",
+    "userSaved": "Пользователь сохранён"
+  },
+  "assignAdminTitle": "Назначение администратора",
+  "assignAdminPrompt": "Для назначения прав администратора введите ваш пароль:",
+  "adminPasswordLabel": "Пароль администратора",
+  "lastLogin": "Последний вход",
+  "source": "Источник",
+  "sourceGoogle": "Google",
+  "sourceLocal": "Локально"
+},
   "errors": {
     "requiredField": "Это поле обязательно",
     "invalidEmail": "Неверный формат email",
@@ -133,23 +139,31 @@
     "networkError": "Ошибка сети, проверьте подключение",
     "emailRequired": "Введите email",
     "passwordRequired": "Введите пароль",
-    "usernameRequired": "Введите имя"
+    "usernameRequired": "Введите имя",
+    "passwordRequirements": "Пароль должен содержать минимум 8 символов, включая цифру, заглавную и строчную буквы, спецсимвол (@#$%^&+=) и не содержать пробелы",
+    "passwordTooShort": "Пароль должен содержать минимум 8 символов",
+    "passwordNoDigit": "Пароль должен содержать хотя бы одну цифру",
+    "passwordNoUppercase": "Пароль должен содержать хотя бы одну заглавную букву",
+    "passwordNoLowercase": "Пароль должен содержать хотя бы одну строчную букву",
+    "passwordNoSpecial": "Пароль должен содержать хотя бы один спецсимвол (@#$%^&+=)",
+    "passwordNoSpaces": "Пароль не должен содержать пробелы",
+    "loginFailed": "Неверный email или пароль"
   },
-  "home": {
-    "title": "Главная страница",
-    "subtitle": "Добро пожаловать! Выберите нужный раздел:",
-    "links": {
-      "login": "Страница логина",
-      "register": "Страница регистрации",
-      "verify": "Страница подтверждения",
-      "profile": "Мой профиль (защищено)",
-      "editProfile": "Редактировать профиль (защищено)",
-      "adminPanel": "Админ панель"
-    }
-  },
-  "notFound": {
-    "title": "Страница не найдена",
-    "description": "Похоже, такой страницы не существует или она была перемещена.",
-    "backHome": "На главную"
+"home": {
+  "title": "Главная страница",
+  "subtitle": "Добро пожаловать! Выберите нужный раздел:",
+  "links": {
+    "login": "Страница логина",
+    "register": "Страница регистрации",
+    "verify": "Страница подтверждения",
+    "profile": "Мой профиль (защищено)",
+    "editProfile": "Редактировать профиль (защищено)",
+    "adminPanel": "Админ панель"
   }
-} 
+},
+"notFound": {
+  "title": "Страница не найдена",
+  "description": "Похоже, такой страницы не существует или она была перемещена.",
+  "backHome": "На главную"
+}
+}

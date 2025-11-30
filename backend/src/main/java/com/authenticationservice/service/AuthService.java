@@ -1,20 +1,13 @@
 package com.authenticationservice.service;
 
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.beans.factory.annotation.Value;
-
-import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.VerificationRequest;
+import com.authenticationservice.exception.AccountBlockedException;
+import com.authenticationservice.exception.AccountLockedException;
+import com.authenticationservice.exception.InvalidCredentialsException;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
@@ -23,9 +16,21 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -39,16 +44,19 @@ public class AuthService {
     private final JavaMailSender mailSender;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final LoginAttemptService loginAttemptService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
 
+    @Transactional
     public void register(RegistrationRequest request) {
         log.info("Starting registration process for email: {}", request.getEmail());
 
+        // Check whitelist first - this must be the first check
         Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(request.getEmail());
         if (allowed.isEmpty()) {
-            log.error("Email {} is not in whitelist", request.getEmail());
+            log.error("Email {} is not in whitelist. Registration denied.", request.getEmail());
             throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
         }
 
@@ -115,7 +123,7 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> {
                     log.error("User not found for email: {}", request.getEmail());
-                    return new RuntimeException(SecurityConstants.INVALID_CREDENTIALS_ERROR);
+                    return new InvalidCredentialsException();
                 });
         log.debug("User found: {}", user.getEmail());
         log.debug("User enabled: {}", user.isEnabled());
@@ -131,38 +139,23 @@ public class AuthService {
         if (user.getLockTime() != null && user.getLockTime().isAfter(LocalDateTime.now())) {
             log.error("Account is temporarily locked for email: {}", request.getEmail());
             long seconds = java.time.Duration.between(LocalDateTime.now(), user.getLockTime()).getSeconds();
-            throw new RuntimeException("Account is temporarily locked. Please try again in " + seconds + " seconds");
+            throw new AccountLockedException(seconds);
         }
 
         log.debug("Checking password for email: {}", request.getEmail());
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
         log.debug("Password matches: {}", passwordMatches);
         if (!passwordMatches) {
-            user.incrementFailedLoginAttempts();
-
-            if (user.getFailedLoginAttempts() >= 5) {
-                user.setLockTime(LocalDateTime.now().plusMinutes(5));
-            }
-
-            userRepository.save(user);
-
-            if (user.getFailedLoginAttempts() >= 10) {
-                String emailContent = String.format(
-                        "Your account was blocked due to exceeding the number of login attempts.\n" +
-                                "To unlock your account, you need to reset your password.\n" +
-                                "Follow the link to reset your password: %s/reset-password",
-                        frontendUrl);
-                emailService.sendEmail(user.getEmail(), "Account blocked", emailContent);
-            }
+            // Use separate service with REQUIRES_NEW transaction to ensure counter is saved
+            loginAttemptService.handleFailedLogin(user, frontendUrl);
 
             log.error("Invalid password for email: {}", request.getEmail());
-            throw new RuntimeException(SecurityConstants.INVALID_CREDENTIALS_ERROR);
+            throw new InvalidCredentialsException();
         }
 
         if (user.isBlocked()) {
             log.error("Account is blocked for email: {}", request.getEmail());
-            throw new RuntimeException("Account is blocked. " +
-                    (user.getBlockReason() != null ? user.getBlockReason() : ""));
+            throw new AccountBlockedException(user.getBlockReason());
         }
 
         if (!user.isEmailVerified()) {
@@ -264,7 +257,7 @@ public class AuthService {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(toEmail);
         message.setSubject(EmailConstants.RESET_PASSWORD_SUBJECT);
-        String resetLink = ApiConstants.FRONTEND_RESET_PASSWORD_URL + token;
+        String resetLink = frontendUrl + "/reset-password?token=" + token;
         String emailText = String.format(EmailConstants.RESET_PASSWORD_EMAIL_TEMPLATE, resetLink);
         message.setText(emailText);
         try {

@@ -135,9 +135,9 @@ public final class TestConstants {
         public static final String UPDATED_NAME = "Updated Name";
         
         // Additional test passwords
-        public static final String ADMIN_PASSWORD = "admin123";
-        public static final String SECOND_USER_PASSWORD = "password123";
-        public static final String NEW_USER_PASSWORD = "password123";
-        public static final String NEW_PASSWORD_VALUE = "newPassword123";
+        public static final String ADMIN_PASSWORD = "Admin123@";
+        public static final String SECOND_USER_PASSWORD = "Password123@";
+        public static final String NEW_USER_PASSWORD = "Password123@";
+        public static final String NEW_PASSWORD_VALUE = "NewPassword123@";
     }
 } 

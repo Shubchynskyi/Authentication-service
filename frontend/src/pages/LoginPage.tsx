@@ -57,39 +57,41 @@ const LoginPage = () => {
                 email,
                 password
             });
-
-            if (response.data.accessToken && response.data.refreshToken) {
-                localStorage.setItem('accessToken', response.data.accessToken);
-                localStorage.setItem('refreshToken', response.data.refreshToken);
-                window.location.href = '/';
-            }
-        } catch (error: any) {
-            console.error('Login error:', error);
-            if (error.response?.data) {
-                const errorMessage = error.response.data;
-                if (errorMessage.includes('User not found') || errorMessage.includes('Incorrect password')) {
-                    showNotification(t('auth.loginError.invalidCredentials'), 'error');
-                } else if (errorMessage.includes('Account is blocked')) {
-                    const blockReason = errorMessage.split('Account is blocked.')[1]?.trim();
-                    showNotification(t('auth.loginError.accountBlocked') + (blockReason ? `: ${blockReason}` : ''), 'error');
-                } else if (errorMessage.includes('Email not verified')) {
-                    showNotification(t('auth.loginError.emailNotVerified'), 'error');
-                } else {
-                    showNotification(t('auth.loginError.generalError'), 'error');
-                }
+            const { accessToken, refreshToken } = response.data;
+            localStorage.setItem('accessToken', accessToken);
+            localStorage.setItem('refreshToken', refreshToken);
+            window.location.href = '/';
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                // Temporarily disabled - errorMessage variable not used
+                // let errorMessage = t('errors.loginFailed');
+                // if (error.response?.data) {
+                //     if (typeof error.response.data === 'string') {
+                //         errorMessage = error.response.data;
+                //     } else if (error.response.data.message) {
+                //         errorMessage = error.response.data.message;
+                //     } else if (error.response.data.error) {
+                //         errorMessage = error.response.data.error;
+                //     }
+                // }
+                // Always show generic message to not reveal account existence
+                showNotification(t('errors.loginFailed'), 'error');
             } else {
-                showNotification(t('auth.loginError.generalError'), 'error');
+                showNotification(t('errors.loginFailed'), 'error');
             }
         }
     };
 
     return (
-        <Container maxWidth="sm">
-            <Box sx={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-            }}>
+        <Container component="main" maxWidth="xs">
+            <Box
+                sx={{
+                    marginTop: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                }}
+            >
                 <StyledPaper elevation={3}>
                     <Typography component="h1" variant="h5">
                         {t('auth.loginTitle')}

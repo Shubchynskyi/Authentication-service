@@ -559,6 +559,7 @@ class AdminServiceTest {
         user.setEnabled(enabled);
         user.setBlocked(blocked);
         user.setBlockReason(blockReason);
+        user.setLockTime(null);
         return user;
     }
 

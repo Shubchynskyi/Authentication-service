@@ -26,7 +26,39 @@ const ResetPasswordPage: React.FC = () => {
     const [token, setToken] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
+    // Temporarily disabled - password validation on frontend
+    // const [passwordError, setPasswordError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Password validation temporarily disabled for backend testing
+    // Same regex as backend: ^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\-_*?])(?=\S+$).{8,}$
+    // const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\-_*?])(?=\S+$).{8,}$/;
+
+    // const validatePassword = (pwd: string): string => {
+    //     if (!PASSWORD_REGEX.test(pwd)) {
+    //         // Provide detailed feedback
+    //         if (pwd.length < 8) {
+    //             return t('errors.passwordTooShort');
+    //         }
+    //         if (!/\d/.test(pwd)) {
+    //             return t('errors.passwordNoDigit');
+    //         }
+    //         if (!/[A-Z]/.test(pwd)) {
+    //             return t('errors.passwordNoUppercase');
+    //         }
+    //         if (!/[a-z]/.test(pwd)) {
+    //             return t('errors.passwordNoLowercase');
+    //         }
+        //         if (!/[@#$%^&+=!\-_*?]/.test(pwd)) {
+        //             return t('errors.passwordNoSpecial');
+        //         }
+    //         if (/\s/.test(pwd)) {
+    //             return t('errors.passwordNoSpaces');
+    //         }
+    //         return t('errors.passwordRequirements');
+    //     }
+    //     return '';
+    // };
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
@@ -40,6 +72,20 @@ const ResetPasswordPage: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (!newPassword) {
+            showNotification(t('errors.passwordRequired'), 'error');
+            return;
+        }
+
+        // Password validation temporarily disabled for backend testing
+        // const passwordValidationError = validatePassword(newPassword);
+        // if (passwordValidationError) {
+        //     setPasswordError(passwordValidationError);
+        //     showNotification(passwordValidationError, 'error');
+        //     return;
+        // }
+        // setPasswordError('');
 
         if (newPassword !== confirmPassword) {
             showNotification(t('errors.passwordMismatch'), 'error');
@@ -80,6 +126,18 @@ const ResetPasswordPage: React.FC = () => {
                         type="password"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
+                        // Password validation temporarily disabled for backend testing
+                        // onChange={(e) => {
+                        //     setNewPassword(e.target.value);
+                        //     if (e.target.value) {
+                        //         const error = validatePassword(e.target.value);
+                        //         setPasswordError(error);
+                        //     } else {
+                        //         setPasswordError('');
+                        //     }
+                        // }}
+                        // error={!!passwordError}
+                        // helperText={passwordError || t('errors.passwordRequirements')}
                         required
                     />
                     <TextField

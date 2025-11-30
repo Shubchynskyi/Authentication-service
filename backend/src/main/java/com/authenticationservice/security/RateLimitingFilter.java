@@ -24,6 +24,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+        if (!path.startsWith("/api/auth/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String ip = request.getRemoteAddr();
         Bucket bucket = rateLimitingService.resolveBucket(ip);
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);

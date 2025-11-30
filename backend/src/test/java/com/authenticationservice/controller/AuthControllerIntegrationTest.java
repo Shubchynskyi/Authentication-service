@@ -125,6 +125,7 @@ class AuthControllerIntegrationTest {
             testUser.setEnabled(true);
             testUser.setBlocked(false);
             testUser.setEmailVerified(true);
+            testUser.setLockTime(null);
             Set<Role> userRoles = new HashSet<>();
             userRoles.add(userRole);
             testUser.setRoles(userRoles);
@@ -153,13 +154,19 @@ class AuthControllerIntegrationTest {
         request.setName(TestConstants.TestData.NEW_USER_NAME);
         request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
 
-        AllowedEmail allowedEmail = new AllowedEmail();
-        allowedEmail.setEmail(TestConstants.TestData.NEW_USER_EMAIL);
-        allowedEmailRepository.save(allowedEmail);
+        // Use TransactionTemplate to explicitly commit transaction
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            AllowedEmail allowedEmail = new AllowedEmail();
+            allowedEmail.setEmail(TestConstants.TestData.NEW_USER_EMAIL);
+            allowedEmailRepository.save(allowedEmail);
+            allowedEmailRepository.flush();
+            return null;
+        });
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Check your email")));
@@ -193,7 +200,7 @@ class AuthControllerIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(request)))
                 .andDo(result -> {
                     // Print response for debugging
@@ -218,7 +225,7 @@ class AuthControllerIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
     }
@@ -231,7 +238,7 @@ class AuthControllerIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())

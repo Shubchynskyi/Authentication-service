@@ -5,13 +5,13 @@ import Backend from 'i18next-http-backend';
 
 import ru from './locales/ru.json';
 import en from './locales/en.json';
-import uk from './locales/uk.json';
+import ua from './locales/ua.json';
 import de from './locales/de.json';
 
 export const availableLanguages = {
   ru: 'Русский',
   en: 'English',
-  uk: 'Українська',
+  ua: 'Українська',
   de: 'Deutsch'
 };
 
@@ -34,7 +34,7 @@ i18n
     resources: {
       ru: { translation: ru },
       en: { translation: en },
-      uk: { translation: uk },
+      ua: { translation: ua },
       de: { translation: de }
     },
     lng: getBrowserLanguage(),

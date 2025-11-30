@@ -33,9 +33,41 @@ const RegistrationPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  // Temporarily disabled - password validation on frontend
+  // const [passwordError, setPasswordError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messageType, setMessageType] = useState<'error' | 'success'>('success');
+
+  // Password validation temporarily disabled for backend testing
+  // Same regex as backend: ^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\S+$).{8,}$
+  // const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\S+$).{8,}$/;
+
+  // const validatePassword = (pwd: string): string => {
+  //   if (!PASSWORD_REGEX.test(pwd)) {
+  //     // Provide detailed feedback
+  //     if (pwd.length < 8) {
+  //       return t('errors.passwordTooShort');
+  //     }
+  //     if (!/\d/.test(pwd)) {
+  //       return t('errors.passwordNoDigit');
+  //     }
+  //     if (!/[A-Z]/.test(pwd)) {
+  //       return t('errors.passwordNoUppercase');
+  //     }
+  //     if (!/[a-z]/.test(pwd)) {
+  //       return t('errors.passwordNoLowercase');
+  //     }
+  //     if (!/[@#$%^&+=]/.test(pwd)) {
+  //       return t('errors.passwordNoSpecial');
+  //     }
+  //     if (/\s/.test(pwd)) {
+  //       return t('errors.passwordNoSpaces');
+  //     }
+  //     return t('errors.passwordRequirements');
+  //   }
+  //   return '';
+  // };
 
   const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -56,6 +88,16 @@ const RegistrationPage: React.FC = () => {
       showNotification(t('errors.passwordRequired'), 'error');
       return;
     }
+
+    // Password validation temporarily disabled for backend testing
+    // const passwordValidationError = validatePassword(password);
+    // if (passwordValidationError) {
+    //   setIsLoading(false);
+    //   setPasswordError(passwordValidationError);
+    //   showNotification(passwordValidationError, 'error');
+    //   return;
+    // }
+    // setPasswordError('');
 
     try {
       const response = await axios.post<string>(
@@ -116,6 +158,18 @@ const RegistrationPage: React.FC = () => {
             type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
+            // Password validation temporarily disabled for backend testing
+            // onChange={e => {
+            //   setPassword(e.target.value);
+            //   if (e.target.value) {
+            //     const error = validatePassword(e.target.value);
+            //     setPasswordError(error);
+            //   } else {
+            //     setPasswordError('');
+            //   }
+            // }}
+            // error={!!passwordError}
+            // helperText={passwordError || t('errors.passwordRequirements')}
             required
           />
           <Button

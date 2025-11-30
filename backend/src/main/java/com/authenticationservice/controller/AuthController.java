@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import jakarta.validation.Valid;
 
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.MessageConstants;
@@ -35,7 +36,7 @@ public class AuthController {
     private final JwtTokenProvider jwtTokenProvider;
 
     @PostMapping(ApiConstants.REGISTER_URL)
-    public ResponseEntity<String> register(@RequestBody RegistrationRequest request) {
+    public ResponseEntity<String> register(@Valid @RequestBody RegistrationRequest request) {
         try {
             authService.register(request);
             return ResponseEntity.ok(MessageConstants.REGISTRATION_SUCCESS);
@@ -44,23 +45,11 @@ public class AuthController {
         }
     }
 
-    @PostMapping(ApiConstants.VERIFY_URL)
-    public ResponseEntity<String> verify(@RequestBody VerificationRequest request) {
-        authService.verifyEmail(request);
-        return ResponseEntity.ok(MessageConstants.EMAIL_VERIFIED_SUCCESS);
-    }
-
     @PostMapping(ApiConstants.LOGIN_URL)
     public ResponseEntity<?> login(@RequestBody LoginRequest req) {
-        try {
-            Map<String, String> tokens = authService.login(req);
-            return ResponseEntity.ok(tokens);
-        } catch (RuntimeException e) {
-            String errorMessage = e.getMessage() != null ? e.getMessage() : MessageConstants.UNKNOWN_ERROR + e.getClass().getSimpleName();
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(errorMessage);
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(MessageConstants.INTERNAL_SERVER_ERROR);
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        Map<String, String> tokens = authService.login(req);
+        return ResponseEntity.ok(tokens);
     }
 
     @PostMapping(ApiConstants.REFRESH_URL)
@@ -68,6 +57,16 @@ public class AuthController {
         String refreshToken = body.get(SecurityConstants.REFRESH_TOKEN_KEY);
         Map<String, String> tokens = authService.refresh(refreshToken);
         return ResponseEntity.ok(tokens);
+    }
+
+    @PostMapping(ApiConstants.VERIFY_URL)
+    public ResponseEntity<String> verify(@RequestBody VerificationRequest request) {
+        try {
+            authService.verifyEmail(request);
+            return ResponseEntity.ok(MessageConstants.EMAIL_VERIFIED_SUCCESS);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
     }
 
     @PostMapping(ApiConstants.RESEND_VERIFICATION_URL)
@@ -99,7 +98,7 @@ public class AuthController {
     }
 
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)
-    public ResponseEntity<String> resetPassword(@RequestBody ResetPasswordRequest request) {
+    public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
         if (request.getToken() == null || request.getToken().isBlank() ||
                 request.getNewPassword() == null || request.getNewPassword().isBlank() ||
                 request.getConfirmPassword() == null || request.getConfirmPassword().isBlank()) {
@@ -118,7 +117,8 @@ public class AuthController {
     }
 
     @GetMapping(ApiConstants.CHECK_ACCESS_URL)
-    public ResponseEntity<?> checkAccess(@PathVariable String resource, @RequestHeader(SecurityConstants.AUTHORIZATION_HEADER) String authHeader) {
+    public ResponseEntity<?> checkAccess(@PathVariable String resource,
+            @RequestHeader(SecurityConstants.AUTHORIZATION_HEADER) String authHeader) {
         if (authHeader == null || !authHeader.startsWith(SecurityConstants.BEARER_PREFIX)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }

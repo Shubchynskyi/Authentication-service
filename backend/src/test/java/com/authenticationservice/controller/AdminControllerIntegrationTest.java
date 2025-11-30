@@ -104,6 +104,7 @@ class AdminControllerIntegrationTest {
         adminUser.setEnabled(true);
         adminUser.setBlocked(false);
         adminUser.setEmailVerified(true);
+        adminUser.setLockTime(null);
         Set<Role> adminRoles = new HashSet<>();
         adminRoles.add(adminRole);
         adminRoles.add(userRole);
@@ -118,6 +119,7 @@ class AdminControllerIntegrationTest {
         regularUser.setEnabled(true);
         regularUser.setBlocked(false);
         regularUser.setEmailVerified(true);
+        regularUser.setLockTime(null);
         Set<Role> userRoles = new HashSet<>();
         userRoles.add(userRole);
         regularUser.setRoles(userRoles);
@@ -131,6 +133,7 @@ class AdminControllerIntegrationTest {
         secondUser.setEnabled(true);
         secondUser.setBlocked(false);
         secondUser.setEmailVerified(true);
+        secondUser.setLockTime(null);
         Set<Role> secondUserRoles = new HashSet<>();
         secondUserRoles.add(userRole);
         secondUser.setRoles(secondUserRoles);

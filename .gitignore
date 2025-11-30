@@ -37,6 +37,7 @@ node_modules/
 # production
 /build
 /dist
+*.jar
 
 # misc
 .DS_Store

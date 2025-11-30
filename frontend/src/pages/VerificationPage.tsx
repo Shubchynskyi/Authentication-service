@@ -53,7 +53,16 @@ const VerificationPage: React.FC = () => {
       navigate('/login');
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        const msg = String(err.response?.data || t('auth.verification.error'));
+        let msg = t('auth.verification.error');
+        if (err.response?.data) {
+          if (typeof err.response.data === 'string') {
+            msg = err.response.data;
+          } else if (err.response.data.message) {
+            msg = err.response.data.message;
+          } else if (err.response.data.error) {
+            msg = err.response.data.error;
+          }
+        }
         showNotification(msg, 'error');
       } else {
         showNotification(t('auth.verification.error'), 'error');
@@ -72,7 +81,19 @@ const VerificationPage: React.FC = () => {
       );
       showNotification(response.data || t('auth.verification.codeResent'), 'success');
     } catch (error) {
-      showNotification(t('auth.verification.resendError'), 'error');
+      let msg = t('auth.verification.resendError');
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data) {
+          if (typeof error.response.data === 'string') {
+            msg = error.response.data;
+          } else if (error.response.data.message) {
+            msg = error.response.data.message;
+          } else if (error.response.data.error) {
+            msg = error.response.data.error;
+          }
+        }
+      }
+      showNotification(msg, 'error');
     } finally {
       setResendLoading(false);
     }
