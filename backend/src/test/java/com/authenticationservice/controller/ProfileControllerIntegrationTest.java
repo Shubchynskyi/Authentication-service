@@ -122,16 +122,12 @@ class ProfileControllerIntegrationTest {
             return null;
         });
         
-        // Verify user is actually in database after commit
+        // Verify user is actually in database after commit and generate access token
         User verifyUser = transactionTemplate.execute(status -> 
             userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
                 .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
         );
-        if (verifyUser != null) {
-            System.out.println("DEBUG: User verified in database after setUp: " + verifyUser.getEmail());
-            // Generate access token
-            accessToken = jwtTokenProvider.generateAccessToken(verifyUser);
-        }
+        accessToken = jwtTokenProvider.generateAccessToken(verifyUser);
     }
 
     @Test
@@ -148,9 +144,7 @@ class ProfileControllerIntegrationTest {
     @Test
     @DisplayName("Should return unauthorized without token")
     void getProfile_shouldReturnUnauthorizedWithoutToken() throws Exception {
-        // Act & Assert - with addFilters = false, this test doesn't make sense, but we'll keep it
-        // Actually, with addFilters = false, Principal will be null, so it will throw NPE or return 400
-        // Let's change expectation to 400 or handle null Principal
+        // Act & Assert
         mockMvc.perform(get(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL))
                 .andExpect(status().isBadRequest());
     }
@@ -160,15 +154,10 @@ class ProfileControllerIntegrationTest {
     void updateProfile_shouldUpdateProfileSuccessfully() throws Exception {
         // Arrange - verify user exists and password matches in a new transaction
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        User userBeforeUpdate = transactionTemplate.execute(status -> {
-            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found in database"));
-            System.out.println("DEBUG: Found user before update: " + user.getEmail());
-            System.out.println("DEBUG: User password hash: " + user.getPassword());
-            boolean passwordMatches = passwordEncoder.matches(TestConstants.UserData.TEST_PASSWORD, user.getPassword());
-            System.out.println("DEBUG: Password matches: " + passwordMatches);
-            return user;
-        });
+        User userBeforeUpdate = transactionTemplate.execute(status -> 
+            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found in database"))
+        );
         
         assertNotNull(userBeforeUpdate, "User should not be null");
         assertTrue(passwordEncoder.matches(TestConstants.UserData.TEST_PASSWORD, userBeforeUpdate.getPassword()),
@@ -179,28 +168,18 @@ class ProfileControllerIntegrationTest {
         request.setCurrentPassword(TestConstants.UserData.TEST_PASSWORD);
         request.setPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
 
-        // Act & Assert - with addFilters = false, we need to mock Principal directly
+        // Act & Assert
         mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
                 .principal(() -> TestConstants.UserData.TEST_EMAIL)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(result -> {
-                    // Print response for debugging
-                    System.out.println("DEBUG: Response status: " + result.getResponse().getStatus());
-                    System.out.println("DEBUG: Response body: " + result.getResponse().getContentAsString());
-                    if (result.getResponse().getStatus() != 200) {
-                        System.out.println("ERROR: Expected 200 but got " + result.getResponse().getStatus());
-                    }
-                })
                 .andExpect(status().isOk());
 
         // Verify the update in the database - check in a new transaction
-        User updatedUser = transactionTemplate.execute(status -> {
-            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL).orElseThrow();
-            System.out.println("DEBUG: Found user after update: " + user.getEmail());
-            System.out.println("DEBUG: Updated name: " + user.getName());
-            return user;
-        });
+        User updatedUser = transactionTemplate.execute(status -> 
+            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found after update"))
+        );
         assertNotNull(updatedUser, "Updated user should not be null");
         assertEquals(TestConstants.TestData.UPDATED_NAME, updatedUser.getName());
         assertTrue(passwordEncoder.matches(TestConstants.TestData.NEW_PASSWORD_VALUE, updatedUser.getPassword()));

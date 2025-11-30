@@ -60,7 +60,7 @@ public class GlobalExceptionHandler {
                             // If message not found, use default
                         }
                     }
-                    return error.getField() + ": " + message;
+                    return message;
                 })
                 .collect(Collectors.joining(", "));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMessage);

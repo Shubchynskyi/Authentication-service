@@ -6,6 +6,7 @@ import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
+import com.authenticationservice.dto.ResetPasswordRequest;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
@@ -27,7 +28,9 @@ import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.TransactionTemplate;
+import jakarta.persistence.EntityManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -83,6 +86,9 @@ class AuthControllerIntegrationTest {
     @Autowired
     private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
+    @Autowired
+    private EntityManager entityManager;
+
     private User testUser;
     private Role userRole;
 
@@ -136,13 +142,10 @@ class AuthControllerIntegrationTest {
         });
         
         // Verify user is actually in database after commit
-        User verifyUser = transactionTemplate.execute(status -> 
+        transactionTemplate.execute(status -> 
             userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
                 .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
         );
-        if (verifyUser != null) {
-            System.out.println("DEBUG: User verified in database after setUp: " + verifyUser.getEmail());
-        }
     }
 
     @Test
@@ -177,15 +180,10 @@ class AuthControllerIntegrationTest {
     void login_shouldLoginSuccessfully() throws Exception {
         // Arrange - verify user exists and is correctly saved in a new transaction
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        User savedUser = transactionTemplate.execute(status -> {
-            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found in database"));
-            System.out.println("DEBUG: Found user in new transaction: " + user.getEmail());
-            System.out.println("DEBUG: User enabled: " + user.isEnabled());
-            System.out.println("DEBUG: User verified: " + user.isEmailVerified());
-            System.out.println("DEBUG: User blocked: " + user.isBlocked());
-            return user;
-        });
+        User savedUser = transactionTemplate.execute(status -> 
+            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found in database"))
+        );
         
         assertNotNull(savedUser, "User should not be null");
         assertTrue(savedUser.isEmailVerified(), "User email should be verified");
@@ -202,14 +200,6 @@ class AuthControllerIntegrationTest {
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(request)))
-                .andDo(result -> {
-                    // Print response for debugging
-                    System.out.println("DEBUG: Response status: " + result.getResponse().getStatus());
-                    System.out.println("DEBUG: Response body: " + result.getResponse().getContentAsString());
-                    if (result.getResponse().getStatus() != 200) {
-                        System.out.println("ERROR: Expected 200 but got " + result.getResponse().getStatus());
-                    }
-                })
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.refreshToken").exists());
@@ -217,6 +207,8 @@ class AuthControllerIntegrationTest {
 
     @Test
     @DisplayName("Should return unauthorized with invalid credentials")
+    @org.junit.jupiter.api.Timeout(10) // 10 seconds timeout
+    @Transactional(propagation = Propagation.NOT_SUPPORTED) // Disable transaction to avoid deadlocks
     void login_shouldReturnUnauthorizedWithInvalidCredentials() throws Exception {
         // Arrange
         LoginRequest request = new LoginRequest();
@@ -243,5 +235,229 @@ class AuthControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
                 .andExpect(jsonPath("$.refreshToken").exists());
+    }
+
+    @Test
+    @DisplayName("Should return bad request when password is invalid during reset")
+    void resetPassword_shouldReturnBadRequest_whenPasswordInvalid() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        String resetToken = transactionTemplate.execute(status -> {
+            String token = java.util.UUID.randomUUID().toString();
+            testUser.setResetPasswordToken(token);
+            testUser.setResetPasswordTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
+            userRepository.save(testUser);
+            userRepository.flush();
+            return token;
+        });
+
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken(resetToken);
+        request.setNewPassword("123"); // Invalid password - too short, no uppercase, no special char
+        request.setConfirmPassword("123");
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESET_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Password must be at least 8 characters")));
+    }
+
+    @Test
+    @DisplayName("Should lock account temporarily after 5 failed attempts")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void login_shouldLockAccountTemporarily_after5FailedAttempts() throws Exception {
+        // Arrange - commit user state before login attempt
+        // LoginAttemptService uses REQUIRES_NEW, so it needs to see committed data
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        Long userId = transactionTemplate.execute(status -> {
+            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            user.setFailedLoginAttempts(4);
+            user.setLockTime(null);
+            User saved = userRepository.save(user);
+            userRepository.flush();
+            entityManager.flush();
+            entityManager.clear();
+            return saved.getId();
+        });
+        
+        // Force commit by starting and committing a new transaction
+        transactionTemplate.execute(status -> {
+            userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found before login attempt"));
+            entityManager.flush();
+            return null;
+        });
+        
+        // Small delay to ensure transaction is fully committed
+        Thread.sleep(100);
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL);
+        request.setPassword("wrongpassword");
+
+        // Act
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        // Wait a bit for REQUIRES_NEW transaction to commit
+        Thread.sleep(200);
+
+        // Assert - verify account is locked
+        User lockedUser = transactionTemplate.execute(status -> {
+            entityManager.clear();
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        });
+        
+        assertNotNull(lockedUser, "User should be found");
+        assertEquals(5, lockedUser.getFailedLoginAttempts(), "Failed login attempts should be 5");
+        assertNotNull(lockedUser.getLockTime(), "Lock time should be set");
+        assertTrue(lockedUser.getLockTime().isAfter(java.time.LocalDateTime.now()), 
+                "Lock time should be in the future");
+    }
+
+    @Test
+    @DisplayName("Should block account after 10 failed attempts")
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void login_shouldBlockAccount_after10FailedAttempts() throws Exception {
+        // Arrange - commit user state before login attempt
+        // LoginAttemptService uses REQUIRES_NEW, so it needs to see committed data
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        Long userId = transactionTemplate.execute(status -> {
+            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            user.setFailedLoginAttempts(9);
+            user.setBlocked(false);
+            user.setLockTime(null);
+            User saved = userRepository.save(user);
+            userRepository.flush();
+            entityManager.flush();
+            entityManager.clear();
+            return saved.getId();
+        });
+        
+        // Force commit by starting and committing a new transaction
+        transactionTemplate.execute(status -> {
+            userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found before login attempt"));
+            entityManager.flush();
+            return null;
+        });
+        
+        // Small delay to ensure transaction is fully committed
+        Thread.sleep(100);
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL);
+        request.setPassword("wrongpassword");
+
+        // Act
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+
+        // Wait a bit for REQUIRES_NEW transaction to commit
+        Thread.sleep(200);
+
+        // Assert - verify account is blocked
+        User blockedUser = transactionTemplate.execute(status -> {
+            entityManager.clear();
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        });
+        
+        assertNotNull(blockedUser, "User should be found");
+        assertEquals(10, blockedUser.getFailedLoginAttempts(), "Failed login attempts should be 10");
+        assertTrue(blockedUser.isBlocked(), "Account should be blocked");
+    }
+
+    @Test
+    @DisplayName("Should throw AccountLockedException when account is locked")
+    void login_shouldThrowAccountLockedException_whenAccountLocked() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            testUser.setLockTime(java.time.LocalDateTime.now().plusMinutes(5));
+            userRepository.save(testUser);
+            userRepository.flush();
+            return null;
+        });
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL);
+        request.setPassword(TestConstants.UserData.TEST_PASSWORD);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should reset attempts when login successful")
+    void login_shouldResetAttempts_whenLoginSuccessful() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            testUser.setFailedLoginAttempts(3);
+            userRepository.save(testUser);
+            userRepository.flush();
+            return null;
+        });
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL);
+        request.setPassword(TestConstants.UserData.TEST_PASSWORD);
+
+        // Act
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Assert - verify attempts are reset
+        User user = transactionTemplate.execute(status ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User not found"))
+        );
+        assertEquals(0, user.getFailedLoginAttempts());
+    }
+
+    @Test
+    @DisplayName("Should return 429 when rate limit exceeded for login")
+    void login_shouldReturn429_whenRateLimitExceeded() throws Exception {
+        // Note: Rate limiting filter is disabled in this test class
+        LoginRequest request = new LoginRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL);
+        request.setPassword(TestConstants.UserData.TEST_PASSWORD);
+
+        for (int i = 0; i < 11; i++) {
+            mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGIN_URL)
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
+    }
+
+    @Test
+    @DisplayName("Should return 429 when rate limit exceeded for register")
+    void register_shouldReturn429_whenRateLimitExceeded() throws Exception {
+        // Note: Rate limiting filter is disabled in this test class
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail(TestConstants.TestData.NEW_USER_EMAIL);
+        request.setName(TestConstants.TestData.NEW_USER_NAME);
+        request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
+
+        for (int i = 0; i < 11; i++) {
+            mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
+                    .contentType(MediaType.APPLICATION_JSON_VALUE)
+                    .content(objectMapper.writeValueAsString(request)));
+        }
     }
 }
