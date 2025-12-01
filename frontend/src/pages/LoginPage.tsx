@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
     Box,
     TextField,
@@ -14,7 +13,8 @@ import {
 import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
-import { API_BASE_URL, API_URL } from '../config';
+import { useAuth } from '../context/AuthContext';
+import { API_URL } from '../config';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -32,7 +32,9 @@ const LoginPage = () => {
     const [password, setPassword] = useState('');
     const { t } = useTranslation();
     const location = useLocation();
+    const navigate = useNavigate();
     const { showNotification } = useNotification();
+    const { login } = useAuth();
 
     useEffect(() => {
         if (location.state?.error) {
@@ -53,32 +55,12 @@ const LoginPage = () => {
         }
 
         try {
-            const response = await axios.post(`${API_BASE_URL}/auth/login`, {
-                email,
-                password
-            });
-            const { accessToken, refreshToken } = response.data;
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
-            window.location.href = '/';
+            await login(email, password);
+            navigate('/', { replace: true });
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                // Temporarily disabled - errorMessage variable not used
-                // let errorMessage = t('errors.loginFailed');
-                // if (error.response?.data) {
-                //     if (typeof error.response.data === 'string') {
-                //         errorMessage = error.response.data;
-                //     } else if (error.response.data.message) {
-                //         errorMessage = error.response.data.message;
-                //     } else if (error.response.data.error) {
-                //         errorMessage = error.response.data.error;
-                //     }
-                // }
-                // Always show generic message to not reveal account existence
-                showNotification(t('errors.loginFailed'), 'error');
-            } else {
-                showNotification(t('errors.loginFailed'), 'error');
-            }
+            // Error is already handled in AuthContext, but we show a generic message
+            // to not reveal account existence
+            showNotification(t('errors.loginFailed'), 'error');
         }
     };
 

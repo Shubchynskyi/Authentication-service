@@ -655,13 +655,18 @@ class AuthServiceTest {
                 }
 
                 @Test
-                @DisplayName("Should create user and return tokens when handling OAuth2 login for new user")
+                @DisplayName("Should create user and return tokens when handling OAuth2 login for new user in whitelist")
                 void handleOAuth2Login_shouldCreateUserAndReturnTokens_whenUserNew() {
                         // Arrange
                         String newEmail = "newuser@example.com";
                         String newName = "New User";
                         when(userRepository.findByEmail(newEmail))
                                         .thenReturn(Optional.empty());
+                        
+                        // Email is in whitelist
+                        AllowedEmail allowedEmail = new AllowedEmail(newEmail);
+                        when(allowedEmailRepository.findByEmail(newEmail))
+                                        .thenReturn(Optional.of(allowedEmail));
 
                         Role userRole = createUserRole();
                         when(roleRepository.findByName(SecurityConstants.ROLE_USER))
@@ -684,6 +689,25 @@ class AuthServiceTest {
                         assertNotNull(tokens);
                         assertEquals(TestConstants.Tokens.ACCESS_TOKEN, tokens.get("accessToken"));
                         assertEquals(TestConstants.Tokens.REFRESH_TOKEN, tokens.get("refreshToken"));
+                }
+
+                @Test
+                @DisplayName("Should throw exception when email is not in whitelist during OAuth2 registration")
+                void handleOAuth2Login_shouldThrowException_whenEmailNotInWhitelist() {
+                        // Arrange
+                        String newEmail = "notallowed@example.com";
+                        String newName = "Not Allowed User";
+                        when(userRepository.findByEmail(newEmail))
+                                        .thenReturn(Optional.empty());
+                        
+                        // Email is not in whitelist
+                        when(allowedEmailRepository.findByEmail(newEmail))
+                                        .thenReturn(Optional.empty());
+
+                        // Act & Assert
+                        RuntimeException ex = assertThrows(RuntimeException.class,
+                                        () -> authService.handleOAuth2Login(newEmail, newName));
+                        assertEquals("This email is not in whitelist. Registration is forbidden.", ex.getMessage());
                 }
 
                 @Test

@@ -3,11 +3,44 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import LoginPage from './LoginPage';
-import axios from 'axios';
 
-// Mock axios
-vi.mock('axios');
-const mockedAxios = axios as any;
+// Mock api module to prevent interceptor errors
+const mockApiInstance = {
+    post: vi.fn(),
+    get: vi.fn(),
+    defaults: {
+        headers: {
+            common: {},
+        },
+    },
+    interceptors: {
+        request: {
+            use: vi.fn(),
+        },
+        response: {
+            use: vi.fn(),
+        },
+    },
+};
+vi.mock('../api', () => ({
+    default: mockApiInstance,
+}));
+
+// Mock AuthContext
+const mockLogin = vi.fn();
+const mockLogout = vi.fn();
+const mockSetTokens = vi.fn();
+vi.mock('../context/AuthContext', () => ({
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    useAuth: () => ({
+        isAuthenticated: false,
+        login: mockLogin,
+        logout: mockLogout,
+        error: null,
+        isLoading: false,
+        setTokens: mockSetTokens,
+    }),
+}));
 
 // Mock NotificationContext
 const mockShowNotification = vi.fn();
@@ -21,11 +54,14 @@ vi.mock('../context/NotificationContext', () => ({
     }),
 }));
 
-// Mock window.location
-const mockLocation = { href: '' };
-Object.defineProperty(window, 'location', {
-    writable: true,
-    value: mockLocation,
+// Mock useNavigate
+const mockNavigate = vi.fn();
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: () => mockNavigate,
+    };
 });
 
 const renderLoginPage = () => {
@@ -40,13 +76,16 @@ describe('LoginPage', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockShowNotification.mockClear();
-        mockLocation.href = '';
+        mockLogin.mockClear();
+        mockNavigate.mockClear();
         localStorage.clear();
     });
 
     afterEach(() => {
         vi.clearAllMocks();
         mockShowNotification.mockClear();
+        mockLogin.mockClear();
+        mockNavigate.mockClear();
         localStorage.clear();
     });
 
@@ -85,12 +124,7 @@ describe('LoginPage', () => {
     });
 
     it('submits form with valid data', async () => {
-        mockedAxios.post.mockResolvedValueOnce({
-            data: {
-                accessToken: 'fake-access-token',
-                refreshToken: 'fake-refresh-token',
-            },
-        });
+        mockLogin.mockResolvedValueOnce(undefined);
 
         renderLoginPage();
 
@@ -104,13 +138,8 @@ describe('LoginPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(mockedAxios.post).toHaveBeenCalledWith(
-                expect.stringContaining('/auth/login'),
-                {
-                    email: 'test@example.com',
-                    password: 'password123',
-                }
-            );
+            expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+            expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
         });
     });
 });

@@ -25,14 +25,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const refreshToken = getRefreshToken();
 
         if (accessToken && !isJwtExpired(accessToken)) {
+            // Valid access token exists
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             setIsAuthenticated(true);
+        } else if (refreshToken) {
+            // Access token expired/missing but refresh token exists
+            // Token will be refreshed automatically on first API call via interceptor
+            // For now, we don't set authenticated to avoid race conditions
+            // The interceptor will handle token refresh and update state
+            setIsAuthenticated(false);
         } else {
-            // If access token is missing/expired, don't consider authenticated
-            // Optionally, we could try silent refresh here if refresh exists
-            if (!refreshToken) {
-                clearTokens();
-            }
+            // No valid tokens
+            clearTokens();
+            delete api.defaults.headers.common['Authorization'];
             setIsAuthenticated(false);
         }
 
@@ -42,10 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const onStorage = (e: StorageEvent) => {
             if (e.key === 'accessToken' || e.key === 'refreshToken') {
                 const at = getAccessToken();
+                const rt = getRefreshToken();
                 if (at && !isJwtExpired(at)) {
                     api.defaults.headers.common['Authorization'] = `Bearer ${at}`;
                     setIsAuthenticated(true);
+                } else if (!rt) {
+                    // No refresh token, clear everything
+                    delete api.defaults.headers.common['Authorization'];
+                    setIsAuthenticated(false);
                 } else {
+                    // Access token expired but refresh token exists
+                    // Don't change state, let interceptor handle it
                     delete api.defaults.headers.common['Authorization'];
                     setIsAuthenticated(false);
                 }
@@ -96,10 +108,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const setTokens = useCallback((accessToken: string, refreshToken: string) => {
+        // Clear any existing tokens first to avoid conflicts
+        clearTokens();
+        
+        // Set new tokens
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
+        
+        // Update API headers and auth state
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
         setIsAuthenticated(true);
+        setError(null);
     }, []);
 
     return (

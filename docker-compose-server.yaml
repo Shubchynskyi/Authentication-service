@@ -59,7 +59,7 @@ services:
     image: postgres:17.5
     environment:
       - POSTGRES_DB=${POSTGRES_DB:-authenticationservice}
-      - POSTGRES_USER=${POSTGRES_USER:-${DB_USERNAME:-postgres}}
+      - POSTGRES_USER=${DB_USERNAME:-postgres}
       - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
@@ -68,7 +68,7 @@ services:
       - auth-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\""]
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 10s
       timeout: 5s
       retries: 5

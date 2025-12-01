@@ -306,6 +306,14 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
                     log.info("Creating new OAuth2 user: {}", email);
+                    
+                    // Check whitelist first - this must be the first check for new users
+                    Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(email);
+                    if (allowed.isEmpty()) {
+                        log.error("Email {} is not in whitelist. OAuth2 registration denied.", email);
+                        throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
+                    }
+                    
                     User newUser = new User();
                     newUser.setEmail(email);
                     // Use email as fallback if name is null or empty
