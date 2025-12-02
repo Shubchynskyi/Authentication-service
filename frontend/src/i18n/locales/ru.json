@@ -56,7 +56,8 @@
       "emailNotVerified": "Email не подтверждён",
       "serverError": "Ошибка сервера, попробуйте позже",
       "networkError": "Ошибка сети, проверьте подключение",
-      "generalError": "Не удалось выполнить вход"
+      "generalError": "Не удалось выполнить вход",
+      "notInWhitelist": "Этот email не находится в белом списке. Регистрация запрещена."
     },
     "verification": {
       "verifying": "Проверяем ваш email...",

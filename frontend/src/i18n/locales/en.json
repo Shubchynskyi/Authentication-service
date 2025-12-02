@@ -56,7 +56,8 @@
       "emailNotVerified": "Email not verified",
       "serverError": "Server error, please try again later",
       "networkError": "Network error, check your connection",
-      "generalError": "Failed to sign in"
+      "generalError": "Failed to sign in",
+      "notInWhitelist": "This email is not in whitelist. Registration is forbidden."
     },
     "verification": {
       "verifying": "Verifying your email...",

@@ -56,7 +56,10 @@ const LoginPage = () => {
 
         try {
             await login(email, password);
-            navigate('/', { replace: true });
+            // Small delay to ensure tokens are saved and state is updated
+            setTimeout(() => {
+                navigate('/', { replace: true });
+            }, 50);
         } catch (error) {
             // Error is already handled in AuthContext, but we show a generic message
             // to not reveal account existence

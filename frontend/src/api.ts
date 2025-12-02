@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_URL } from './config';
 import { getAccessToken, getRefreshToken, isJwtExpired, clearTokens } from './utils/token';
+import i18n from './i18n/i18n';
 
 const api = axios.create({
     baseURL: API_URL,
@@ -40,6 +41,9 @@ api.interceptors.request.use(
         if (token && !isJwtExpired(token)) {
             config.headers.Authorization = `Bearer ${token}`;
         }
+        // Set Accept-Language header based on current i18n language
+        const currentLanguage = (i18n.language || 'en').split('-')[0];
+        config.headers['Accept-Language'] = currentLanguage;
         return config;
     },
     (error) => Promise.reject(error)
@@ -117,11 +121,21 @@ export const checkAccess = async (resource: string): Promise<boolean> => {
 if (typeof window !== 'undefined') {
     window.addEventListener('storage', (e) => {
         if (e.key === 'accessToken' || e.key === 'refreshToken') {
-            const access = getAccessToken();
-            const refresh = getRefreshToken();
-            if (!access || !refresh) {
-                // If tokens are removed in another tab, redirect to login in this tab
-                clearAuthAndRedirect();
+            // Handle only token removal events and give some time for potential token re-setting
+            // (for example, during OAuth2 login when tokens are temporarily cleared)
+            // Note: storage event only fires in OTHER tabs, not the tab that made the change
+            if (e.newValue === null && e.oldValue !== null) {
+                // Increased delay to handle cases where tokens are cleared and immediately re-set
+                setTimeout(() => {
+                    const access = getAccessToken();
+                    const refresh = getRefreshToken();
+                    // Only redirect if tokens are still missing after delay
+                    // This prevents false redirects during token refresh or re-authentication
+                    if (!access || !refresh) {
+                        // If tokens remain removed in another tab after delay, redirect to login in this tab
+                        clearAuthAndRedirect();
+                    }
+                }, 300);
             }
         }
     });

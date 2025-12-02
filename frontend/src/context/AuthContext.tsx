@@ -75,9 +75,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 '/api/auth/login',
                 { email, password }
             );
+            
+            // Validate response data
+            if (!response.data || !response.data.accessToken || !response.data.refreshToken) {
+                throw new Error('Invalid response from server: missing tokens');
+            }
+            
             const { accessToken, refreshToken } = response.data;
+            
+            // Set tokens atomically to avoid race conditions
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
+            
+            // Update API headers and auth state
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             setIsAuthenticated(true);
         } catch (error) {
@@ -108,10 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const setTokens = useCallback((accessToken: string, refreshToken: string) => {
-        // Clear any existing tokens first to avoid conflicts
-        clearTokens();
-        
-        // Set new tokens
+        // Set new tokens (overwrites any existing values)
         localStorage.setItem('accessToken', accessToken);
         localStorage.setItem('refreshToken', refreshToken);
         

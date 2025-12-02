@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import api from '../api';
+import { getAccessToken } from '../utils/token';
 
 interface ProfileData {
     email: string;
@@ -30,12 +31,26 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const [profile, setProfile] = useState<ProfileData | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const fetchTimeoutRef = useRef<number | null>(null);
 
     const fetchProfile = async () => {
         if (!isAuthenticated) {
             setProfile(null);
             setError(null);
             setIsLoading(false);
+            return;
+        }
+
+        // Ensure token is available before making request (important for OAuth2 flow)
+        const token = getAccessToken();
+        if (!token) {
+            // Token not ready yet, wait a bit and retry
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+            fetchTimeoutRef.current = setTimeout(() => {
+                fetchProfile();
+            }, 100);
             return;
         }
 
@@ -69,7 +84,23 @@ export const ProfileProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
 
     useEffect(() => {
-        fetchProfile();
+        // Clear any pending timeout when component unmounts or isAuthenticated changes
+        if (fetchTimeoutRef.current) {
+            clearTimeout(fetchTimeoutRef.current);
+            fetchTimeoutRef.current = null;
+        }
+
+        // Small delay to ensure tokens are set in API headers (especially important for OAuth2)
+        const timeoutId = setTimeout(() => {
+            fetchProfile();
+        }, 50);
+
+        return () => {
+            clearTimeout(timeoutId);
+            if (fetchTimeoutRef.current) {
+                clearTimeout(fetchTimeoutRef.current);
+            }
+        };
     }, [isAuthenticated]);
 
     const isAdmin = profile?.roles.includes('ROLE_ADMIN') || false;

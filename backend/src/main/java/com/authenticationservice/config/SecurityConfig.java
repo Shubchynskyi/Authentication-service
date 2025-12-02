@@ -69,10 +69,12 @@ public class SecurityConfig {
                                 // Generate JWT tokens
                                 Map<String, String> tokens = authService.handleOAuth2Login(email, name);
 
-                                // Redirect to frontend with tokens
+                                // Redirect to frontend with tokens (URL-encoded to prevent token corruption)
+                                String accessToken = URLEncoder.encode(tokens.get("accessToken"), StandardCharsets.UTF_8);
+                                String refreshToken = URLEncoder.encode(tokens.get("refreshToken"), StandardCharsets.UTF_8);
                                 response.sendRedirect(frontendUrl + "/oauth2/success?" +
-                                        "accessToken=" + tokens.get("accessToken") +
-                                        "&refreshToken=" + tokens.get("refreshToken"));
+                                        "accessToken=" + accessToken +
+                                        "&refreshToken=" + refreshToken);
                             } catch (Exception e) {
                                 // Redirect to frontend with error
                                 response.sendRedirect(frontendUrl + "/oauth2/success?error=" +

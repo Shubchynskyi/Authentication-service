@@ -45,7 +45,8 @@
       "emailNotVerified": "Email не підтверджено",
       "serverError": "Помилка сервера, спробуйте пізніше",
       "networkError": "Помилка мережі, перевірте підключення",
-      "generalError": "Не вдалося виконати вхід"
+      "generalError": "Не вдалося виконати вхід",
+      "notInWhitelist": "Цей email не знаходиться в білому списку. Реєстрація заборонена."
     },
     "forgotPasswordDescription": "Введіть ваш email, ми надішлемо посилання для скидання.",
     "forgotPasswordSuccessGeneric": "Якщо обліковий запис існує, ми надіслали лист для скидання пароля.",

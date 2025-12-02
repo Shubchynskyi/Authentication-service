@@ -1,5 +1,14 @@
 export type JwtPayload = { exp?: number };
 
+/**
+ * Validates JWT token format (must have 3 parts separated by dots)
+ */
+export function isValidJwtFormat(token: string | null | undefined): boolean {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  return parts.length === 3 && parts.every(part => part.length > 0);
+}
+
 function decodePayload(token: string): JwtPayload | null {
   try {
     const parts = token.split('.');

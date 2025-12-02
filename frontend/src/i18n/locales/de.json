@@ -45,7 +45,8 @@
       "emailNotVerified": "E-Mail nicht verifiziert",
       "serverError": "Serverfehler, bitte versuchen Sie es später erneut",
       "networkError": "Netzwerkfehler, überprüfen Sie Ihre Verbindung",
-      "generalError": "Anmeldung fehlgeschlagen"
+      "generalError": "Anmeldung fehlgeschlagen",
+      "notInWhitelist": "Diese E-Mail steht nicht auf der Whitelist. Registrierung ist verboten."
     },
     "forgotPasswordDescription": "Geben Sie Ihre E-Mail ein, wir senden einen Zurücksetzungslink.",
     "forgotPasswordSuccessGeneric": "Falls ein Konto existiert, haben wir eine E-Mail zum Zurücksetzen gesendet.",

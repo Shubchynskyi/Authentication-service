@@ -111,7 +111,13 @@ const RegistrationPage: React.FC = () => {
       setMessageType('error');
       if (axios.isAxiosError(err)) {
         if (err.response?.data) {
-          setMessage(String(err.response.data));
+          const errorData = String(err.response.data);
+          // Check if error message contains whitelist error
+          if (errorData.includes('not in whitelist') || errorData.includes('whitelist')) {
+            setMessage(t('auth.loginError.notInWhitelist'));
+          } else {
+            setMessage(errorData);
+          }
         } else if (err.message) {
           setMessage(err.message);
         } else {

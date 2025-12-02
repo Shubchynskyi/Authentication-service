@@ -332,6 +332,17 @@ public class AuthService {
                     return savedUser;
                 });
 
+        // Handle existing user with LOCAL provider and unverified email
+        // If user registered locally but didn't verify email, and now logs in via Google,
+        // we should mark email as verified and update auth provider to GOOGLE
+        if (user.getAuthProvider() == AuthProvider.LOCAL && !user.isEmailVerified()) {
+            log.info("User {} with LOCAL provider and unverified email is logging in via Google. " +
+                    "Updating emailVerified to true and authProvider to GOOGLE.", email);
+            user.setEmailVerified(true);
+            user.setAuthProvider(AuthProvider.GOOGLE);
+            userRepository.save(user);
+        }
+
         // Update name if it changed (for existing users)
         if (name != null && !name.isEmpty() && !name.equals(user.getName())) {
             log.debug("Updating user name from {} to {}", user.getName(), name);
