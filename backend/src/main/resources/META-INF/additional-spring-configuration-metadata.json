@@ -39,6 +39,11 @@
       "name": "frontend.url",
       "type": "java.lang.String",
       "description": "Frontend application URL for OAuth2 redirects and CORS configuration"
+    },
+    {
+      "name": "password.validation.pattern",
+      "type": "java.lang.String",
+      "description": "Regular expression pattern for password validation"
     }
   ]
 } 

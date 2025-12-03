@@ -49,6 +49,10 @@ public final class TestPropertyConfigurator {
                 () -> TestConstants.TestProperties.OAUTH_GOOGLE_CLIENT_ID);
         registry.add("spring.security.oauth2.client.registration.google.client-secret", 
                 () -> TestConstants.TestProperties.OAUTH_GOOGLE_CLIENT_SECRET);
+        
+        // Password validation - use default pattern for tests
+        registry.add("password.validation.pattern", 
+                () -> "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$");
     }
 }
 

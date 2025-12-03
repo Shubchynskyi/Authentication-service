@@ -1,5 +1,6 @@
 package com.authenticationservice.dto;
 
+import com.authenticationservice.validation.PasswordValid;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -7,7 +8,7 @@ import lombok.Setter;
 @Setter
 public class ResetPasswordRequest {
     private String token;
-    @jakarta.validation.constraints.Pattern(regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$", message = "{validation.password.pattern}")
+    @PasswordValid
     private String newPassword;
     private String confirmPassword;
 }

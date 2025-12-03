@@ -132,13 +132,13 @@ describe('LoginPage', () => {
         const passwordInput = screen.getByLabelText(/Password/i);
 
         fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
-        fireEvent.change(passwordInput, { target: { value: 'password123' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
 
         const submitButton = screen.getByRole('button', { name: /Sign In/i });
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'password123');
+            expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'Password123@');
             expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
         });
     });

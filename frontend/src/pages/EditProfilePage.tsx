@@ -14,6 +14,7 @@ import { useProfile } from '../context/ProfileContext';
 import { useNotification } from '../context/NotificationContext';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
+import { validatePassword } from '../utils/passwordValidation';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -30,11 +31,20 @@ const EditProfilePage: React.FC = () => {
     const navigate = useNavigate();
     const { profile, updateProfile, isLoading } = useProfile();
     const { showNotification } = useNotification();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     
     const [name, setName] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [newPasswordError, setNewPasswordError] = useState('');
+
+    // Recalculate password error when language changes
+    useEffect(() => {
+        if (newPassword) {
+            const error = validatePassword(newPassword, t);
+            setNewPasswordError(error);
+        }
+    }, [i18n.language, newPassword, t]);
 
     useEffect(() => {
         if (profile?.name) {
@@ -48,6 +58,16 @@ const EditProfilePage: React.FC = () => {
         if (newPassword && !currentPassword) {
             showNotification(t('profile.notifications.currentPasswordRequired'), 'error');
             return;
+        }
+
+        if (newPassword) {
+            const passwordValidationError = validatePassword(newPassword, t);
+            if (passwordValidationError) {
+                setNewPasswordError(passwordValidationError);
+                showNotification(passwordValidationError, 'error');
+                return;
+            }
+            setNewPasswordError('');
         }
 
         try {
@@ -119,8 +139,27 @@ const EditProfilePage: React.FC = () => {
                                 margin="normal"
                                 type="password"
                                 value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
+                                onChange={(e) => {
+                                    setNewPassword(e.target.value);
+                                    if (e.target.value) {
+                                        const error = validatePassword(e.target.value, t);
+                                        setNewPasswordError(error);
+                                    } else {
+                                        setNewPasswordError('');
+                                    }
+                                }}
+                                error={!!newPasswordError}
+                                helperText={newPasswordError || ''}
                             />
+
+                            {/* Static password requirements hint, always visible */}
+                            <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ mt: 0.5, minHeight: 40 }}
+                            >
+                                {t('errors.passwordRequirements')}
+                            </Typography>
                         </>
                     )}
                     <Button

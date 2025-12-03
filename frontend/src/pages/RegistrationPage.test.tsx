@@ -119,7 +119,7 @@ describe('RegistrationPage', () => {
 
         fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
         fireEvent.change(usernameInput, { target: { value: 'New User' } });
-        fireEvent.change(passwordInput, { target: { value: 'password123' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
 
         const submitButton = screen.getByRole('button', { name: /Register/i });
         fireEvent.click(submitButton);
@@ -130,7 +130,7 @@ describe('RegistrationPage', () => {
                 {
                     email: 'newuser@example.com',
                     name: 'New User',
-                    password: 'password123',
+                    password: 'Password123@',
                 }
             );
         });

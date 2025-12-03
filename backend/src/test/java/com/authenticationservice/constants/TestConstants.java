@@ -22,11 +22,11 @@ public final class TestConstants {
         public static final String TEST_USERNAME = "testuser";
         public static final String NEW_USERNAME = "newusername";
         
-        // Passwords
-        public static final String TEST_PASSWORD = "password";
+        // Passwords - must match password validation requirements (min 8 chars, digit, uppercase, lowercase, special char)
+        public static final String TEST_PASSWORD = "Password123@";
         public static final String ENCODED_PASSWORD = "encodedPassword";
-        public static final String NEW_PASSWORD = "newPassword";
-        public static final String CURRENT_PASSWORD = "currentPassword";
+        public static final String NEW_PASSWORD = "NewPassword123@";
+        public static final String CURRENT_PASSWORD = "CurrentPass123@";
         public static final String NEW_ENCODED_PASSWORD = "newEncodedPassword";
         public static final String EXPECTED_NEW_ENCODED_PASSWORD = "encoded-newPassword";
     }

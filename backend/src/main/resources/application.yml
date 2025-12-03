@@ -71,3 +71,7 @@ jwt:
   refresh-secret: ${JWT_REFRESH_SECRET}
   access-expiration: 900000 # 15 minutes
   refresh-expiration: 604800000 # 7 days
+
+password:
+  validation:
+    pattern: ${PASSWORD_REGEX:^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$}

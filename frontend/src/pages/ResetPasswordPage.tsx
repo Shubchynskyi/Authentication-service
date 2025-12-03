@@ -6,6 +6,7 @@ import api from '../api';
 import axios from 'axios';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
+import { validatePassword } from '../utils/passwordValidation';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -22,43 +23,20 @@ const ResetPasswordPage: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { showNotification } = useNotification();
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [token, setToken] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    // Temporarily disabled - password validation on frontend
-    // const [passwordError, setPasswordError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    // Password validation temporarily disabled for backend testing
-    // Same regex as backend: ^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\-_*?])(?=\S+$).{8,}$
-    // const PASSWORD_REGEX = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\-_*?])(?=\S+$).{8,}$/;
-
-    // const validatePassword = (pwd: string): string => {
-    //     if (!PASSWORD_REGEX.test(pwd)) {
-    //         // Provide detailed feedback
-    //         if (pwd.length < 8) {
-    //             return t('errors.passwordTooShort');
-    //         }
-    //         if (!/\d/.test(pwd)) {
-    //             return t('errors.passwordNoDigit');
-    //         }
-    //         if (!/[A-Z]/.test(pwd)) {
-    //             return t('errors.passwordNoUppercase');
-    //         }
-    //         if (!/[a-z]/.test(pwd)) {
-    //             return t('errors.passwordNoLowercase');
-    //         }
-        //         if (!/[@#$%^&+=!\-_*?]/.test(pwd)) {
-        //             return t('errors.passwordNoSpecial');
-        //         }
-    //         if (/\s/.test(pwd)) {
-    //             return t('errors.passwordNoSpaces');
-    //         }
-    //         return t('errors.passwordRequirements');
-    //     }
-    //     return '';
-    // };
+    // Recalculate password error when language changes
+    useEffect(() => {
+        if (newPassword) {
+            const error = validatePassword(newPassword, t);
+            setPasswordError(error);
+        }
+    }, [i18n.language, newPassword, t]);
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
@@ -78,14 +56,13 @@ const ResetPasswordPage: React.FC = () => {
             return;
         }
 
-        // Password validation temporarily disabled for backend testing
-        // const passwordValidationError = validatePassword(newPassword);
-        // if (passwordValidationError) {
-        //     setPasswordError(passwordValidationError);
-        //     showNotification(passwordValidationError, 'error');
-        //     return;
-        // }
-        // setPasswordError('');
+        const passwordValidationError = validatePassword(newPassword, t);
+        if (passwordValidationError) {
+            setPasswordError(passwordValidationError);
+            showNotification(passwordValidationError, 'error');
+            return;
+        }
+        setPasswordError('');
 
         if (newPassword !== confirmPassword) {
             showNotification(t('errors.passwordMismatch'), 'error');
@@ -125,21 +102,26 @@ const ResetPasswordPage: React.FC = () => {
                         margin="normal"
                         type="password"
                         value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        // Password validation temporarily disabled for backend testing
-                        // onChange={(e) => {
-                        //     setNewPassword(e.target.value);
-                        //     if (e.target.value) {
-                        //         const error = validatePassword(e.target.value);
-                        //         setPasswordError(error);
-                        //     } else {
-                        //         setPasswordError('');
-                        //     }
-                        // }}
-                        // error={!!passwordError}
-                        // helperText={passwordError || t('errors.passwordRequirements')}
+                        onChange={(e) => {
+                            setNewPassword(e.target.value);
+                            if (e.target.value) {
+                                const error = validatePassword(e.target.value, t);
+                                setPasswordError(error);
+                            } else {
+                                setPasswordError('');
+                            }
+                        }}
+                        error={!!passwordError}
+                        helperText={passwordError || ''}
                         required
                     />
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ mt: 0.5, minHeight: 40 }}
+                    >
+                        {t('errors.passwordRequirements')}
+                    </Typography>
                     <TextField
                         label={t('common.confirmPassword')}
                         fullWidth

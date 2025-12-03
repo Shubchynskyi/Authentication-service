@@ -10,6 +10,7 @@ import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.dto.ProfileUpdateRequest;
 import com.authenticationservice.service.ProfileService;
 
+import jakarta.validation.Valid;
 import java.security.Principal;
 
 @RestController
@@ -29,7 +30,7 @@ public class ProfileController {
     }
 
     @PostMapping(ApiConstants.PROFILE_URL)
-    public ResponseEntity<String> updateProfile(@RequestBody ProfileUpdateRequest request, Principal principal) {
+    public ResponseEntity<String> updateProfile(@Valid @RequestBody ProfileUpdateRequest request, Principal principal) {
         try {
             profileService.updateProfile(principal.getName(), request);
             return ResponseEntity.ok(MessageConstants.PROFILE_UPDATED_SUCCESS);
