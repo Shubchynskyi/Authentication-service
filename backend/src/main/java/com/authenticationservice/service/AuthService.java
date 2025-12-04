@@ -66,7 +66,6 @@ public class AuthService {
         }
 
         String verificationToken = UUID.randomUUID().toString();
-        log.info("Generated verification token for email: {}", request.getEmail());
 
         User user = new User();
         user.setEmail(request.getEmail());
@@ -86,7 +85,7 @@ public class AuthService {
         userRepository.save(user);
         log.info("User saved to database");
 
-        log.info("Verification token for {}: {}", request.getEmail(), verificationToken);
+        // Security: Never log verification tokens
         sendVerificationEmail(request.getEmail(), verificationToken);
         log.info("Verification email sent to {}", request.getEmail());
     }
@@ -100,7 +99,7 @@ public class AuthService {
         try {
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("Error sending verification email to " + toEmail + ": " + e.getMessage());
+            log.error("Error sending verification email to {}", toEmail, e);
             throw new RuntimeException("Error sending verification email.", e);
         }
     }
@@ -109,12 +108,12 @@ public class AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
-        if (user.getVerificationToken().equals(request.getCode())) {
-            user.setEmailVerified(true);
-            userRepository.save(user);
-        } else {
+        if (user.getVerificationToken() == null || !user.getVerificationToken().equals(request.getCode())) {
             throw new RuntimeException("Invalid verification code");
         }
+        
+        user.setEmailVerified(true);
+        userRepository.save(user);
     }
 
     @Transactional
@@ -142,9 +141,7 @@ public class AuthService {
             throw new AccountLockedException(seconds);
         }
 
-        log.debug("Checking password for email: {}", request.getEmail());
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
-        log.debug("Password matches: {}", passwordMatches);
         if (!passwordMatches) {
             // Use separate service with REQUIRES_NEW transaction to ensure counter is saved
             loginAttemptService.handleFailedLogin(user, frontendUrl);
@@ -179,10 +176,7 @@ public class AuthService {
 
         try {
             String accessToken = jwtTokenProvider.generateAccessToken(user);
-            log.debug("Access token generated successfully for email: {}", request.getEmail());
             String refreshToken = jwtTokenProvider.generateRefreshToken(user);
-            log.debug("Refresh token generated successfully for email: {}", request.getEmail());
-            log.debug("Tokens generated successfully for email: {}", request.getEmail());
 
             Map<String, String> tokens = new java.util.HashMap<>();
             tokens.put("accessToken", accessToken);
@@ -202,6 +196,17 @@ public class AuthService {
         String email = jwtTokenProvider.getEmailFromRefresh(refreshToken);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
+
+        // Security: Check if user account is still active
+        if (!user.isEnabled()) {
+            log.error("Refresh token used for disabled account: {}", email);
+            throw new RuntimeException("Account is disabled");
+        }
+        
+        if (user.isBlocked()) {
+            log.error("Refresh token used for blocked account: {}", email);
+            throw new AccountBlockedException(user.getBlockReason());
+        }
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(user);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user);
@@ -263,7 +268,7 @@ public class AuthService {
         try {
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("Error sending password reset email to " + toEmail + ": " + e.getMessage());
+            log.error("Error sending password reset email to {}", toEmail, e);
             throw new RuntimeException("Error sending password reset email.", e);
         }
     }
@@ -272,7 +277,8 @@ public class AuthService {
         User user = userRepository.findByResetPasswordToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token."));
 
-        if (user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (user.getResetPasswordTokenExpiry() == null || 
+            user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Expired reset token.");
         }
 

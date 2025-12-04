@@ -22,12 +22,14 @@ import com.authenticationservice.security.JwtAuthenticationFilter;
 import com.authenticationservice.security.RateLimitingFilter;
 import com.authenticationservice.service.AuthService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.List;
 import java.util.Map;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 @Configuration
 @RequiredArgsConstructor
 @EnableMethodSecurity
@@ -39,6 +41,9 @@ public class SecurityConfig {
 
     @Value("${frontend.url}")
     private String frontendUrl;
+    
+    @Value("${cors.allowed-origins:}")
+    private String corsAllowedOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -69,16 +74,19 @@ public class SecurityConfig {
                                 // Generate JWT tokens
                                 Map<String, String> tokens = authService.handleOAuth2Login(email, name);
 
-                                // Redirect to frontend with tokens (URL-encoded to prevent token corruption)
+                                // Security: Use URL fragment (#) instead of query parameters
+                                // Fragments are not sent to server, reducing risk of token exposure in logs
+                                // Note: This still has risks (browser history, referrer headers)
+                                // Better solution: Use POST redirect or one-time code exchange
                                 String accessToken = URLEncoder.encode(tokens.get("accessToken"), StandardCharsets.UTF_8);
                                 String refreshToken = URLEncoder.encode(tokens.get("refreshToken"), StandardCharsets.UTF_8);
-                                response.sendRedirect(frontendUrl + "/oauth2/success?" +
+                                response.sendRedirect(frontendUrl + "/oauth2/success#" +
                                         "accessToken=" + accessToken +
                                         "&refreshToken=" + refreshToken);
                             } catch (Exception e) {
-                                // Redirect to frontend with error
-                                response.sendRedirect(frontendUrl + "/oauth2/success?error=" +
-                                        URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8));
+                                // Security: Don't expose error details in URL
+                                log.error("OAuth2 login failed", e);
+                                response.sendRedirect(frontendUrl + "/oauth2/success?error=authentication_failed");
                             }
                         }))
                 .httpBasic(Customizer.withDefaults());
@@ -99,13 +107,29 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Allow both local dev (5173) and Docker (3000) frontend URLs
-        // TODO: move to environment variables
-        configuration.setAllowedOrigins(List.of(
-                frontendUrl,
-                "http://localhost:3000",
-                "http://localhost:5173",
-                CorsConstants.FRONTEND_URL));
+        
+        // Build allowed origins list from environment variables
+        List<String> allowedOrigins = new java.util.ArrayList<>();
+        allowedOrigins.add(frontendUrl);
+        
+        // Parse additional origins from environment variable (comma-separated)
+        if (corsAllowedOrigins != null && !corsAllowedOrigins.isBlank()) {
+            String[] origins = corsAllowedOrigins.split(",");
+            for (String origin : origins) {
+                String trimmed = origin.trim();
+                if (!trimmed.isEmpty()) {
+                    allowedOrigins.add(trimmed);
+                }
+            }
+        }
+        
+        // Fallback to default localhost URLs if no environment variable is set
+        if (allowedOrigins.size() == 1) {
+            allowedOrigins.add("http://localhost:3000");
+            allowedOrigins.add("http://localhost:5173");
+        }
+        
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(CorsConstants.ALLOWED_METHODS);
         configuration.setAllowedHeaders(CorsConstants.ALLOWED_HEADERS);
         configuration.setAllowCredentials(true);

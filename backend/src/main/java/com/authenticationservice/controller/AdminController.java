@@ -50,13 +50,10 @@ public class AdminController {
 
     @PostMapping(ApiConstants.USERS_URL)
     public ResponseEntity<String> createUser(@RequestBody AdminUpdateUserRequest request) {
-        try {
-            adminService.createUser(request);
-            adminService.addToWhitelist(request.getEmail());
-            return ResponseEntity.ok(MessageConstants.USER_CREATED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.createUser(request);
+        adminService.addToWhitelist(request.getEmail());
+        return ResponseEntity.ok(MessageConstants.USER_CREATED);
     }
 
     @GetMapping(ApiConstants.USER_ID_URL)
@@ -70,32 +67,23 @@ public class AdminController {
 
     @PutMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
-        try {
-            adminService.updateUser(id, request);
-            return ResponseEntity.ok(MessageConstants.USER_UPDATED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.updateUser(id, request);
+        return ResponseEntity.ok(MessageConstants.USER_UPDATED);
     }
 
     @DeleteMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
-        try {
-            adminService.deleteUser(id);
-            return ResponseEntity.ok(MessageConstants.USER_DELETED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.deleteUser(id);
+        return ResponseEntity.ok(MessageConstants.USER_DELETED);
     }
 
     @PutMapping(ApiConstants.USERS_ID_ROLES_URL)
     public ResponseEntity<?> updateUserRoles(@PathVariable Long id, @RequestBody UpdateUserRolesRequest request) {
-        try {
-            UserDTO updated = adminService.updateUserRoles(id, request.getRoles());
-            return ResponseEntity.ok(updated);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        UserDTO updated = adminService.updateUserRoles(id, request.getRoles());
+        return ResponseEntity.ok(updated);
     }
 
     @GetMapping(ApiConstants.WHITELIST_URL)
@@ -105,40 +93,31 @@ public class AdminController {
 
     @PostMapping(ApiConstants.WHITELIST_ADD_URL)
     public ResponseEntity<String> addToWhitelist(@RequestParam String email) {
-        try {
-            adminService.addToWhitelist(email);
-            return ResponseEntity.ok(MessageConstants.EMAIL_ADDED_TO_WHITELIST);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.addToWhitelist(email);
+        return ResponseEntity.ok(MessageConstants.EMAIL_ADDED_TO_WHITELIST);
     }
 
     @DeleteMapping(ApiConstants.WHITELIST_REMOVE_URL)
     public ResponseEntity<String> removeFromWhitelist(@RequestParam String email) {
-        try {
-            adminService.removeFromWhitelist(email);
-            return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_WHITELIST);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.removeFromWhitelist(email);
+        return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_WHITELIST);
     }
 
     @PostMapping(ApiConstants.VERIFY_ADMIN_URL)
     public ResponseEntity<String> verifyAdmin(@RequestBody Map<String, String> request, Principal principal) {
-        try {
-            String password = request.get(SecurityConstants.PASSWORD_KEY);
-            if (password == null || password.isBlank()) {
-                return ResponseEntity.badRequest().body(MessageConstants.PASSWORD_IS_REQUIRED);
-            }
-            
-            boolean verified = adminService.verifyAdminPassword(principal.getName(), password);
-            if (!verified) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageConstants.INVALID_PASSWORD);
-            }
-            
-            return ResponseEntity.ok(MessageConstants.PASSWORD_VERIFIED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        String password = request.get(SecurityConstants.PASSWORD_KEY);
+        if (password == null || password.isBlank()) {
+            return ResponseEntity.badRequest().body(MessageConstants.PASSWORD_IS_REQUIRED);
         }
+        
+        // Exception handling is done via GlobalExceptionHandler
+        boolean verified = adminService.verifyAdminPassword(principal.getName(), password);
+        if (!verified) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageConstants.INVALID_PASSWORD);
+        }
+        
+        return ResponseEntity.ok(MessageConstants.PASSWORD_VERIFIED);
     }
 }

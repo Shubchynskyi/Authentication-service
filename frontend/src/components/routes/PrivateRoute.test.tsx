@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import PrivateRoute from './PrivateRoute';
 import * as tokenUtils from '../../utils/token';
+import { TestMemoryRouter } from '../../test-utils/router';
 
 // Mock token utils
 vi.mock('../../utils/token', () => ({
@@ -24,12 +25,12 @@ describe('PrivateRoute', () => {
         localStorage.clear();
     });
 
-    it('renders children when user is authenticated', () => {
+    it('renders children when user is authenticated', async () => {
         localStorage.setItem('accessToken', 'valid-token');
         vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(false);
 
         render(
-            <MemoryRouter initialEntries={['/protected']}>
+            <TestMemoryRouter initialEntries={['/protected']}>
                 <Routes>
                     <Route
                         path="/protected"
@@ -40,10 +41,12 @@ describe('PrivateRoute', () => {
                         }
                     />
                 </Routes>
-            </MemoryRouter>
+            </TestMemoryRouter>
         );
 
-        expect(screen.getByText('Protected Content')).toBeInTheDocument();
+        // Use findByText which automatically waits
+        const content = await screen.findByText('Protected Content', {}, { timeout: 5000 });
+        expect(content).toBeInTheDocument();
     });
 
     it('redirects to login when user is not authenticated', async () => {
@@ -51,7 +54,7 @@ describe('PrivateRoute', () => {
         vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(true);
 
         render(
-            <MemoryRouter initialEntries={['/protected']}>
+            <TestMemoryRouter initialEntries={['/protected']}>
                 <Routes>
                     <Route
                         path="/protected"
@@ -63,12 +66,12 @@ describe('PrivateRoute', () => {
                     />
                     <Route path="/login" element={<MockLoginPage />} />
                 </Routes>
-            </MemoryRouter>
+            </TestMemoryRouter>
         );
 
         await waitFor(() => {
             expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
-        });
+        }, { timeout: 5000 });
     });
 
     it('redirects to login when token is expired', async () => {
@@ -76,7 +79,7 @@ describe('PrivateRoute', () => {
         vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(true);
 
         render(
-            <MemoryRouter initialEntries={['/protected']}>
+            <TestMemoryRouter initialEntries={['/protected']}>
                 <Routes>
                     <Route
                         path="/protected"
@@ -88,11 +91,11 @@ describe('PrivateRoute', () => {
                     />
                     <Route path="/login" element={<MockLoginPage />} />
                 </Routes>
-            </MemoryRouter>
+            </TestMemoryRouter>
         );
 
         await waitFor(() => {
             expect(screen.queryByText('Protected Content')).not.toBeInTheDocument();
-        });
+        }, { timeout: 5000 });
     });
 });

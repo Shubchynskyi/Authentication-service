@@ -30,7 +30,7 @@ spring:
           starttls:
             enable: true
           ssl:
-            trust: "*"
+            trust: "${MAIL_SSL_TRUST:}"
   security:
     oauth2:
       client:
@@ -60,8 +60,8 @@ frontend:
 logging:
   level:
     root: INFO
-    '[com.authenticationservice]': DEBUG
-    '[org.springframework.security]': DEBUG
+    '[com.authenticationservice]': ${LOG_LEVEL:INFO}
+    '[org.springframework.security]': ${SPRING_SECURITY_LOG_LEVEL:INFO}
   charset:
     console: UTF-8
     file: UTF-8

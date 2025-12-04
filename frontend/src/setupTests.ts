@@ -1,5 +1,25 @@
 import '@testing-library/jest-dom';
-import { vi, afterAll } from 'vitest';
+import { vi, afterAll, beforeAll } from 'vitest';
+import { testTranslations, getTranslation } from './test-utils/translations';
+
+beforeAll(() => {
+  window.alert = vi.fn();
+  // Suppress console.error in tests to reduce noise
+  const originalError = console.error;
+  console.error = vi.fn((...args: any[]) => {
+    // Only suppress known test-related errors
+    const message = args[0]?.toString() || '';
+    if (
+      message.includes('Registration error:') ||
+      message.includes('Error fetching') ||
+      message.includes('Invalid JWT token format') ||
+      message.includes('Failed to decode tokens')
+    ) {
+      return; // Suppress these expected errors in tests
+    }
+    originalError(...args);
+  });
+});
 
 // Mock i18next-http-backend to prevent async loading in tests
 vi.mock('i18next-http-backend', () => ({
@@ -28,42 +48,10 @@ vi.mock('./i18n/i18n', () => ({
   },
 }));
 
-// Common mock for react-i18next with translations
-const translations: Record<string, string> = {
-  // Home page
-  'home.title': 'Welcome',
-  'home.subtitle': 'Authentication Service',
-  'home.links.login': 'Login',
-  'home.links.register': 'Register',
-  'home.links.verify': 'Verify Email',
-  'home.links.profile': 'Profile',
-  'home.links.editProfile': 'Edit Profile',
-  'home.links.adminPanel': 'Admin Panel',
-  // Auth
-  'auth.loginTitle': 'Login',
-  'auth.registerTitle': 'Register',
-  'common.email': 'Email Address',
-  'common.password': 'Password',
-  'common.login': 'Sign In',
-  'common.username': 'Username',
-  // Errors
-  'errors.emailRequired': 'Email is required',
-  'errors.passwordRequired': 'Password is required',
-  'errors.usernameRequired': 'Username is required',
-  // Not found
-  'notFound.title': 'Page Not Found',
-  'notFound.description': 'The page you are looking for does not exist.',
-  'notFound.backHome': 'Back to Home',
-  // Common
-  'common.language': 'Language',
-  // Registration
-  'auth.registerSuccess': 'Registration successful',
-  'auth.verificationTitle': 'Verify Email',
-};
-
+// Common mock for react-i18next with translations from centralized file
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => translations[key] || key,
+    t: (key: string) => getTranslation(key, testTranslations),
     i18n: {
       language: 'en',
       changeLanguage: vi.fn(),
@@ -78,11 +66,6 @@ vi.mock('react-i18next', () => ({
 
 // Cleanup after all tests to ensure process exits
 afterAll(() => {
-  // Remove all storage event listeners that might prevent exit
-  // This is needed because api.ts adds a storage listener that never gets removed
-  const storageEvent = new StorageEvent('storage', { key: null, newValue: null });
-  window.dispatchEvent(storageEvent);
-  
   // Force cleanup of any remaining timers
   vi.clearAllTimers();
   vi.clearAllMocks();

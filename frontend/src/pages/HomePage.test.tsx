@@ -1,51 +1,114 @@
-import { render, screen } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import { vi, afterEach, describe, it, expect } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { vi, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import HomePage from './HomePage';
+import { TestBrowserRouter } from '../test-utils/router';
+
+// Mock i18n with hoisted translations
+const { mockTranslations, mockI18n } = vi.hoisted(() => {
+    const mockTranslations: Record<string, string> = {
+        'home.title': 'Welcome',
+        'home.subtitle': 'Authentication Service',
+        'home.links.login': 'Login',
+        'home.links.register': 'Register',
+        'home.links.verify': 'Verify Email',
+        'home.links.profile': 'Profile',
+        'home.links.editProfile': 'Edit Profile',
+        'home.links.adminPanel': 'Admin Panel',
+    };
+    const mockI18n = {
+        language: 'en',
+        changeLanguage: vi.fn(),
+        resolvedLanguage: 'en',
+    };
+    return { mockTranslations, mockI18n };
+});
+
+vi.mock('react-i18next', () => ({
+    useTranslation: () => ({
+        t: (key: string) => mockTranslations[key] || key,
+        i18n: mockI18n,
+    }),
+    initReactI18next: {
+        type: '3rdParty',
+        init: vi.fn(),
+    },
+}));
 
 describe('HomePage', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    it('renders correctly', () => {
+    it('renders correctly', async () => {
         render(
-            <BrowserRouter>
+            <TestBrowserRouter>
                 <HomePage />
-            </BrowserRouter>
+            </TestBrowserRouter>
         );
 
-        expect(screen.getByText('Welcome')).toBeInTheDocument();
-        expect(screen.getByText('Authentication Service')).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByText('Welcome')).toBeInTheDocument();
+        }, { timeout: 5000 });
+        await waitFor(() => {
+            expect(screen.getByText('Authentication Service')).toBeInTheDocument();
+        }, { timeout: 5000 });
     });
 
-    it('displays all navigation links', () => {
+    it('displays all navigation links', async () => {
         render(
-            <BrowserRouter>
+            <TestBrowserRouter>
                 <HomePage />
-            </BrowserRouter>
+            </TestBrowserRouter>
         );
 
-        expect(screen.getByRole('link', { name: /Login/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Register/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Verify Email/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /^Profile$/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Edit Profile/i })).toBeInTheDocument();
-        expect(screen.getByRole('link', { name: /Admin Panel/i })).toBeInTheDocument();
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Login/i })).toBeInTheDocument();
+        }, { timeout: 5000 });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Register/i })).toBeInTheDocument();
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Verify Email/i })).toBeInTheDocument();
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /^Profile$/i })).toBeInTheDocument();
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Edit Profile/i })).toBeInTheDocument();
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Admin Panel/i })).toBeInTheDocument();
+        });
     });
 
-    it('has correct links to routes', () => {
+    it('has correct links to routes', async () => {
         render(
-            <BrowserRouter>
+            <TestBrowserRouter>
                 <HomePage />
-            </BrowserRouter>
+            </TestBrowserRouter>
         );
 
-        expect(screen.getByRole('link', { name: /Login/i })).toHaveAttribute('href', '/login');
-        expect(screen.getByRole('link', { name: /Register/i })).toHaveAttribute('href', '/register');
-        expect(screen.getByRole('link', { name: /Verify Email/i })).toHaveAttribute('href', '/verify');
-        expect(screen.getByRole('link', { name: /^Profile$/i })).toHaveAttribute('href', '/profile');
-        expect(screen.getByRole('link', { name: /Edit Profile/i })).toHaveAttribute('href', '/profile/edit');
-        expect(screen.getByRole('link', { name: /Admin Panel/i })).toHaveAttribute('href', '/admin');
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Login/i })).toHaveAttribute('href', '/login');
+        }, { timeout: 5000 });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Register/i })).toHaveAttribute('href', '/register');
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Verify Email/i })).toHaveAttribute('href', '/verify');
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /^Profile$/i })).toHaveAttribute('href', '/profile');
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Edit Profile/i })).toHaveAttribute('href', '/profile/edit');
+        });
+        await waitFor(() => {
+            expect(screen.getByRole('link', { name: /Admin Panel/i })).toHaveAttribute('href', '/admin');
+        });
     });
 });

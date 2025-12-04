@@ -176,6 +176,40 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return bad request when registering with existing email")
+    void register_shouldReturnBadRequest_whenEmailExists() throws Exception {
+        // Arrange
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL); // Already exists
+        request.setName(TestConstants.TestData.NEW_USER_NAME);
+        request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("already exists")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when registering with email not in whitelist")
+    void register_shouldReturnBadRequest_whenEmailNotInWhitelist() throws Exception {
+        // Arrange
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("notwhitelisted@example.com");
+        request.setName(TestConstants.TestData.NEW_USER_NAME);
+        request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("whitelist")));
+    }
+
+    @Test
     @DisplayName("Should login successfully with valid credentials")
     void login_shouldLoginSuccessfully() throws Exception {
         // Arrange - verify user exists and is correctly saved in a new transaction
@@ -238,6 +272,19 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return bad request when refresh token is invalid")
+    void refresh_shouldReturnBadRequest_whenTokenInvalid() throws Exception {
+        // Arrange
+        String invalidToken = "invalid.refresh.token";
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("{\"refreshToken\":\"" + invalidToken + "\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     @DisplayName("Should return bad request when password is invalid during reset")
     void resetPassword_shouldReturnBadRequest_whenPasswordInvalid() throws Exception {
         // Arrange
@@ -262,6 +309,50 @@ class AuthControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Password must be at least 8 characters")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when reset token is invalid")
+    void resetPassword_shouldReturnBadRequest_whenTokenInvalid() throws Exception {
+        // Arrange
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("invalid-token");
+        request.setNewPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+        request.setConfirmPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESET_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Invalid or expired reset token")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when reset token is expired")
+    void resetPassword_shouldReturnBadRequest_whenTokenExpired() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        String expiredToken = transactionTemplate.execute(status -> {
+            String token = java.util.UUID.randomUUID().toString();
+            testUser.setResetPasswordToken(token);
+            testUser.setResetPasswordTokenExpiry(java.time.LocalDateTime.now().minusHours(1)); // Expired
+            userRepository.save(testUser);
+            userRepository.flush();
+            return token;
+        });
+
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken(expiredToken);
+        request.setNewPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+        request.setConfirmPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESET_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Expired reset token")));
     }
 
     @Test
@@ -290,9 +381,6 @@ class AuthControllerIntegrationTest {
             entityManager.flush();
             return null;
         });
-        
-        // Small delay to ensure transaction is fully committed
-        Thread.sleep(100);
 
         LoginRequest request = new LoginRequest();
         request.setEmail(TestConstants.UserData.TEST_EMAIL);
@@ -304,15 +392,10 @@ class AuthControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
 
-        // Wait a bit for REQUIRES_NEW transaction to commit
-        Thread.sleep(200);
-
-        // Assert - verify account is locked
-        User lockedUser = transactionTemplate.execute(status -> {
-            entityManager.clear();
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-        });
+        // Wait for REQUIRES_NEW transaction to commit using polling
+        User lockedUser = waitForUserUpdate(userId, user -> 
+            user.getFailedLoginAttempts() == 5 && user.getLockTime() != null,
+            transactionTemplate, entityManager);
         
         assertNotNull(lockedUser, "User should be found");
         assertEquals(5, lockedUser.getFailedLoginAttempts(), "Failed login attempts should be 5");
@@ -348,9 +431,6 @@ class AuthControllerIntegrationTest {
             entityManager.flush();
             return null;
         });
-        
-        // Small delay to ensure transaction is fully committed
-        Thread.sleep(100);
 
         LoginRequest request = new LoginRequest();
         request.setEmail(TestConstants.UserData.TEST_EMAIL);
@@ -362,15 +442,10 @@ class AuthControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized());
 
-        // Wait a bit for REQUIRES_NEW transaction to commit
-        Thread.sleep(200);
-
-        // Assert - verify account is blocked
-        User blockedUser = transactionTemplate.execute(status -> {
-            entityManager.clear();
-            return userRepository.findById(userId)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
-        });
+        // Wait for REQUIRES_NEW transaction to commit using polling
+        User blockedUser = waitForUserUpdate(userId, user -> 
+            user.getFailedLoginAttempts() == 10 && user.isBlocked(),
+            transactionTemplate, entityManager);
         
         assertNotNull(blockedUser, "User should be found");
         assertEquals(10, blockedUser.getFailedLoginAttempts(), "Failed login attempts should be 10");
@@ -459,5 +534,50 @@ class AuthControllerIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON_VALUE)
                     .content(objectMapper.writeValueAsString(request)));
         }
+    }
+
+    /**
+     * Waits for user to be updated in database with polling mechanism.
+     * Replaces Thread.sleep() with condition-based waiting.
+     * 
+     * @param userId User ID to check
+     * @param condition Condition to wait for
+     * @param transactionTemplate Transaction template for database access
+     * @param entityManager Entity manager for clearing cache
+     * @return Updated user when condition is met
+     */
+    private User waitForUserUpdate(Long userId, 
+                                   java.util.function.Predicate<User> condition,
+                                   TransactionTemplate transactionTemplate,
+                                   EntityManager entityManager) {
+        long timeout = 5000; // 5 seconds timeout
+        long startTime = System.currentTimeMillis();
+        long pollInterval = 50; // Poll every 50ms
+
+        while (System.currentTimeMillis() - startTime < timeout) {
+            User user = transactionTemplate.execute(status -> {
+                entityManager.clear();
+                return userRepository.findById(userId)
+                        .orElseThrow(() -> new RuntimeException("User not found"));
+            });
+
+            if (condition.test(user)) {
+                return user;
+            }
+
+            try {
+                Thread.sleep(pollInterval);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Interrupted while waiting for user update", e);
+            }
+        }
+
+        // Return user even if condition not met (for assertion)
+        return transactionTemplate.execute(status -> {
+            entityManager.clear();
+            return userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+        });
     }
 }

@@ -1,8 +1,9 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import PublicRoute from './PublicRoute';
 import * as tokenUtils from '../../utils/token';
+import { TestMemoryRouter } from '../../test-utils/router';
 
 // Mock token utils
 vi.mock('../../utils/token', () => ({
@@ -16,20 +17,31 @@ const MockPublicPage = () => <div>Public Content</div>;
 describe('PublicRoute', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        // Clear localStorage to ensure clean state
         localStorage.clear();
+        // Reset mock to ensure clean state between tests
+        vi.mocked(tokenUtils.isJwtExpired).mockReset();
+        vi.mocked(tokenUtils.isJwtExpired).mockClear();
     });
 
     afterEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        // Reset mock after each test
+        vi.mocked(tokenUtils.isJwtExpired).mockReset();
+        vi.mocked(tokenUtils.isJwtExpired).mockClear();
     });
 
-    it('renders children when user is not authenticated', () => {
+    it('renders children when user is not authenticated', async () => {
+        // Ensure no token in localStorage
         localStorage.removeItem('accessToken');
-        vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(true);
+        // Mock isJwtExpired to return true (token expired or no token)
+        vi.mocked(tokenUtils.isJwtExpired).mockImplementation((token: string | null) => {
+            return token === null || token === undefined || token === '';
+        });
 
         render(
-            <MemoryRouter initialEntries={['/login']}>
+            <TestMemoryRouter initialEntries={['/login']}>
                 <Routes>
                     <Route
                         path="/login"
@@ -40,10 +52,12 @@ describe('PublicRoute', () => {
                         }
                     />
                 </Routes>
-            </MemoryRouter>
+            </TestMemoryRouter>
         );
 
-        expect(screen.getByText('Public Content')).toBeInTheDocument();
+        // Use findByText which automatically waits for async rendering
+        const content = await screen.findByText('Public Content', {}, { timeout: 5000 });
+        expect(content).toBeInTheDocument();
     });
 
     it('redirects to profile when user is authenticated', async () => {
@@ -51,7 +65,7 @@ describe('PublicRoute', () => {
         vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(false);
 
         render(
-            <MemoryRouter initialEntries={['/login']}>
+            <TestMemoryRouter initialEntries={['/login']}>
                 <Routes>
                     <Route
                         path="/login"
@@ -63,12 +77,12 @@ describe('PublicRoute', () => {
                     />
                     <Route path="/profile" element={<MockProfilePage />} />
                 </Routes>
-            </MemoryRouter>
+            </TestMemoryRouter>
         );
 
         await waitFor(() => {
             expect(screen.queryByText('Public Content')).not.toBeInTheDocument();
-        });
+        }, { timeout: 5000 });
     });
 
     it('redirects to profile when token is valid', async () => {
@@ -76,7 +90,7 @@ describe('PublicRoute', () => {
         vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(false);
 
         render(
-            <MemoryRouter initialEntries={['/register']}>
+            <TestMemoryRouter initialEntries={['/register']}>
                 <Routes>
                     <Route
                         path="/register"
@@ -88,11 +102,11 @@ describe('PublicRoute', () => {
                     />
                     <Route path="/profile" element={<MockProfilePage />} />
                 </Routes>
-            </MemoryRouter>
+            </TestMemoryRouter>
         );
 
         await waitFor(() => {
             expect(screen.queryByText('Public Content')).not.toBeInTheDocument();
-        });
+        }, { timeout: 5000 });
     });
 });

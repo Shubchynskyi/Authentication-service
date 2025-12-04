@@ -45,7 +45,9 @@ class RateLimitingFilterTest {
         // Arrange
         when(request.getRequestURI()).thenReturn("/api/auth/login");
         when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-        when(rateLimitingService.resolveBucket("192.168.1.1")).thenReturn(bucket);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(rateLimitingService.resolveBucket("auth:192.168.1.1", false)).thenReturn(bucket);
         ConsumptionProbe probe = mock(ConsumptionProbe.class);
         when(probe.isConsumed()).thenReturn(true);
         when(probe.getRemainingTokens()).thenReturn(5L);
@@ -66,7 +68,9 @@ class RateLimitingFilterTest {
         // Arrange
         when(request.getRequestURI()).thenReturn("/api/auth/login");
         when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-        when(rateLimitingService.resolveBucket("192.168.1.1")).thenReturn(bucket);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(rateLimitingService.resolveBucket("auth:192.168.1.1", false)).thenReturn(bucket);
         ConsumptionProbe probe = mock(ConsumptionProbe.class);
         when(probe.isConsumed()).thenReturn(false);
         when(probe.getNanosToWaitForRefill()).thenReturn(30_000_000_000L); // 30 seconds
@@ -87,7 +91,9 @@ class RateLimitingFilterTest {
         // Arrange
         when(request.getRequestURI()).thenReturn("/api/auth/login");
         when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-        when(rateLimitingService.resolveBucket("192.168.1.1")).thenReturn(bucket);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(rateLimitingService.resolveBucket("auth:192.168.1.1", false)).thenReturn(bucket);
         ConsumptionProbe probe = mock(ConsumptionProbe.class);
         when(probe.isConsumed()).thenReturn(false);
         when(probe.getNanosToWaitForRefill()).thenReturn(60_000_000_000L);
@@ -106,7 +112,9 @@ class RateLimitingFilterTest {
         // Arrange
         when(request.getRequestURI()).thenReturn("/api/auth/login");
         when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-        when(rateLimitingService.resolveBucket("192.168.1.1")).thenReturn(bucket);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(rateLimitingService.resolveBucket("auth:192.168.1.1", false)).thenReturn(bucket);
         ConsumptionProbe probe = mock(ConsumptionProbe.class);
         when(probe.isConsumed()).thenReturn(true);
         when(probe.getRemainingTokens()).thenReturn(9L);
@@ -125,7 +133,9 @@ class RateLimitingFilterTest {
         // Arrange
         when(request.getRequestURI()).thenReturn("/api/auth/login");
         when(request.getRemoteAddr()).thenReturn("192.168.1.1");
-        when(rateLimitingService.resolveBucket("192.168.1.1")).thenReturn(bucket);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(rateLimitingService.resolveBucket("auth:192.168.1.1", false)).thenReturn(bucket);
         ConsumptionProbe probe = mock(ConsumptionProbe.class);
         when(probe.isConsumed()).thenReturn(false);
         when(probe.getNanosToWaitForRefill()).thenReturn(45_000_000_000L); // 45 seconds

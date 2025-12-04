@@ -2,7 +2,6 @@ package com.authenticationservice.service;
 
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
-import io.github.bucket4j.Refill;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -15,12 +14,21 @@ public class RateLimitingService {
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
 
     public Bucket resolveBucket(String key) {
-        return cache.computeIfAbsent(key, this::newBucket);
+        return resolveBucket(key, false);
     }
 
-    private Bucket newBucket(String key) {
-        // Allow 10 requests per minute
-        Bandwidth limit = Bandwidth.classic(10, Refill.greedy(10, Duration.ofMinutes(1)));
+    public Bucket resolveBucket(String key, boolean isAdminPath) {
+        return cache.computeIfAbsent(key, k -> newBucket(isAdminPath));
+    }
+
+    private Bucket newBucket(boolean isAdminPath) {
+        // Admin endpoints have stricter limits: 5 requests per minute
+        // Auth endpoints: 10 requests per minute
+        int capacity = isAdminPath ? 5 : 10;
+        Bandwidth limit = Bandwidth.builder()
+                .capacity(capacity)
+                .refillGreedy(capacity, Duration.ofMinutes(1))
+                .build();
         return Bucket.builder()
                 .addLimit(limit)
                 .build();

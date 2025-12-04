@@ -9,7 +9,6 @@ import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
-import com.authenticationservice.security.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -46,6 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ProfileControllerIntegrationTest {
 
     @Container
+    @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically via @Testcontainers
     static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
             .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
             .withUsername(TestConstants.TestDatabase.USERNAME)
@@ -72,13 +72,9 @@ class ProfileControllerIntegrationTest {
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    @Autowired
     private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     private User testUser;
-    private String accessToken;
 
     @BeforeEach
     void setUp() {
@@ -122,12 +118,11 @@ class ProfileControllerIntegrationTest {
             return null;
         });
         
-        // Verify user is actually in database after commit and generate access token
-        User verifyUser = transactionTemplate.execute(status -> 
+        // Verify user is actually in database after commit
+        transactionTemplate.execute(status -> 
             userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
                 .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
         );
-        accessToken = jwtTokenProvider.generateAccessToken(verifyUser);
     }
 
     @Test
@@ -183,5 +178,88 @@ class ProfileControllerIntegrationTest {
         assertNotNull(updatedUser, "Updated user should not be null");
         assertEquals(TestConstants.TestData.UPDATED_NAME, updatedUser.getName());
         assertTrue(passwordEncoder.matches(TestConstants.TestData.NEW_PASSWORD_VALUE, updatedUser.getPassword()));
+    }
+
+    @Test
+    @DisplayName("Should update profile name only without password")
+    void updateProfile_shouldUpdateNameOnly_whenPasswordNotProvided() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        String originalPassword = testUser.getPassword();
+
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        request.setName(TestConstants.TestData.UPDATED_NAME);
+        // No password fields
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
+                .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        // Verify the update in the database
+        User updatedUser = transactionTemplate.execute(status -> 
+            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found after update"))
+        );
+        assertNotNull(updatedUser, "Updated user should not be null");
+        assertEquals(TestConstants.TestData.UPDATED_NAME, updatedUser.getName());
+        // Password should remain unchanged
+        assertEquals(originalPassword, updatedUser.getPassword());
+    }
+
+    @Test
+    @DisplayName("Should return bad request when current password is incorrect")
+    void updateProfile_shouldReturnBadRequest_whenCurrentPasswordIncorrect() throws Exception {
+        // Arrange
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        request.setName(TestConstants.TestData.UPDATED_NAME);
+        request.setCurrentPassword("WrongPassword123@");
+        request.setPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
+                .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Incorrect current password")));
+
+        // Verify user was not updated
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        User user = transactionTemplate.execute(status -> 
+            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"))
+        );
+        assertNotNull(user, "User should not be null");
+        assertEquals(TestConstants.UserData.TEST_USERNAME, user.getName(), "Name should not be updated");
+    }
+
+    @Test
+    @DisplayName("Should return bad request when new password is invalid")
+    void updateProfile_shouldReturnBadRequest_whenNewPasswordInvalid() throws Exception {
+        // Arrange
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        request.setName(TestConstants.TestData.UPDATED_NAME);
+        request.setCurrentPassword(TestConstants.UserData.TEST_PASSWORD);
+        request.setPassword("123"); // Invalid password - too short
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
+                .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Password must be at least 8 characters")));
+
+        // Verify user was not updated
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        User user = transactionTemplate.execute(status -> 
+            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"))
+        );
+        assertNotNull(user, "User should not be null");
+        assertEquals(TestConstants.UserData.TEST_USERNAME, user.getName(), "Name should not be updated");
     }
 }

@@ -37,16 +37,13 @@ public class AuthController {
 
     @PostMapping(ApiConstants.REGISTER_URL)
     public ResponseEntity<String> register(@Valid @RequestBody RegistrationRequest request) {
-        try {
-            authService.register(request);
-            return ResponseEntity.ok(MessageConstants.REGISTRATION_SUCCESS);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        authService.register(request);
+        return ResponseEntity.ok(MessageConstants.REGISTRATION_SUCCESS);
     }
 
     @PostMapping(ApiConstants.LOGIN_URL)
-    public ResponseEntity<?> login(@RequestBody LoginRequest req) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         // Exception handling is done via GlobalExceptionHandler
         Map<String, String> tokens = authService.login(req);
         return ResponseEntity.ok(tokens);
@@ -60,13 +57,10 @@ public class AuthController {
     }
 
     @PostMapping(ApiConstants.VERIFY_URL)
-    public ResponseEntity<String> verify(@RequestBody VerificationRequest request) {
-        try {
-            authService.verifyEmail(request);
-            return ResponseEntity.ok(MessageConstants.EMAIL_VERIFIED_SUCCESS);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+    public ResponseEntity<String> verify(@Valid @RequestBody VerificationRequest request) {
+        // Exception handling is done via GlobalExceptionHandler
+        authService.verifyEmail(request);
+        return ResponseEntity.ok(MessageConstants.EMAIL_VERIFIED_SUCCESS);
     }
 
     @PostMapping(ApiConstants.RESEND_VERIFICATION_URL)
@@ -75,12 +69,9 @@ public class AuthController {
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(MessageConstants.EMAIL_REQUIRED);
         }
-        try {
-            authService.resendVerification(email);
-            return ResponseEntity.ok(MessageConstants.VERIFICATION_RESENT_SUCCESS);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        authService.resendVerification(email);
+        return ResponseEntity.ok(MessageConstants.VERIFICATION_RESENT_SUCCESS);
     }
 
     @PostMapping(ApiConstants.FORGOT_PASSWORD_URL)
@@ -89,12 +80,9 @@ public class AuthController {
         if (email == null || email.isBlank()) {
             return ResponseEntity.badRequest().body(MessageConstants.EMAIL_REQUIRED);
         }
-        try {
-            authService.initiatePasswordReset(email);
-            return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_INITIATED);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        authService.initiatePasswordReset(email);
+        return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_INITIATED);
     }
 
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)
@@ -108,12 +96,9 @@ public class AuthController {
             return ResponseEntity.badRequest().body(MessageConstants.PASSWORDS_DO_NOT_MATCH);
         }
 
-        try {
-            authService.resetPassword(request.getToken(), request.getNewPassword());
-            return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_SUCCESS);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_SUCCESS);
     }
 
     @GetMapping(ApiConstants.CHECK_ACCESS_URL)
@@ -124,6 +109,12 @@ public class AuthController {
         }
 
         String token = authHeader.substring(SecurityConstants.BEARER_PREFIX_LENGTH);
+        
+        // Security: Validate token before extracting claims
+        if (!jwtTokenProvider.validateAccessToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
         List<String> roles = jwtTokenProvider.getRolesFromAccess(token);
 
         // Check access based on roles and resource
@@ -145,11 +136,8 @@ public class AuthController {
         String email = oauth2User.getAttribute(SecurityConstants.OAUTH2_EMAIL_ATTRIBUTE);
         String name = oauth2User.getAttribute(SecurityConstants.OAUTH2_NAME_ATTRIBUTE);
 
-        try {
-            Map<String, String> tokens = authService.handleOAuth2Login(email, name);
-            return ResponseEntity.ok(tokens);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of(SecurityConstants.ERROR_KEY, e.getMessage()));
-        }
+        // Exception handling is done via GlobalExceptionHandler
+        Map<String, String> tokens = authService.handleOAuth2Login(email, name);
+        return ResponseEntity.ok(tokens);
     }
 }

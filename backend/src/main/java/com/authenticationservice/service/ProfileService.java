@@ -44,21 +44,17 @@ public class ProfileService {
                 });
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
-            log.debug("Updating password for email: {}", email);
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
                 log.error("Current password is missing for email: {}", email);
                 throw new RuntimeException("Current password is required when updating password");
             }
-            log.debug("Current password provided: {}", request.getCurrentPassword() != null ? "yes" : "no");
-            log.debug("Stored password: {}", user.getPassword());
+            // Security: Never log password hashes or password validation details
             boolean passwordMatches = passwordEncoder.matches(request.getCurrentPassword(), user.getPassword());
-            log.debug("Password matches: {}", passwordMatches);
             if (!passwordMatches) {
                 log.error("Incorrect current password for email: {}", email);
                 throw new RuntimeException("Incorrect current password");
             }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
-            log.debug("Password updated successfully for email: {}", email);
         }
 
         if (request.getName() != null && !request.getName().isBlank()) {

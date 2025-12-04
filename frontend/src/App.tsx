@@ -16,7 +16,7 @@ const App: React.FC = () => {
             <NotificationProvider>
                 <AuthProvider>
                     <ProfileProvider>
-                        <Router>
+                        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                             <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                                 <Navbar />
                                 <Box sx={{ display: 'flex', flexDirection: 'column' }}>

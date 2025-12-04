@@ -29,7 +29,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
-import api from '../services/api';
+import api from '../api';
 import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
@@ -109,10 +109,11 @@ const AdminPage = () => {
     const fetchWhitelist = async () => {
         try {
             const response = await api.get('/api/admin/whitelist');
-            setWhitelist(response.data);
+            // Ensure whitelist is always an array
+            setWhitelist(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Error fetching whitelist:', error);
-            alert('Failed to fetch whitelist. Please try again later.');
+            setWhitelist([]); // Set empty array on error
         }
     };
 
@@ -480,7 +481,7 @@ const AdminPage = () => {
                     </Box>
 
                     <List>
-                        {whitelist.map((email) => (
+                        {(Array.isArray(whitelist) ? whitelist : []).map((email) => (
                             <ListItem key={email}>
                                 <ListItemText primary={email} />
                                 <ListItemSecondaryAction>

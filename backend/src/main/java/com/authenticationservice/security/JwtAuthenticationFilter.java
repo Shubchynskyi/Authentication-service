@@ -51,7 +51,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception ex) {
-            System.err.println("Authentication failed: " + ex.getMessage());
+            // Security: Don't log sensitive information, just clear context
             SecurityContextHolder.clearContext();
         }
 
