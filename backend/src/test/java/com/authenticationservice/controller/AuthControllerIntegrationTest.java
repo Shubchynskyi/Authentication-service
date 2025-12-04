@@ -30,6 +30,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.oauth2.core.user.OAuth2User;
+import org.springframework.security.test.context.support.WithSecurityContext;
+import org.springframework.security.test.context.support.WithSecurityContextFactory;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import java.util.Collections;
+import java.util.HashMap;
 import jakarta.persistence.EntityManager;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
@@ -533,6 +543,241 @@ class AuthControllerIntegrationTest {
             mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
                     .contentType(MediaType.APPLICATION_JSON_VALUE)
                     .content(objectMapper.writeValueAsString(request)));
+        }
+    }
+
+    @Test
+    @DisplayName("Should verify email successfully")
+    void verify_shouldVerifyEmailSuccessfully() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        String verificationCode = transactionTemplate.execute(status -> {
+            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            String code = java.util.UUID.randomUUID().toString();
+            user.setVerificationToken(code);
+            user.setEmailVerified(false);
+            userRepository.save(user);
+            userRepository.flush();
+            return code;
+        });
+
+        com.authenticationservice.dto.VerificationRequest request = new com.authenticationservice.dto.VerificationRequest();
+        request.setEmail(TestConstants.UserData.TEST_EMAIL);
+        request.setCode(verificationCode);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.VERIFY_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Email verified")));
+    }
+
+    @Test
+    @DisplayName("Should resend verification code successfully")
+    void resendVerification_shouldResendVerificationCodeSuccessfully() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            user.setEmailVerified(false);
+            userRepository.save(user);
+            userRepository.flush();
+            return null;
+        });
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("{\"email\":\"" + TestConstants.UserData.TEST_EMAIL + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Verification code resent")));
+    }
+
+    @Test
+    @DisplayName("Should initiate password reset successfully")
+    void forgotPassword_shouldInitiatePasswordResetSuccessfully() throws Exception {
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.FORGOT_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("{\"email\":\"" + TestConstants.UserData.TEST_EMAIL + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("password reset link has been sent")));
+    }
+
+    @Test
+    @DisplayName("Should reset password successfully")
+    void resetPassword_shouldResetPasswordSuccessfully() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        String resetToken = transactionTemplate.execute(status -> {
+            String token = java.util.UUID.randomUUID().toString();
+            testUser.setResetPasswordToken(token);
+            testUser.setResetPasswordTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
+            userRepository.save(testUser);
+            userRepository.flush();
+            return token;
+        });
+
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken(resetToken);
+        request.setNewPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+        request.setConfirmPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESET_PASSWORD_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Password has been reset successfully")));
+    }
+
+    @Test
+    @DisplayName("Should return 200 when admin user checks access to admin-panel")
+    void checkAccess_shouldReturn200_whenAdminUserChecksAccessToAdminPanel() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        User adminUser = transactionTemplate.execute(status -> {
+            Role adminRole = roleRepository.findByName(SecurityConstants.ROLE_ADMIN)
+                    .orElseThrow(() -> new RuntimeException("Admin role not found"));
+            User user = new User();
+            user.setEmail("admin@example.com");
+            user.setName("Admin User");
+            user.setPassword(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD));
+            user.setEnabled(true);
+            user.setBlocked(false);
+            user.setEmailVerified(true);
+            Set<Role> roles = new HashSet<>();
+            roles.add(adminRole);
+            user.setRoles(roles);
+            return userRepository.save(user);
+        });
+
+        String accessToken = jwtTokenProvider.generateAccessToken(adminUser);
+
+        // Act & Assert
+        mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CHECK_ACCESS_URL.replace("{resource}", SecurityConstants.ADMIN_PANEL_RESOURCE))
+                .header(SecurityConstants.AUTHORIZATION_HEADER, SecurityConstants.BEARER_PREFIX + accessToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Should return 403 when regular user checks access to admin-panel")
+    void checkAccess_shouldReturn403_whenRegularUserChecksAccessToAdminPanel() throws Exception {
+        // Arrange
+        String accessToken = jwtTokenProvider.generateAccessToken(testUser);
+
+        // Act & Assert
+        mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CHECK_ACCESS_URL.replace("{resource}", SecurityConstants.ADMIN_PANEL_RESOURCE))
+                .header(SecurityConstants.AUTHORIZATION_HEADER, SecurityConstants.BEARER_PREFIX + accessToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Should return 401 when checking access without valid token")
+    void checkAccess_shouldReturn401_whenTokenIsInvalid() throws Exception {
+        // Act & Assert
+        mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CHECK_ACCESS_URL.replace("{resource}", SecurityConstants.ADMIN_PANEL_RESOURCE))
+                .header(SecurityConstants.AUTHORIZATION_HEADER, SecurityConstants.BEARER_PREFIX + "invalid.token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should return 401 when checking access without Bearer prefix")
+    void checkAccess_shouldReturn401_whenHeaderDoesNotHaveBearerPrefix() throws Exception {
+        // Act & Assert
+        mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CHECK_ACCESS_URL.replace("{resource}", SecurityConstants.ADMIN_PANEL_RESOURCE))
+                .header(SecurityConstants.AUTHORIZATION_HEADER, "invalid.token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should return 200 when admin user checks access to user-management")
+    void checkAccess_shouldReturn200_whenAdminUserChecksAccessToUserManagement() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        User adminUser = transactionTemplate.execute(status -> {
+            Role adminRole = roleRepository.findByName(SecurityConstants.ROLE_ADMIN)
+                    .orElseThrow(() -> new RuntimeException("Admin role not found"));
+            User user = new User();
+            user.setEmail("admin2@example.com");
+            user.setName("Admin User 2");
+            user.setPassword(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD));
+            user.setEnabled(true);
+            user.setBlocked(false);
+            user.setEmailVerified(true);
+            Set<Role> roles = new HashSet<>();
+            roles.add(adminRole);
+            user.setRoles(roles);
+            return userRepository.save(user);
+        });
+
+        String accessToken = jwtTokenProvider.generateAccessToken(adminUser);
+
+        // Act & Assert
+        mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CHECK_ACCESS_URL.replace("{resource}", SecurityConstants.USER_MANAGEMENT_RESOURCE))
+                .header(SecurityConstants.AUTHORIZATION_HEADER, SecurityConstants.BEARER_PREFIX + accessToken))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Should return 403 when checking access to unknown resource")
+    void checkAccess_shouldReturn403_whenCheckingAccessToUnknownResource() throws Exception {
+        // Arrange
+        String accessToken = jwtTokenProvider.generateAccessToken(testUser);
+
+        // Act & Assert
+        mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CHECK_ACCESS_URL.replace("{resource}", "unknown-resource"))
+                .header(SecurityConstants.AUTHORIZATION_HEADER, SecurityConstants.BEARER_PREFIX + accessToken))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @DisplayName("Should return tokens when OAuth2 login is successful")
+    void oauth2Success_shouldReturnTokens_whenOAuth2LoginSuccessful() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            // Ensure user exists for OAuth2 login
+            User user = userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+            user.setEmailVerified(true);
+            user.setEnabled(true);
+            userRepository.save(user);
+            userRepository.flush();
+            return null;
+        });
+
+        // Create OAuth2User with attributes
+        java.util.Map<String, Object> attributes = new HashMap<>();
+        attributes.put(SecurityConstants.OAUTH2_EMAIL_ATTRIBUTE, TestConstants.UserData.TEST_EMAIL);
+        attributes.put(SecurityConstants.OAUTH2_NAME_ATTRIBUTE, TestConstants.UserData.TEST_USERNAME);
+        OAuth2User oauth2User = new DefaultOAuth2User(
+                Collections.emptyList(),
+                attributes,
+                SecurityConstants.OAUTH2_EMAIL_ATTRIBUTE
+        );
+
+        // Set up SecurityContext with OAuth2User
+        SecurityContext securityContext = SecurityContextHolder.createEmptyContext();
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                oauth2User,
+                null,
+                Collections.emptyList()
+        );
+        securityContext.setAuthentication(authentication);
+        SecurityContextHolder.setContext(securityContext);
+
+        try {
+            // Act & Assert
+            mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.OAUTH2_SUCCESS_URL))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.accessToken").exists())
+                    .andExpect(jsonPath("$.refreshToken").exists());
+        } finally {
+            SecurityContextHolder.clearContext();
         }
     }
 
