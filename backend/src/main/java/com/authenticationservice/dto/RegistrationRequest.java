@@ -16,6 +16,7 @@ public class RegistrationRequest {
     @NotBlank(message = "Name is required")
     private String name;
     
+    @NotBlank(message = "{validation.password.required}")
     @PasswordValid
     private String password;
 

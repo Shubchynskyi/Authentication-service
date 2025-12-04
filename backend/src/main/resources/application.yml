@@ -30,7 +30,7 @@ spring:
           starttls:
             enable: true
           ssl:
-            trust: "${MAIL_SSL_TRUST:}"
+            trust: "${MAIL_SSL_TRUST:*}"
   security:
     oauth2:
       client:

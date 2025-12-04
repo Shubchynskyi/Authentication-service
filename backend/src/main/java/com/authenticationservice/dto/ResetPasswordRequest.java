@@ -11,6 +11,7 @@ public class ResetPasswordRequest {
     @NotBlank(message = "Reset token is required")
     private String token;
     
+    @NotBlank(message = "{validation.password.required}")
     @PasswordValid
     private String newPassword;
     
