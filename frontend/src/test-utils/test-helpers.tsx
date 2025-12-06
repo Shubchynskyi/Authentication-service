@@ -79,7 +79,7 @@ export const createPageRenderer = <T extends React.ComponentType<any>>(
     routerType: 'browser' | 'memory' = 'browser'
 ) => {
     return (props?: React.ComponentProps<T>, routerProps?: Omit<MemoryRouterProps, 'children'>) => {
-        const component = <PageComponent {...(props || {})} />;
+        const component = <PageComponent {...(props || {} as React.ComponentProps<T>)} />;
         
         if (routerType === 'memory') {
             return renderWithMemoryRouter(component, routerProps);

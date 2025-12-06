@@ -83,6 +83,8 @@
     "users": "Benutzer",
     "settings": "Einstellungen",
     "whitelistTab": "Whitelist",
+    "blacklistTab": "Blacklist",
+    "accessControlTab": "Zugriffskontrolle",
     "addUser": "Benutzer hinzufügen",
     "editUser": "Benutzer bearbeiten",
     "roles": "Rollen",
@@ -108,6 +110,31 @@
       "removed": "E-Mail von der Whitelist entfernt",
       "invalidEmail": "Geben Sie eine gültige E-Mail ein (muss @ enthalten)"
     },
+    "blacklist": {
+      "emailAlreadyExists": "E-Mail ist bereits auf der Blacklist",
+      "added": "E-Mail zur Blacklist hinzugefügt",
+      "removed": "E-Mail von der Blacklist entfernt",
+      "invalidEmail": "Geben Sie eine gültige E-Mail ein (muss @ enthalten)"
+    },
+    "accessMode": {
+      "title": "Zugriffskontrollmodus",
+      "currentMode": "Aktueller Modus",
+      "whitelist": "Whitelist",
+      "blacklist": "Blacklist",
+      "whitelistDescription": "Nur E-Mails auf der Whitelist können sich registrieren. Blacklist blockiert die Anmeldung.",
+      "blacklistDescription": "Alle E-Mails können sich registrieren, außer denen auf der Blacklist. Blacklist blockiert sowohl Registrierung als auch Anmeldung.",
+      "changeMode": "Modus ändern",
+      "requestOtp": "OTP-Code anfordern",
+      "otpSent": "OTP-Code wurde an Ihre E-Mail gesendet",
+      "otpLabel": "OTP-Code",
+      "reasonLabel": "Grund für Änderung",
+      "reasonRequired": "Grund ist erforderlich",
+      "changeModeTitle": "Zugriffskontrollmodus ändern",
+      "changeModePrompt": "Geben Sie Ihr Passwort und den OTP-Code ein, um den Zugriffskontrollmodus zu ändern:",
+      "modeChanged": "Zugriffskontrollmodus erfolgreich geändert",
+      "invalidOtp": "Ungültiger oder abgelaufener OTP-Code"
+    },
+    "reasonLabel": "Grund (optional)",
     "errors": {
       "invalidAdminPassword": "Ungültiges Admin-Passwort",
       "emailAlreadyExists": "Ein Benutzer mit dieser E-Mail existiert bereits"

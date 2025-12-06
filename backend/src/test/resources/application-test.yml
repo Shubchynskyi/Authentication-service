@@ -11,6 +11,15 @@ spring:
           starttls:
             enable: false
 
+access:
+  mode:
+    default: WHITELIST
+
+admin:
+  enabled: false
+  email: admin@test.com
+  username: admin
+
 logging:
   level:
     root: WARN

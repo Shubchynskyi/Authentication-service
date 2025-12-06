@@ -12,6 +12,7 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
+import com.authenticationservice.service.AccessControlService;
 import com.authenticationservice.service.EmailService;
 import com.authenticationservice.service.LoginAttemptService;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +48,9 @@ class AuthServiceTest {
 
         @Mock
         private AllowedEmailRepository allowedEmailRepository;
+
+        @Mock
+        private AccessControlService accessControlService;
 
         @Mock
         private RoleRepository roleRepository;
@@ -135,11 +139,9 @@ class AuthServiceTest {
                 void register_shouldSucceed_whenAllDataValid() {
                         // Arrange
                         RegistrationRequest request = createRegistrationRequest();
-                        AllowedEmail allowedEmail = createAllowedEmail();
                         Role userRole = createUserRole();
 
-                        when(allowedEmailRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
-                                        .thenReturn(Optional.of(allowedEmail));
+                        doNothing().when(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                                         .thenReturn(Optional.empty());
                         when(roleRepository.findByName(SecurityConstants.ROLE_USER))
@@ -151,6 +153,7 @@ class AuthServiceTest {
 
                         // Act & Assert
                         assertDoesNotThrow(() -> authService.register(request));
+                        verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         verify(userRepository).save(any(User.class));
                         verify(mailSender).send(any(SimpleMailMessage.class));
                 }
@@ -160,13 +163,14 @@ class AuthServiceTest {
                 void register_shouldThrowException_whenEmailNotAllowed() {
                         // Arrange
                         RegistrationRequest request = createRegistrationRequest();
-                        when(allowedEmailRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
-                                        .thenReturn(Optional.empty());
+                        doThrow(new RuntimeException("This email is not in whitelist. Registration is forbidden."))
+                                        .when(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
 
                         // Act & Assert
                         RuntimeException ex = assertThrows(RuntimeException.class,
                                         () -> authService.register(request));
                         assertEquals("This email is not in whitelist. Registration is forbidden.", ex.getMessage());
+                        verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
 
                 @Test
@@ -174,8 +178,7 @@ class AuthServiceTest {
                 void register_shouldThrowException_whenUserAlreadyExists() {
                         // Arrange
                         RegistrationRequest request = createRegistrationRequest();
-                        when(allowedEmailRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
-                                        .thenReturn(Optional.of(new AllowedEmail()));
+                        doNothing().when(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                                         .thenReturn(Optional.of(testUser));
 
@@ -183,6 +186,7 @@ class AuthServiceTest {
                         RuntimeException ex = assertThrows(RuntimeException.class,
                                         () -> authService.register(request));
                         assertEquals("User with this email already exists.", ex.getMessage());
+                        verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
 
                 @Test
@@ -190,8 +194,7 @@ class AuthServiceTest {
                 void register_shouldThrowException_whenRoleNotFound() {
                         // Arrange
                         RegistrationRequest request = createRegistrationRequest();
-                        when(allowedEmailRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
-                                        .thenReturn(Optional.of(new AllowedEmail()));
+                        doNothing().when(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                                         .thenReturn(Optional.empty());
                         when(roleRepository.findByName(SecurityConstants.ROLE_USER))
@@ -201,6 +204,7 @@ class AuthServiceTest {
                         RuntimeException ex = assertThrows(RuntimeException.class,
                                         () -> authService.register(request));
                         assertEquals("Role ROLE_USER not found in database.", ex.getMessage());
+                        verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
 
                 @Test
@@ -208,11 +212,9 @@ class AuthServiceTest {
                 void register_shouldThrowException_whenEmailSendingFails() {
                         // Arrange
                         RegistrationRequest request = createRegistrationRequest();
-                        AllowedEmail allowedEmail = createAllowedEmail();
                         Role userRole = createUserRole();
 
-                        when(allowedEmailRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
-                                        .thenReturn(Optional.of(allowedEmail));
+                        doNothing().when(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
                                         .thenReturn(Optional.empty());
                         when(roleRepository.findByName(SecurityConstants.ROLE_USER))
@@ -228,6 +230,7 @@ class AuthServiceTest {
                         RuntimeException ex = assertThrows(RuntimeException.class,
                                         () -> authService.register(request));
                         assertTrue(ex.getMessage().contains("Error sending verification email."));
+                        verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
         }
 
@@ -663,10 +666,8 @@ class AuthServiceTest {
                         when(userRepository.findByEmail(newEmail))
                                         .thenReturn(Optional.empty());
                         
-                        // Email is in whitelist
-                        AllowedEmail allowedEmail = new AllowedEmail(newEmail);
-                        when(allowedEmailRepository.findByEmail(newEmail))
-                                        .thenReturn(Optional.of(allowedEmail));
+                        // Email is allowed for registration
+                        doNothing().when(accessControlService).checkRegistrationAccess(newEmail);
 
                         Role userRole = createUserRole();
                         when(roleRepository.findByName(SecurityConstants.ROLE_USER))
@@ -689,6 +690,7 @@ class AuthServiceTest {
                         assertNotNull(tokens);
                         assertEquals(TestConstants.Tokens.ACCESS_TOKEN, tokens.get("accessToken"));
                         assertEquals(TestConstants.Tokens.REFRESH_TOKEN, tokens.get("refreshToken"));
+                        verify(accessControlService).checkRegistrationAccess(newEmail);
                 }
 
                 @Test
@@ -700,14 +702,15 @@ class AuthServiceTest {
                         when(userRepository.findByEmail(newEmail))
                                         .thenReturn(Optional.empty());
                         
-                        // Email is not in whitelist
-                        when(allowedEmailRepository.findByEmail(newEmail))
-                                        .thenReturn(Optional.empty());
+                        // Email is not allowed for registration
+                        doThrow(new RuntimeException("This email is not in whitelist. Registration is forbidden."))
+                                        .when(accessControlService).checkRegistrationAccess(newEmail);
 
                         // Act & Assert
                         RuntimeException ex = assertThrows(RuntimeException.class,
                                         () -> authService.handleOAuth2Login(newEmail, newName));
                         assertEquals("This email is not in whitelist. Registration is forbidden.", ex.getMessage());
+                        verify(accessControlService).checkRegistrationAccess(newEmail);
                 }
 
                 @Test
@@ -756,16 +759,6 @@ class AuthServiceTest {
                 return request;
         }
 
-        /**
-         * Creates an allowed email with default values
-         * 
-         * @return AllowedEmail with default test data
-         */
-        private AllowedEmail createAllowedEmail() {
-                AllowedEmail allowedEmail = new AllowedEmail();
-                allowedEmail.setEmail(TestConstants.UserData.TEST_EMAIL);
-                return allowedEmail;
-        }
 
         /**
          * Creates a user role with default values

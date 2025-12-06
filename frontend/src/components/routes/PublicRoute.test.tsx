@@ -36,7 +36,7 @@ describe('PublicRoute', () => {
         // Ensure no token in localStorage
         localStorage.removeItem('accessToken');
         // Mock isJwtExpired to return true (token expired or no token)
-        vi.mocked(tokenUtils.isJwtExpired).mockImplementation((token: string | null) => {
+        vi.mocked(tokenUtils.isJwtExpired).mockImplementation((token: string | null | undefined) => {
             return token === null || token === undefined || token === '';
         });
 

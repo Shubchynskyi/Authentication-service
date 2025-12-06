@@ -172,12 +172,13 @@ describe('RegistrationPage', () => {
         }, { timeout: 5000 });
     });
 
-    it('handles whitelist error', async () => {
+    it('handles whitelist error in WHITELIST mode', async () => {
         const axiosError = {
             isAxiosError: true,
-            response: { data: 'Email not in whitelist' },
+            response: { data: 'This email is not in whitelist. Registration is forbidden.' },
         };
         mockAxiosPost.mockRejectedValueOnce(axiosError);
+        mockIsAxiosError.mockReturnValue(true);
 
         renderRegistrationPage();
 
@@ -194,13 +195,44 @@ describe('RegistrationPage', () => {
 
         await waitFor(() => {
             // Error is shown in Alert component via message state
-            // The error message is translated to 'Email not in whitelist' (auth.loginError.notInWhitelist)
-            // Use getAllByRole to handle multiple alerts
             const alerts = screen.getAllByRole('alert');
             const whitelistAlert = alerts.find(alert => 
-                alert.textContent?.includes('Email not in whitelist')
+                alert.textContent?.includes('not in whitelist') || 
+                alert.textContent?.includes('Registration is forbidden')
             );
             expect(whitelistAlert).toBeInTheDocument();
+        }, { timeout: 5000 });
+    });
+
+    it('handles blacklist error during registration', async () => {
+        const axiosError = {
+            isAxiosError: true,
+            response: { data: 'This email is in blacklist. Registration is forbidden.' },
+        };
+        mockAxiosPost.mockRejectedValueOnce(axiosError);
+        mockIsAxiosError.mockReturnValue(true);
+
+        renderRegistrationPage();
+
+        const emailInput = screen.getByLabelText(/Email/i);
+        const usernameInput = screen.getByLabelText(/Username/i);
+        const passwordInput = screen.getByLabelText(/Password/i);
+
+        fireEvent.change(emailInput, { target: { value: 'blocked@example.com' } });
+        fireEvent.change(usernameInput, { target: { value: 'User' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+
+        const submitButton = screen.getByRole('button', { name: /Register/i });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            // Error is shown in Alert component via message state
+            const alerts = screen.getAllByRole('alert');
+            const blacklistAlert = alerts.find(alert => 
+                alert.textContent?.includes('blacklist') || 
+                alert.textContent?.includes('Registration is forbidden')
+            );
+            expect(blacklistAlert).toBeInTheDocument();
         }, { timeout: 5000 });
     });
 

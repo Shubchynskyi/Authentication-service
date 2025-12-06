@@ -1,9 +1,7 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
-import { MemoryRouter } from 'react-router-dom';
 import AppRoutes from './routes';
-import { checkAccess } from './api';
+import { TestMemoryRouter } from './test-utils/router';
 
 // Mock pages
 vi.mock('./pages/HomePage', () => ({
@@ -95,9 +93,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/profile']}>
+                <TestMemoryRouter initialEntries={['/profile']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             // Loading screen should be shown (CircularProgress from MUI)
@@ -109,9 +107,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/profile']}>
+                <TestMemoryRouter initialEntries={['/profile']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -124,9 +122,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/profile']}>
+                <TestMemoryRouter initialEntries={['/profile']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -139,9 +137,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/profile/edit']}>
+                <TestMemoryRouter initialEntries={['/profile/edit']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -155,9 +153,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             expect(screen.queryByText('Admin Page')).not.toBeInTheDocument();
@@ -168,9 +166,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -184,9 +182,9 @@ describe('routes.tsx', () => {
             mockCheckAccess.mockResolvedValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -200,9 +198,9 @@ describe('routes.tsx', () => {
             mockCheckAccess.mockResolvedValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -216,9 +214,9 @@ describe('routes.tsx', () => {
             mockCheckAccess.mockResolvedValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -232,9 +230,9 @@ describe('routes.tsx', () => {
             mockCheckAccess.mockRejectedValue(new Error('Access check failed'));
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -248,9 +246,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/login']}>
+                <TestMemoryRouter initialEntries={['/login']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             expect(screen.queryByText('Login Page')).not.toBeInTheDocument();
@@ -261,9 +259,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/login']}>
+                <TestMemoryRouter initialEntries={['/login']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -276,9 +274,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/login']}>
+                <TestMemoryRouter initialEntries={['/login']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -291,9 +289,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/register']}>
+                <TestMemoryRouter initialEntries={['/register']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -306,9 +304,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/verify']}>
+                <TestMemoryRouter initialEntries={['/verify']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -321,9 +319,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/verify/email']}>
+                <TestMemoryRouter initialEntries={['/verify/email']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -337,9 +335,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/']}>
+                <TestMemoryRouter initialEntries={['/']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             expect(screen.queryByText('Home Page')).not.toBeInTheDocument();
@@ -349,9 +347,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/']}>
+                <TestMemoryRouter initialEntries={['/']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -363,9 +361,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/oauth2/success']}>
+                <TestMemoryRouter initialEntries={['/oauth2/success']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -377,9 +375,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/non-existent']}>
+                <TestMemoryRouter initialEntries={['/non-existent']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -392,9 +390,9 @@ describe('routes.tsx', () => {
             mockIsLoading.mockReturnValue(false);
 
             render(
-                <MemoryRouter initialEntries={['/profile/edit']}>
+                <TestMemoryRouter initialEntries={['/profile/edit']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -408,9 +406,9 @@ describe('routes.tsx', () => {
             mockCheckAccess.mockResolvedValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/admin']}>
+                <TestMemoryRouter initialEntries={['/admin']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {
@@ -424,9 +422,9 @@ describe('routes.tsx', () => {
             mockCheckAccess.mockResolvedValue(true);
 
             render(
-                <MemoryRouter initialEntries={['/admin/invalid']}>
+                <TestMemoryRouter initialEntries={['/admin/invalid']}>
                     <AppRoutes />
-                </MemoryRouter>
+                </TestMemoryRouter>
             );
 
             await waitFor(() => {

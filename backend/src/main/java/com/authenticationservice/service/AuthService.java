@@ -8,7 +8,6 @@ import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.exception.AccountBlockedException;
 import com.authenticationservice.exception.AccountLockedException;
 import com.authenticationservice.exception.InvalidCredentialsException;
-import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
@@ -28,7 +27,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -45,6 +43,7 @@ public class AuthService {
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
+    private final AccessControlService accessControlService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -53,12 +52,8 @@ public class AuthService {
     public void register(RegistrationRequest request) {
         log.info("Starting registration process for email: {}", request.getEmail());
 
-        // Check whitelist first - this must be the first check
-        Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(request.getEmail());
-        if (allowed.isEmpty()) {
-            log.error("Email {} is not in whitelist. Registration denied.", request.getEmail());
-            throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
-        }
+        // Check access control (whitelist/blacklist) - this must be the first check
+        accessControlService.checkRegistrationAccess(request.getEmail());
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             log.error("User with email {} already exists", request.getEmail());
@@ -129,6 +124,9 @@ public class AuthService {
         log.debug("User blocked: {}", user.isBlocked());
         log.debug("User verified: {}", user.isEmailVerified());
 
+        // Check access control (whitelist/blacklist) - this must be the first check
+        accessControlService.checkLoginAccess(request.getEmail());
+
         // Check disabled account before any other validation
         if (!user.isEnabled()) {
             log.error("Account is disabled for email: {}", request.getEmail());
@@ -196,6 +194,9 @@ public class AuthService {
         String email = jwtTokenProvider.getEmailFromRefresh(refreshToken);
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
+
+        // Check access control (whitelist/blacklist)
+        accessControlService.checkLoginAccess(email);
 
         // Security: Check if user account is still active
         if (!user.isEnabled()) {
@@ -313,12 +314,8 @@ public class AuthService {
                 .orElseGet(() -> {
                     log.info("Creating new OAuth2 user: {}", email);
                     
-                    // Check whitelist first - this must be the first check for new users
-                    Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(email);
-                    if (allowed.isEmpty()) {
-                        log.error("Email {} is not in whitelist. OAuth2 registration denied.", email);
-                        throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
-                    }
+                    // Check access control (whitelist/blacklist) - this must be the first check for new users
+                    accessControlService.checkRegistrationAccess(email);
                     
                     User newUser = new User();
                     newUser.setEmail(email);

@@ -1,8 +1,6 @@
-import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import VerifyPage from './VerifyPage';
-import api from '../api';
 import { TestMemoryRouter } from '../test-utils/router';
 
 // Mock api

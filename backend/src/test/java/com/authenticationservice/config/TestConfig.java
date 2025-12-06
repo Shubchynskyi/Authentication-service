@@ -1,5 +1,6 @@
 package com.authenticationservice.config;
 
+import com.authenticationservice.service.AccessModeInitializer;
 import com.authenticationservice.service.EmailService;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -24,6 +25,14 @@ public class TestConfig {
     public EmailService emailService() {
         EmailService mock = mock(EmailService.class);
         doNothing().when(mock).sendEmail(anyString(), anyString(), anyString());
+        return mock;
+    }
+
+    @Bean
+    @Primary
+    public AccessModeInitializer accessModeInitializer() {
+        AccessModeInitializer mock = mock(AccessModeInitializer.class);
+        doNothing().when(mock).initialize();
         return mock;
     }
 }

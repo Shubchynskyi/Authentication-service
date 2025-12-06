@@ -82,8 +82,10 @@
     "dashboard": "Панель керування",
     "users": "Користувачі",
     "settings": "Налаштування",
-    "whitelistTab": "Білий список",
-    "addUser": "Додати користувача",
+  "whitelistTab": "Білий список",
+  "blacklistTab": "Чорний список",
+  "accessControlTab": "Управління доступом",
+  "addUser": "Додати користувача",
     "editUser": "Редагувати користувача",
     "roles": "Ролі",
     "status": "Статус",
@@ -102,12 +104,37 @@
     "confirmActionPrompt": "Для підтвердження дії введіть ваш пароль:",
     "whitelistEmailLabel": "Email адреса",
     "whitelistAdd": "Додати",
-    "whitelist": {
-      "emailAlreadyExists": "Адреса вже у білому списку",
-      "added": "Email додано до білого списку",
-      "removed": "Email видалено з білого списку",
-      "invalidEmail": "Введіть коректний email (має містити @)"
-    },
+  "whitelist": {
+    "emailAlreadyExists": "Адреса вже у білому списку",
+    "added": "Email додано до білого списку",
+    "removed": "Email видалено з білого списку",
+    "invalidEmail": "Введіть коректний email (має містити @)"
+  },
+  "blacklist": {
+    "emailAlreadyExists": "Адреса вже у чорному списку",
+    "added": "Email додано до чорного списку",
+    "removed": "Email видалено з чорного списку",
+    "invalidEmail": "Введіть коректний email (має містити @)"
+  },
+  "accessMode": {
+    "title": "Режим управління доступом",
+    "currentMode": "Поточний режим",
+    "whitelist": "Білий список",
+    "blacklist": "Чорний список",
+    "whitelistDescription": "Реєстрація дозволена лише для email з білого списку. Чорний список блокує вхід.",
+    "blacklistDescription": "Реєстрація дозволена всім, крім email з чорного списку. Чорний список блокує реєстрацію та вхід.",
+    "changeMode": "Змінити режим",
+    "requestOtp": "Запитати код OTP",
+    "otpSent": "Код OTP відправлено на ваш email",
+    "otpLabel": "Код OTP",
+    "reasonLabel": "Причина зміни",
+    "reasonRequired": "Вкажіть причину зміни",
+    "changeModeTitle": "Зміна режиму доступу",
+    "changeModePrompt": "Введіть ваш пароль та код OTP для зміни режиму доступу:",
+    "modeChanged": "Режим доступу успішно змінено",
+    "invalidOtp": "Невірний або застарілий код OTP"
+  },
+  "reasonLabel": "Причина (необов'язково)",
     "errors": {
       "invalidAdminPassword": "Невірний пароль адміністратора",
       "emailAlreadyExists": "Користувач з таким email вже існує"

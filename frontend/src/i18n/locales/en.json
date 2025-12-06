@@ -89,6 +89,8 @@
     "users": "Users",
     "settings": "Settings",
     "whitelistTab": "Whitelist",
+    "blacklistTab": "Blacklist",
+    "accessControlTab": "Access Control",
     "addUser": "Add user",
     "editUser": "Edit user",
     "roles": "Roles",
@@ -114,6 +116,31 @@
       "removed": "Email removed from whitelist",
       "invalidEmail": "Enter a valid email (must contain @)"
     },
+    "blacklist": {
+      "emailAlreadyExists": "Email is already in blacklist",
+      "added": "Email added to blacklist",
+      "removed": "Email removed from blacklist",
+      "invalidEmail": "Enter a valid email (must contain @)"
+    },
+    "accessMode": {
+      "title": "Access Control Mode",
+      "currentMode": "Current mode",
+      "whitelist": "Whitelist",
+      "blacklist": "Blacklist",
+      "whitelistDescription": "Only emails in whitelist can register. Blacklist blocks login.",
+      "blacklistDescription": "All emails can register except those in blacklist. Blacklist blocks both registration and login.",
+      "changeMode": "Change mode",
+      "requestOtp": "Request OTP code",
+      "otpSent": "OTP code sent to your email",
+      "otpLabel": "OTP code",
+      "reasonLabel": "Reason for change",
+      "reasonRequired": "Reason is required",
+      "changeModeTitle": "Change Access Mode",
+      "changeModePrompt": "Enter your password and OTP code to change access mode:",
+      "modeChanged": "Access mode changed successfully",
+      "invalidOtp": "Invalid or expired OTP code"
+    },
+    "reasonLabel": "Reason (optional)",
     "errors": {
       "invalidAdminPassword": "Invalid admin password",
       "emailAlreadyExists": "A user with this email already exists"

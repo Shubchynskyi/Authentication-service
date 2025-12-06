@@ -79,7 +79,7 @@ describe('App', () => {
     });
 
     it('should have correct provider nesting structure', () => {
-        const { container } = render(<App />);
+        render(<App />);
 
         // ThemeProvider should be outermost
         const themeProvider = screen.getByTestId('theme-provider');
@@ -119,7 +119,7 @@ describe('App', () => {
     });
 
     it('should maintain component structure', () => {
-        const { container } = render(<App />);
+        render(<App />);
 
         // Check that the structure is maintained
         // Navbar, NotificationContainer, and AppRoutes should all be present

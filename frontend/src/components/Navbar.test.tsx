@@ -1,8 +1,7 @@
-import React from 'react';
 import { screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import Navbar from './Navbar';
-import { createMockAuthContext, createMockProfileContext } from '../test-utils/mocks';
+import { createMockAuthContext } from '../test-utils/mocks';
 import { renderWithRouter, setupTestCleanup, mockUser } from '../test-utils/test-helpers';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
@@ -10,9 +9,15 @@ const { mockToggleTheme, mockLogout, mockUseProfile } = vi.hoisted(() => {
     const mockToggleTheme = vi.fn();
     const mockLogout = vi.fn();
     const mockUseProfile = vi.fn(() => ({
-        profile: mockUser,
+        profile: {
+            email: mockUser.email,
+            name: mockUser.name,
+            roles: mockUser.roles,
+            authProvider: mockUser.authProvider,
+        },
         isLoading: false,
         isAdmin: false,
+        updateProfile: vi.fn(),
     }));
     return { mockToggleTheme, mockLogout, mockUseProfile };
 });
@@ -85,9 +90,12 @@ describe('Navbar', () => {
     });
 
     it('does not render user info when profile is null', () => {
-        mockUseProfile.mockReturnValueOnce(
-            createMockProfileContext({ profile: null })
-        );
+        (mockUseProfile as any).mockReturnValueOnce({
+            profile: null,
+            isLoading: false,
+            isAdmin: false,
+            updateProfile: vi.fn(),
+        });
 
         renderNavbar();
 
@@ -105,7 +113,6 @@ describe('Navbar', () => {
     it('renders theme toggle button', () => {
         renderNavbar();
 
-        const themeButton = screen.getByRole('button', { name: '' });
         const themeButtons = screen.getAllByRole('button');
         const toggleButton = themeButtons.find(btn => 
             btn.querySelector('svg') !== null && 
@@ -145,9 +152,17 @@ describe('Navbar', () => {
     });
 
     it('displays user email when name is not available', () => {
-        mockUseProfile.mockReturnValueOnce(
-            createMockProfileContext({ profile: { ...mockUser, name: undefined } })
-        );
+        (mockUseProfile as any).mockReturnValueOnce({
+            profile: {
+                email: mockUser.email,
+                name: '',
+                roles: mockUser.roles,
+                authProvider: mockUser.authProvider,
+            },
+            isLoading: false,
+            isAdmin: false,
+            updateProfile: vi.fn(),
+        });
 
         renderNavbar();
 

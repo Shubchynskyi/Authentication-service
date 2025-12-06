@@ -19,7 +19,7 @@ const mockProfile = {
 const mockUpdateProfile = vi.fn();
 let mockIsAdmin = false;
 let mockIsLoading = false;
-let currentProfile = mockProfile;
+let currentProfile: { email: string; name: string; roles: string[]; authProvider: 'LOCAL' | 'GOOGLE' } | null = mockProfile;
 
 const mockUseProfile = vi.fn(() => ({
     profile: currentProfile,

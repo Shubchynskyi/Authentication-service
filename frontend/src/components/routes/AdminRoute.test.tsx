@@ -2,7 +2,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import AdminRoute from './AdminRoute';
-import api from '../../api';
 import { TestMemoryRouter } from '../../test-utils/router';
 
 // Mock api
@@ -80,12 +79,10 @@ describe('AdminRoute', () => {
                 <Routes>
                     <Route
                         path="/admin"
-                        element={
-                            <AdminRoute>
-                                <MockAdminPage />
-                            </AdminRoute>
-                        }
-                    />
+                        element={<AdminRoute />}
+                    >
+                        <Route index element={<MockAdminPage />} />
+                    </Route>
                     <Route path="/login" element={<MockLoginPage />} />
                 </Routes>
             </TestMemoryRouter>
@@ -106,12 +103,10 @@ describe('AdminRoute', () => {
                 <Routes>
                     <Route
                         path="/admin"
-                        element={
-                            <AdminRoute>
-                                <MockAdminPage />
-                            </AdminRoute>
-                        }
-                    />
+                        element={<AdminRoute />}
+                    >
+                        <Route index element={<MockAdminPage />} />
+                    </Route>
                     <Route path="/login" element={<MockLoginPage />} />
                 </Routes>
             </TestMemoryRouter>
@@ -131,12 +126,10 @@ describe('AdminRoute', () => {
                 <Routes>
                     <Route
                         path="/admin"
-                        element={
-                            <AdminRoute>
-                                <MockAdminPage />
-                            </AdminRoute>
-                        }
-                    />
+                        element={<AdminRoute />}
+                    >
+                        <Route index element={<MockAdminPage />} />
+                    </Route>
                 </Routes>
             </TestMemoryRouter>
         );

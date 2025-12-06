@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { TFunction } from 'i18next';
 import { validatePassword } from './passwordValidation';
 
 // Mock translation function
@@ -13,7 +14,7 @@ const mockT = vi.fn((key: string) => {
     'errors.passwordRequirements': 'Password does not meet requirements',
   };
   return translations[key] || key;
-});
+}) as unknown as TFunction;
 
 describe('passwordValidation', () => {
   describe('validatePassword', () => {

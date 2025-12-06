@@ -42,6 +42,24 @@ class AdminServiceTest {
     private AllowedEmailRepository allowedEmailRepository;
 
     @Mock
+    private com.authenticationservice.repository.BlockedEmailRepository blockedEmailRepository;
+
+    @Mock
+    private com.authenticationservice.repository.AccessListChangeLogRepository accessListChangeLogRepository;
+
+    @Mock
+    private com.authenticationservice.repository.AccessModeSettingsRepository accessModeSettingsRepository;
+
+    @Mock
+    private com.authenticationservice.repository.AccessModeChangeLogRepository accessModeChangeLogRepository;
+
+    @Mock
+    private com.authenticationservice.service.AccessModeService accessModeService;
+
+    @Mock
+    private com.authenticationservice.service.OtpService otpService;
+
+    @Mock
     private RoleRepository roleRepository;
 
     @Mock
@@ -77,6 +95,9 @@ class AdminServiceTest {
 
         // Setup service configuration
         ReflectionTestUtils.setField(adminService, "frontendUrl", TestConstants.Urls.FRONTEND_URL);
+        
+        // Mock accessListChangeLogRepository to avoid NullPointerException (lenient because not all tests use it)
+        lenient().when(accessListChangeLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Nested

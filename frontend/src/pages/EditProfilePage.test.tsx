@@ -1,4 +1,3 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import EditProfilePage from './EditProfilePage';
@@ -26,7 +25,7 @@ const mockProfile = {
 
 const mockUpdateProfile = vi.fn();
 let mockIsLoading = false;
-let currentProfile = mockProfile;
+let currentProfile: { email: string; name: string; roles: string[]; authProvider: 'LOCAL' | 'GOOGLE' } | null = mockProfile;
 
 const mockUseProfile = vi.fn(() => ({
     profile: currentProfile,
@@ -173,7 +172,7 @@ describe('EditProfilePage', () => {
     });
 
     it('shows Google auth info for Google users', () => {
-        currentProfile = { ...mockProfile, authProvider: 'GOOGLE' };
+        currentProfile = { ...mockProfile, authProvider: 'GOOGLE' as const };
         mockUseProfile.mockReturnValueOnce({
             profile: currentProfile,
             isLoading: false,

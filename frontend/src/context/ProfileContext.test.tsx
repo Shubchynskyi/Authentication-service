@@ -3,8 +3,6 @@ import { render, screen, waitFor, act } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { ProfileProvider, useProfile } from './ProfileContext';
 import { AuthProvider, useAuth } from './AuthContext';
-import api from '../api';
-import * as tokenUtils from '../utils/token';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
 const { mockApiGet, mockApiPost, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens } = vi.hoisted(() => {

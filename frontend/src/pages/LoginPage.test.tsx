@@ -10,7 +10,7 @@ const { mockLogin, mockShowNotification, mockNavigate, mockLocation } = vi.hoist
     const mockLogin = vi.fn();
     const mockShowNotification = vi.fn();
     const mockNavigate = vi.fn();
-    const mockLocation = { pathname: '/login', search: '', hash: '', state: null, key: 'test' };
+    const mockLocation: { pathname: string; search: string; hash: string; state: { error?: string } | null; key: string } = { pathname: '/login', search: '', hash: '', state: null, key: 'test' };
     return { mockLogin, mockShowNotification, mockNavigate, mockLocation };
 });
 
@@ -46,6 +46,7 @@ vi.mock('../context/NotificationContext', () => ({
     NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     useNotification: () => createMockNotificationContext({ showNotification: mockShowNotification }),
 }));
+
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {
@@ -164,5 +165,69 @@ describe('LoginPage', () => {
 
         expect(mockShowNotification).toHaveBeenCalledWith('Test error message', 'error');
         mockLocation.state = null;
+    });
+
+    it('handles blacklist error during login', async () => {
+        // Create axios error with blacklist message
+        const axiosError = {
+            isAxiosError: true,
+            response: {
+                data: 'This email is in blacklist. Login is forbidden.'
+            }
+        };
+        mockLogin.mockRejectedValueOnce(axiosError);
+
+        renderLoginPage();
+
+        const emailInput = screen.getByLabelText(/Email/i);
+        const passwordInput = screen.getByLabelText(/Password/i);
+
+        fireEvent.change(emailInput, { target: { value: 'blocked@example.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+
+        const submitButton = screen.getByRole('button', { name: /Sign In/i });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            // LoginPage shows generic error message for security (doesn't reveal account existence)
+            // The actual error is handled in AuthContext, but LoginPage shows generic message
+            // Global mock in setupTests.ts returns translated value 'Login failed' for 'errors.loginFailed'
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                'Login failed',
+                'error'
+            );
+        }, { timeout: 5000 });
+    });
+
+    it('handles whitelist error during login in WHITELIST mode', async () => {
+        // Create axios error with whitelist message
+        const axiosError = {
+            isAxiosError: true,
+            response: {
+                data: 'This email is not in whitelist. Login is forbidden.'
+            }
+        };
+        mockLogin.mockRejectedValueOnce(axiosError);
+
+        renderLoginPage();
+
+        const emailInput = screen.getByLabelText(/Email/i);
+        const passwordInput = screen.getByLabelText(/Password/i);
+
+        fireEvent.change(emailInput, { target: { value: 'notwhitelisted@example.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+
+        const submitButton = screen.getByRole('button', { name: /Sign In/i });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            // LoginPage shows generic error message for security (doesn't reveal account existence)
+            // The actual error is handled in AuthContext, but LoginPage shows generic message
+            // Global mock in setupTests.ts returns translated value 'Login failed' for 'errors.loginFailed'
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                'Login failed',
+                'error'
+            );
+        }, { timeout: 5000 });
     });
 });

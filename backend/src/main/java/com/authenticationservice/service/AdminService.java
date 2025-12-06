@@ -18,10 +18,19 @@ import org.springframework.beans.factory.annotation.Value;
 
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.UserDTO;
+import com.authenticationservice.model.AccessListChangeLog;
+import com.authenticationservice.model.AccessMode;
+import com.authenticationservice.model.AccessModeChangeLog;
+import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.AllowedEmail;
+import com.authenticationservice.model.BlockedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
+import com.authenticationservice.repository.AccessListChangeLogRepository;
+import com.authenticationservice.repository.AccessModeChangeLogRepository;
+import com.authenticationservice.repository.AccessModeSettingsRepository;
 import com.authenticationservice.repository.AllowedEmailRepository;
+import com.authenticationservice.repository.BlockedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 
@@ -36,6 +45,12 @@ public class AdminService {
 
     private final UserRepository userRepository;
     private final AllowedEmailRepository allowedEmailRepository;
+    private final BlockedEmailRepository blockedEmailRepository;
+    private final AccessListChangeLogRepository accessListChangeLogRepository;
+    private final AccessModeSettingsRepository accessModeSettingsRepository;
+    private final AccessModeChangeLogRepository accessModeChangeLogRepository;
+    private final AccessModeService accessModeService;
+    private final OtpService otpService;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
@@ -44,19 +59,66 @@ public class AdminService {
     private String frontendUrl;
 
     public void addToWhitelist(String email) {
+        addToWhitelist(email, null);
+    }
+
+    public void addToWhitelist(String email, String reason) {
         if (allowedEmailRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already exists in whitelist");
         }
         AllowedEmail allowedEmail = new AllowedEmail(email);
         allowedEmailRepository.save(allowedEmail);
         log.info("Email added to whitelist: {}", email);
+        
+        // Log the change
+        logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, email, 
+                AccessListChangeLog.AccessListAction.ADD, reason);
     }
 
     public void removeFromWhitelist(String email) {
+        removeFromWhitelist(email, null);
+    }
+
+    public void removeFromWhitelist(String email, String reason) {
         AllowedEmail existing = allowedEmailRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Email not found in whitelist"));
         allowedEmailRepository.delete(existing);
         log.info("Email removed from whitelist: {}", email);
+        
+        // Log the change
+        logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, email, 
+                AccessListChangeLog.AccessListAction.REMOVE, reason);
+    }
+
+    public void addToBlacklist(String email, String reason) {
+        if (blockedEmailRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException("Email already exists in blacklist");
+        }
+        BlockedEmail blockedEmail = new BlockedEmail(email);
+        blockedEmailRepository.save(blockedEmail);
+        log.info("Email added to blacklist: {}", email);
+        
+        // Log the change
+        logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, email, 
+                AccessListChangeLog.AccessListAction.ADD, reason);
+    }
+
+    public void removeFromBlacklist(String email, String reason) {
+        BlockedEmail existing = blockedEmailRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Email not found in blacklist"));
+        blockedEmailRepository.delete(existing);
+        log.info("Email removed from blacklist: {}", email);
+        
+        // Log the change
+        logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, email, 
+                AccessListChangeLog.AccessListAction.REMOVE, reason);
+    }
+
+    @Transactional(readOnly = true)
+    public List<String> getBlacklist() {
+        return blockedEmailRepository.findAll()
+                .stream().map(BlockedEmail::getEmail)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -116,6 +178,24 @@ public class AdminService {
             // Save user first
             user = userRepository.save(user);
             log.info("User saved to database: {}", user.getEmail());
+
+            // Automatically add to whitelist and remove from blacklist if present
+            String reason = "User created by admin";
+            if (allowedEmailRepository.findByEmail(user.getEmail()).isEmpty()) {
+                AllowedEmail allowedEmail = new AllowedEmail(user.getEmail());
+                allowedEmailRepository.save(allowedEmail);
+                log.info("Email {} automatically added to whitelist", user.getEmail());
+                logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, user.getEmail(),
+                        AccessListChangeLog.AccessListAction.ADD, reason);
+            }
+            
+            if (blockedEmailRepository.findByEmail(user.getEmail()).isPresent()) {
+                BlockedEmail blocked = blockedEmailRepository.findByEmail(user.getEmail()).orElseThrow();
+                blockedEmailRepository.delete(blocked);
+                log.info("Email {} automatically removed from blacklist", user.getEmail());
+                logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, user.getEmail(),
+                        AccessListChangeLog.AccessListAction.REMOVE, reason);
+            }
 
             // Send welcome email with temporary password and verification link
             String emailContent = getContent(verificationToken, user, tempPassword);
@@ -252,5 +332,106 @@ public class AdminService {
 
         user.setRoles(newRoles);
         return UserDTO.fromUser(userRepository.save(user));
+    }
+
+    @Transactional(readOnly = true)
+    public AccessMode getCurrentAccessMode() {
+        return accessModeService.getCurrentMode();
+    }
+
+    @Transactional(readOnly = true)
+    public AccessModeSettings getAccessModeSettings() {
+        return accessModeService.getSettings();
+    }
+
+    /**
+     * Changes access mode with password and OTP verification.
+     * 
+     * @param newMode New access mode
+     * @param adminEmail Admin email
+     * @param adminPassword Admin password
+     * @param otpCode OTP code sent to admin email
+     * @param reason Reason for mode change
+     */
+    @Transactional
+    public void changeAccessMode(AccessMode newMode, String adminEmail, String adminPassword, 
+                                 String otpCode, String reason) {
+        // Verify admin password
+        if (!verifyAdminPassword(adminEmail, adminPassword)) {
+            throw new RuntimeException("Invalid admin password");
+        }
+
+        // Verify OTP
+        if (!otpService.validateOtp(adminEmail, otpCode)) {
+            throw new RuntimeException("Invalid or expired OTP code");
+        }
+
+        // Get current settings
+        Long settingsId = 1L;
+        AccessModeSettings settings = accessModeSettingsRepository.findById(settingsId)
+                .orElseThrow(() -> new RuntimeException("Access mode settings not found"));
+        
+        AccessMode oldMode = settings.getMode();
+        
+        // Don't change if already in requested mode
+        if (oldMode == newMode) {
+            throw new RuntimeException("Access mode is already " + newMode);
+        }
+
+        // Update settings
+        settings.setMode(newMode);
+        settings.setUpdatedAt(LocalDateTime.now());
+        settings.setUpdatedBy(adminEmail);
+        settings.setReason(reason);
+        accessModeSettingsRepository.save(settings);
+
+        // Log the change
+        AccessModeChangeLog changeLog = new AccessModeChangeLog();
+        changeLog.setOldMode(oldMode);
+        changeLog.setNewMode(newMode);
+        changeLog.setChangedBy(adminEmail);
+        changeLog.setChangedAt(LocalDateTime.now());
+        changeLog.setReason(reason);
+        accessModeChangeLogRepository.save(changeLog);
+
+        log.info("Access mode changed from {} to {} by {} (reason: {})", oldMode, newMode, adminEmail, reason);
+    }
+
+    /**
+     * Generates and sends OTP code to admin email for mode change verification.
+     * 
+     * @param adminEmail Admin email
+     */
+    public void sendModeChangeOtp(String adminEmail) {
+        String otp = otpService.generateOtp(adminEmail);
+        
+        String emailContent = String.format(
+                "You requested to change access mode.\n\n" +
+                "Your OTP code: %s\n" +
+                "This code will expire in 10 minutes.\n\n" +
+                "If you did not request this change, please ignore this email.",
+                otp);
+        
+        emailService.sendEmail(adminEmail, "Access Mode Change - OTP Code", emailContent);
+        log.info("OTP sent to admin email: {}", adminEmail);
+    }
+
+    /**
+     * Logs access list changes to AccessListChangeLog.
+     */
+    private void logAccessListChange(AccessListChangeLog.AccessListType listType, String email,
+                                     AccessListChangeLog.AccessListAction action, String reason) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String changedBy = auth != null ? auth.getName() : "system";
+        
+        AccessListChangeLog logEntry = new AccessListChangeLog();
+        logEntry.setListType(listType);
+        logEntry.setEmail(email);
+        logEntry.setAction(action);
+        logEntry.setChangedBy(changedBy);
+        logEntry.setChangedAt(LocalDateTime.now());
+        logEntry.setReason(reason);
+        
+        accessListChangeLogRepository.save(logEntry);
     }
 }

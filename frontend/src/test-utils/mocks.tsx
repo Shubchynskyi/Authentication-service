@@ -1,6 +1,6 @@
 import React from 'react';
 import { vi } from 'vitest';
-import { testTranslations, getTranslation } from './translations';
+import { getTranslation } from './translations';
 
 // Common mock for AuthContext
 export const createMockAuthContext = (overrides = {}) => ({
@@ -14,8 +14,13 @@ export const createMockAuthContext = (overrides = {}) => ({
 });
 
 // Common mock for ProfileContext
-export const createMockProfileContext = (overrides = {}) => ({
-    profile: null,
+export const createMockProfileContext = (overrides: Partial<{
+    profile: { email: string; name: string; roles: string[]; authProvider: 'LOCAL' | 'GOOGLE' } | null;
+    isLoading: boolean;
+    isAdmin: boolean;
+    updateProfile: () => Promise<void>;
+}> = {}) => ({
+    profile: null as { email: string; name: string; roles: string[]; authProvider: 'LOCAL' | 'GOOGLE' } | null,
     isLoading: false,
     isAdmin: false,
     updateProfile: vi.fn(),

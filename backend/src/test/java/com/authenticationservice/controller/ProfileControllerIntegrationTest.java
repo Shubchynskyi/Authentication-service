@@ -5,8 +5,11 @@ import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.ProfileUpdateRequest;
+import com.authenticationservice.model.AccessMode;
+import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
+import com.authenticationservice.repository.AccessModeSettingsRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,6 +72,9 @@ class ProfileControllerIntegrationTest {
     private RoleRepository roleRepository;
 
     @Autowired
+    private AccessModeSettingsRepository accessModeSettingsRepository;
+
+    @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
@@ -99,6 +105,14 @@ class ProfileControllerIntegrationTest {
                         adminRole.setName(SecurityConstants.ROLE_ADMIN);
                         return roleRepository.save(adminRole);
                     });
+
+            // Initialize AccessModeSettings if not exists
+            if (accessModeSettingsRepository.findById(1L).isEmpty()) {
+                AccessModeSettings settings = new AccessModeSettings();
+                settings.setId(1L);
+                settings.setMode(AccessMode.WHITELIST);
+                accessModeSettingsRepository.save(settings);
+            }
 
             // Create test user
             testUser = new User();

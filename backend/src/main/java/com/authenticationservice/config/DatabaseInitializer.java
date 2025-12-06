@@ -8,6 +8,7 @@ import org.springframework.core.annotation.Order;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.service.AdminInitializationService;
+import com.authenticationservice.service.AccessModeInitializer;
 
 import java.util.Optional;
 
@@ -16,10 +17,12 @@ public class DatabaseInitializer {
 
     private final RoleRepository roleRepository;
     private final AdminInitializationService adminInitializationService;
+    private final AccessModeInitializer accessModeInitializer;
 
-    public DatabaseInitializer(RoleRepository roleRepository, AdminInitializationService adminInitializationService) {
+    public DatabaseInitializer(RoleRepository roleRepository, AdminInitializationService adminInitializationService, AccessModeInitializer accessModeInitializer) {
         this.roleRepository = roleRepository;
         this.adminInitializationService = adminInitializationService;
+        this.accessModeInitializer = accessModeInitializer;
     }
 
     @Bean
@@ -30,6 +33,14 @@ public class DatabaseInitializer {
 
     @Bean
     @Order(2)
+    CommandLineRunner initAccessMode() {
+        return args -> {
+            accessModeInitializer.initialize();
+        };
+    }
+
+    @Bean
+    @Order(3)
     CommandLineRunner initAdmin() {
         return args -> {
             ensureRolesExist();

@@ -7,9 +7,12 @@ import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
+import com.authenticationservice.model.AccessMode;
+import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
+import com.authenticationservice.repository.AccessModeSettingsRepository;
 import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
@@ -88,6 +91,9 @@ class AuthControllerIntegrationTest {
     private AllowedEmailRepository allowedEmailRepository;
 
     @Autowired
+    private AccessModeSettingsRepository accessModeSettingsRepository;
+
+    @Autowired
     private BCryptPasswordEncoder passwordEncoder;
 
     @Autowired
@@ -127,6 +133,14 @@ class AuthControllerIntegrationTest {
                         adminRole.setName(SecurityConstants.ROLE_ADMIN);
                         return roleRepository.save(adminRole);
                     });
+
+            // Initialize AccessModeSettings if not exists
+            if (accessModeSettingsRepository.findById(1L).isEmpty()) {
+                AccessModeSettings settings = new AccessModeSettings();
+                settings.setId(1L);
+                settings.setMode(AccessMode.WHITELIST);
+                accessModeSettingsRepository.save(settings);
+            }
 
             // Create allowed email
             AllowedEmail allowedEmail = new AllowedEmail();

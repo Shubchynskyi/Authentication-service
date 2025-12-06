@@ -89,6 +89,8 @@
   "users": "Пользователи",
   "settings": "Настройки",
   "whitelistTab": "Белый список",
+  "blacklistTab": "Чёрный список",
+  "accessControlTab": "Управление доступом",
   "addUser": "Добавить пользователя",
   "editUser": "Редактировать пользователя",
   "roles": "Роли",
@@ -114,6 +116,31 @@
     "removed": "Email удалён из белого списка",
     "invalidEmail": "Введите корректный email (должен содержать @)"
   },
+  "blacklist": {
+    "emailAlreadyExists": "Адрес уже находится в чёрном списке",
+    "added": "Email добавлен в чёрный список",
+    "removed": "Email удалён из чёрного списка",
+    "invalidEmail": "Введите корректный email (должен содержать @)"
+  },
+  "accessMode": {
+    "title": "Режим управления доступом",
+    "currentMode": "Текущий режим",
+    "whitelist": "Белый список",
+    "blacklist": "Чёрный список",
+    "whitelistDescription": "Регистрация разрешена только для email из белого списка. Чёрный список блокирует вход.",
+    "blacklistDescription": "Регистрация разрешена всем, кроме email из чёрного списка. Чёрный список блокирует регистрацию и вход.",
+    "changeMode": "Изменить режим",
+    "requestOtp": "Запросить код OTP",
+    "otpSent": "Код OTP отправлен на ваш email",
+    "otpLabel": "Код OTP",
+    "reasonLabel": "Причина изменения",
+    "reasonRequired": "Укажите причину изменения",
+    "changeModeTitle": "Изменение режима доступа",
+    "changeModePrompt": "Введите ваш пароль и код OTP для изменения режима доступа:",
+    "modeChanged": "Режим доступа успешно изменён",
+    "invalidOtp": "Неверный или истёкший код OTP"
+  },
+  "reasonLabel": "Причина (необязательно)",
   "errors": {
     "invalidAdminPassword": "Неверный пароль администратора",
     "emailAlreadyExists": "Пользователь с таким email уже существует"

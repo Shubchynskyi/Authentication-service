@@ -79,12 +79,17 @@ const AdminPage = () => {
     const [tabValue, setTabValue] = useState(0);
     const [users, setUsers] = useState<User[]>([]);
     const [whitelist, setWhitelist] = useState<string[]>([]);
+    const [blacklist, setBlacklist] = useState<string[]>([]);
+    const [accessMode, setAccessMode] = useState<'WHITELIST' | 'BLACKLIST'>('WHITELIST');
     const [totalElements, setTotalElements] = useState(0);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [newEmail, setNewEmail] = useState('');
+    const [newBlacklistEmail, setNewBlacklistEmail] = useState('');
+    const [whitelistReason, setWhitelistReason] = useState('');
+    const [blacklistReason, setBlacklistReason] = useState('');
     const [formData, setFormData] = useState({
         username: '',
         email: '',
@@ -96,12 +101,18 @@ const AdminPage = () => {
     const [confirmActionDialog, setConfirmActionDialog] = useState(false);
     const [confirmActionPassword, setConfirmActionPassword] = useState('');
     const [pendingAction, setPendingAction] = useState<{
-        type: 'DELETE_USER' | 'ADD_WHITELIST' | 'REMOVE_WHITELIST';
+        type: 'DELETE_USER' | 'ADD_WHITELIST' | 'REMOVE_WHITELIST' | 'ADD_BLACKLIST' | 'REMOVE_BLACKLIST';
         data: any;
+        reason?: string;
     } | null>(null);
 
     const [confirmAdminDialog, setConfirmAdminDialog] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
+    const [changeModeDialog, setChangeModeDialog] = useState(false);
+    const [modeChangePassword, setModeChangePassword] = useState('');
+    const [modeChangeOtp, setModeChangeOtp] = useState('');
+    const [modeChangeReason, setModeChangeReason] = useState('');
+    const [otpRequested, setOtpRequested] = useState(false);
 
     // Limit for block reason length
     const MAX_BLOCK_REASON_LENGTH = 200; // Maximum symbols for block reason
@@ -114,6 +125,27 @@ const AdminPage = () => {
         } catch (error) {
             console.error('Error fetching whitelist:', error);
             setWhitelist([]); // Set empty array on error
+        }
+    };
+
+    const fetchBlacklist = async () => {
+        try {
+            const response = await api.get('/api/admin/blacklist');
+            setBlacklist(Array.isArray(response.data) ? response.data : []);
+        } catch (error) {
+            console.error('Error fetching blacklist:', error);
+            setBlacklist([]);
+        }
+    };
+
+    const fetchAccessMode = async () => {
+        try {
+            const response = await api.get('/api/admin/access-mode');
+            if (response.data && response.data.mode) {
+                setAccessMode(response.data.mode);
+            }
+        } catch (error) {
+            console.error('Error fetching access mode:', error);
         }
     };
 
@@ -135,6 +167,8 @@ const AdminPage = () => {
 
     useEffect(() => {
         fetchWhitelist();
+        fetchBlacklist();
+        fetchAccessMode();
     }, []);
 
     useEffect(() => {
@@ -278,9 +312,13 @@ const AdminPage = () => {
                 case 'ADD_WHITELIST':
                     try {
                         await api.post('/api/admin/whitelist/add', null, {
-                            params: { email: pendingAction.data }
+                            params: { 
+                                email: pendingAction.data,
+                                reason: pendingAction.reason || ''
+                            }
                         });
                         setNewEmail('');
+                        setWhitelistReason('');
                         fetchWhitelist();
                         showNotification(t('admin.whitelist.added'), 'success');
                     } catch (addErr) {
@@ -301,10 +339,51 @@ const AdminPage = () => {
                     break;
                 case 'REMOVE_WHITELIST':
                     await api.delete('/api/admin/whitelist/remove', {
-                        params: { email: pendingAction.data }
+                        params: { 
+                            email: pendingAction.data,
+                            reason: pendingAction.reason || ''
+                        }
                     });
                     fetchWhitelist();
                     showNotification(t('admin.whitelist.removed'), 'success');
+                    break;
+                case 'ADD_BLACKLIST':
+                    try {
+                        await api.post('/api/admin/blacklist/add', null, {
+                            params: { 
+                                email: pendingAction.data,
+                                reason: pendingAction.reason || ''
+                            }
+                        });
+                        setNewBlacklistEmail('');
+                        setBlacklistReason('');
+                        fetchBlacklist();
+                        showNotification(t('admin.blacklist.added'), 'success');
+                    } catch (addErr) {
+                        if (axios.isAxiosError(addErr)) {
+                            const status = addErr.response?.status;
+                            const data = String(addErr.response?.data || '').toLowerCase();
+                            if (data.includes('already') || data.includes('exists')) {
+                                showNotification(t('admin.blacklist.emailAlreadyExists'), 'error');
+                            } else if (status === 400 && (data.includes('email') || data.includes('invalid'))) {
+                                showNotification(t('admin.blacklist.invalidEmail'), 'error');
+                            } else {
+                                showNotification(t('common.error'), 'error');
+                            }
+                        } else {
+                            showNotification(t('common.error'), 'error');
+                        }
+                    }
+                    break;
+                case 'REMOVE_BLACKLIST':
+                    await api.delete('/api/admin/blacklist/remove', {
+                        params: { 
+                            email: pendingAction.data,
+                            reason: pendingAction.reason || ''
+                        }
+                    });
+                    fetchBlacklist();
+                    showNotification(t('admin.blacklist.removed'), 'success');
                     break;
             }
             
@@ -333,13 +412,74 @@ const AdminPage = () => {
             showNotification(t('admin.whitelist.invalidEmail'), 'error');
             return;
         }
-        setPendingAction({ type: 'ADD_WHITELIST', data: newEmail });
+        setPendingAction({ type: 'ADD_WHITELIST', data: newEmail, reason: whitelistReason });
         setConfirmActionDialog(true);
     };
 
     const handleRemoveFromWhitelist = (email: string) => {
-        setPendingAction({ type: 'REMOVE_WHITELIST', data: email });
+        setPendingAction({ type: 'REMOVE_WHITELIST', data: email, reason: whitelistReason });
         setConfirmActionDialog(true);
+    };
+
+    const handleAddToBlacklist = () => {
+        if (!newBlacklistEmail) return;
+        if (!newBlacklistEmail.includes('@')) {
+            showNotification(t('admin.blacklist.invalidEmail'), 'error');
+            return;
+        }
+        setPendingAction({ type: 'ADD_BLACKLIST', data: newBlacklistEmail, reason: blacklistReason });
+        setConfirmActionDialog(true);
+    };
+
+    const handleRemoveFromBlacklist = (email: string) => {
+        setPendingAction({ type: 'REMOVE_BLACKLIST', data: email, reason: blacklistReason });
+        setConfirmActionDialog(true);
+    };
+
+    const handleRequestOtp = async () => {
+        try {
+            await api.post('/api/admin/access-mode/request-otp');
+            setOtpRequested(true);
+            showNotification(t('admin.accessMode.otpSent'), 'success');
+        } catch (error) {
+            showNotification(t('common.error'), 'error');
+        }
+    };
+
+    const handleChangeMode = async () => {
+        if (!modeChangePassword || !modeChangeOtp || !modeChangeReason) {
+            showNotification(t('admin.accessMode.reasonRequired'), 'error');
+            return;
+        }
+        try {
+            const newMode = accessMode === 'WHITELIST' ? 'BLACKLIST' : 'WHITELIST';
+            await api.post('/api/admin/access-mode/change', {
+                mode: newMode,
+                password: modeChangePassword,
+                otpCode: modeChangeOtp,
+                reason: modeChangeReason
+            });
+            setChangeModeDialog(false);
+            setModeChangePassword('');
+            setModeChangeOtp('');
+            setModeChangeReason('');
+            setOtpRequested(false);
+            fetchAccessMode();
+            showNotification(t('admin.accessMode.modeChanged'), 'success');
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const data = String(error.response?.data || '').toLowerCase();
+                if (data.includes('otp') || data.includes('invalid')) {
+                    showNotification(t('admin.accessMode.invalidOtp'), 'error');
+                } else if (data.includes('password')) {
+                    showNotification(t('admin.errors.invalidAdminPassword'), 'error');
+                } else {
+                    showNotification(t('common.error'), 'error');
+                }
+            } else {
+                showNotification(t('common.error'), 'error');
+            }
+        }
     };
 
     return (
@@ -348,6 +488,8 @@ const AdminPage = () => {
                 <Tabs value={tabValue} onChange={handleTabChange}>
                     <Tab label={t('admin.users')} />
                     <Tab label={t('admin.whitelistTab')} />
+                    <Tab label={t('admin.blacklistTab')} />
+                    <Tab label={t('admin.accessControlTab')} />
                 </Tabs>
             </Box>
 
@@ -462,19 +604,27 @@ const AdminPage = () => {
 
             <TabPanel value={tabValue} index={1}>
                 <Box sx={{ maxWidth: 600, mx: 'auto' }}>
-                    <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
                         <TextField
                             fullWidth
                             label={t('admin.whitelistEmailLabel')}
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
                         />
+                        <TextField
+                            fullWidth
+                            label={t('admin.reasonLabel')}
+                            value={whitelistReason}
+                            onChange={(e) => setWhitelistReason(e.target.value)}
+                            multiline
+                            rows={2}
+                        />
                         <Button
                             variant="contained"
                             onClick={handleAddToWhitelist}
                             disabled={!newEmail}
                             startIcon={<AddIcon />}
-                            sx={{ width: 180 }}
+                            sx={{ width: 180, alignSelf: 'flex-start' }}
                         >
                             {t('admin.whitelistAdd')}
                         </Button>
@@ -495,6 +645,77 @@ const AdminPage = () => {
                             </ListItem>
                         ))}
                     </List>
+                </Box>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={2}>
+                <Box sx={{ maxWidth: 600, mx: 'auto' }}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 2 }}>
+                        <TextField
+                            fullWidth
+                            label={t('admin.whitelistEmailLabel')}
+                            value={newBlacklistEmail}
+                            onChange={(e) => setNewBlacklistEmail(e.target.value)}
+                        />
+                        <TextField
+                            fullWidth
+                            label={t('admin.reasonLabel')}
+                            value={blacklistReason}
+                            onChange={(e) => setBlacklistReason(e.target.value)}
+                            multiline
+                            rows={2}
+                        />
+                        <Button
+                            variant="contained"
+                            onClick={handleAddToBlacklist}
+                            disabled={!newBlacklistEmail}
+                            startIcon={<AddIcon />}
+                            sx={{ width: 180, alignSelf: 'flex-start' }}
+                        >
+                            {t('admin.whitelistAdd')}
+                        </Button>
+                    </Box>
+
+                    <List>
+                        {(Array.isArray(blacklist) ? blacklist : []).map((email) => (
+                            <ListItem key={email}>
+                                <ListItemText primary={email} />
+                                <ListItemSecondaryAction>
+                                    <IconButton
+                                        edge="end"
+                                        onClick={() => handleRemoveFromBlacklist(email)}
+                                    >
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </ListItemSecondaryAction>
+                            </ListItem>
+                        ))}
+                    </List>
+                </Box>
+            </TabPanel>
+
+            <TabPanel value={tabValue} index={3}>
+                <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+                    <Paper sx={{ p: 3, mb: 3 }}>
+                        <Typography variant="h6" gutterBottom>
+                            {t('admin.accessMode.title')}
+                        </Typography>
+                        <Typography variant="body1" gutterBottom>
+                            <strong>{t('admin.accessMode.currentMode')}:</strong> {accessMode === 'WHITELIST' ? t('admin.accessMode.whitelist') : t('admin.accessMode.blacklist')}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
+                            {accessMode === 'WHITELIST' 
+                                ? t('admin.accessMode.whitelistDescription')
+                                : t('admin.accessMode.blacklistDescription')}
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            color="primary"
+                            onClick={() => setChangeModeDialog(true)}
+                        >
+                            {t('admin.accessMode.changeMode')}
+                        </Button>
+                    </Paper>
                 </Box>
             </TabPanel>
 
@@ -567,13 +788,24 @@ const AdminPage = () => {
                 </DialogActions>
             </Dialog>
 
-            <Dialog open={confirmActionDialog} onClose={() => setConfirmActionDialog(false)}>
+            <Dialog open={confirmActionDialog} onClose={() => {
+                setConfirmActionDialog(false);
+                setConfirmActionPassword('');
+                setPendingAction(null);
+                setWhitelistReason('');
+                setBlacklistReason('');
+            }}>
                 <DialogTitle>{t('admin.confirmActionTitle')}</DialogTitle>
                 <DialogContent>
-                    <Box sx={{ pt: 2 }}>
+                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
                         <Typography gutterBottom>
                             {t('admin.confirmActionPrompt')}
                         </Typography>
+                        {pendingAction?.reason && (
+                            <Typography variant="body2" color="text.secondary">
+                                <strong>{t('admin.reasonLabel')}:</strong> {pendingAction.reason}
+                            </Typography>
+                        )}
                         <TextField
                             type="password"
                             label={t('admin.adminPasswordLabel')}
@@ -588,6 +820,8 @@ const AdminPage = () => {
                         setConfirmActionDialog(false);
                         setConfirmActionPassword('');
                         setPendingAction(null);
+                        setWhitelistReason('');
+                        setBlacklistReason('');
                     }}>{t('common.cancel')}</Button>
                     <Button onClick={handleConfirmAction} variant="contained">
                         {t('common.submit')}
@@ -614,6 +848,80 @@ const AdminPage = () => {
                 <DialogActions>
                     <Button onClick={() => setConfirmAdminDialog(false)}>{t('common.cancel')}</Button>
                     <Button onClick={handleConfirmAdmin} variant="contained">
+                        {t('common.submit')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={changeModeDialog} onClose={() => {
+                setChangeModeDialog(false);
+                setModeChangePassword('');
+                setModeChangeOtp('');
+                setModeChangeReason('');
+                setOtpRequested(false);
+            }}>
+                <DialogTitle>{t('admin.accessMode.changeModeTitle')}</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        <Typography gutterBottom>
+                            {t('admin.accessMode.changeModePrompt')}
+                        </Typography>
+                        {!otpRequested && (
+                            <Button
+                                variant="outlined"
+                                onClick={handleRequestOtp}
+                                sx={{ alignSelf: 'flex-start' }}
+                            >
+                                {t('admin.accessMode.requestOtp')}
+                            </Button>
+                        )}
+                        {otpRequested && (
+                            <Typography variant="body2" color="success.main">
+                                {t('admin.accessMode.otpSent')}
+                            </Typography>
+                        )}
+                        <TextField
+                            type="password"
+                            label={t('admin.adminPasswordLabel')}
+                            value={modeChangePassword}
+                            onChange={(e) => setModeChangePassword(e.target.value)}
+                            fullWidth
+                            required
+                        />
+                        <TextField
+                            label={t('admin.accessMode.otpLabel')}
+                            value={modeChangeOtp}
+                            onChange={(e) => setModeChangeOtp(e.target.value)}
+                            fullWidth
+                            required
+                            disabled={!otpRequested}
+                        />
+                        <TextField
+                            label={t('admin.accessMode.reasonLabel')}
+                            value={modeChangeReason}
+                            onChange={(e) => setModeChangeReason(e.target.value)}
+                            fullWidth
+                            required
+                            multiline
+                            rows={3}
+                            error={!modeChangeReason}
+                            helperText={!modeChangeReason ? t('admin.accessMode.reasonRequired') : ''}
+                        />
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => {
+                        setChangeModeDialog(false);
+                        setModeChangePassword('');
+                        setModeChangeOtp('');
+                        setModeChangeReason('');
+                        setOtpRequested(false);
+                    }}>{t('common.cancel')}</Button>
+                    <Button 
+                        onClick={handleChangeMode} 
+                        variant="contained"
+                        disabled={!modeChangePassword || !modeChangeOtp || !modeChangeReason || !otpRequested}
+                    >
                         {t('common.submit')}
                     </Button>
                 </DialogActions>

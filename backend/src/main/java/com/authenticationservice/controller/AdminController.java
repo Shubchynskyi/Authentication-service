@@ -13,6 +13,8 @@ import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.dto.UpdateUserRolesRequest;
+import com.authenticationservice.model.AccessMode;
+import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.service.AdminService;
 import com.authenticationservice.repository.RoleRepository;
@@ -51,8 +53,8 @@ public class AdminController {
     @PostMapping(ApiConstants.USERS_URL)
     public ResponseEntity<String> createUser(@RequestBody AdminUpdateUserRequest request) {
         // Exception handling is done via GlobalExceptionHandler
+        // Note: createUser automatically adds to whitelist and removes from blacklist
         adminService.createUser(request);
-        adminService.addToWhitelist(request.getEmail());
         return ResponseEntity.ok(MessageConstants.USER_CREATED);
     }
 
@@ -92,17 +94,82 @@ public class AdminController {
     }
 
     @PostMapping(ApiConstants.WHITELIST_ADD_URL)
-    public ResponseEntity<String> addToWhitelist(@RequestParam String email) {
+    public ResponseEntity<String> addToWhitelist(
+            @RequestParam String email,
+            @RequestParam(required = false) String reason) {
         // Exception handling is done via GlobalExceptionHandler
-        adminService.addToWhitelist(email);
+        adminService.addToWhitelist(email, reason != null ? reason : "");
         return ResponseEntity.ok(MessageConstants.EMAIL_ADDED_TO_WHITELIST);
     }
 
     @DeleteMapping(ApiConstants.WHITELIST_REMOVE_URL)
-    public ResponseEntity<String> removeFromWhitelist(@RequestParam String email) {
+    public ResponseEntity<String> removeFromWhitelist(
+            @RequestParam String email,
+            @RequestParam(required = false) String reason) {
         // Exception handling is done via GlobalExceptionHandler
-        adminService.removeFromWhitelist(email);
+        adminService.removeFromWhitelist(email, reason != null ? reason : "");
         return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_WHITELIST);
+    }
+
+    @GetMapping("/blacklist")
+    public ResponseEntity<List<String>> getBlacklist() {
+        return ResponseEntity.ok(adminService.getBlacklist());
+    }
+
+    @PostMapping("/blacklist/add")
+    public ResponseEntity<String> addToBlacklist(
+            @RequestParam String email,
+            @RequestParam(required = false) String reason) {
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.addToBlacklist(email, reason != null ? reason : "");
+        return ResponseEntity.ok("Email added to blacklist");
+    }
+
+    @DeleteMapping("/blacklist/remove")
+    public ResponseEntity<String> removeFromBlacklist(
+            @RequestParam String email,
+            @RequestParam(required = false) String reason) {
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.removeFromBlacklist(email, reason != null ? reason : "");
+        return ResponseEntity.ok("Email removed from blacklist");
+    }
+
+    @GetMapping("/access-mode")
+    public ResponseEntity<AccessModeSettings> getAccessMode() {
+        return ResponseEntity.ok(adminService.getAccessModeSettings());
+    }
+
+    @PostMapping("/access-mode/request-otp")
+    public ResponseEntity<String> requestModeChangeOtp(Principal principal) {
+        // Exception handling is done via GlobalExceptionHandler
+        adminService.sendModeChangeOtp(principal.getName());
+        return ResponseEntity.ok("OTP code sent to your email");
+    }
+
+    @PostMapping("/access-mode/change")
+    public ResponseEntity<String> changeAccessMode(
+            @RequestBody Map<String, String> request,
+            Principal principal) {
+        // Exception handling is done via GlobalExceptionHandler
+        String newModeStr = request.get("mode");
+        String password = request.get("password");
+        String otpCode = request.get("otpCode");
+        String reason = request.get("reason");
+
+        if (newModeStr == null || password == null || otpCode == null) {
+            return ResponseEntity.badRequest().body("Mode, password, and OTP code are required");
+        }
+
+        AccessMode newMode;
+        try {
+            newMode = AccessMode.valueOf(newModeStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Invalid access mode: " + newModeStr);
+        }
+
+        adminService.changeAccessMode(newMode, principal.getName(), password, otpCode, 
+                reason != null ? reason : "");
+        return ResponseEntity.ok("Access mode changed successfully");
     }
 
     @PostMapping(ApiConstants.VERIFY_ADMIN_URL)

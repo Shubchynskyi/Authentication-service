@@ -1,8 +1,6 @@
-import React from 'react';
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import AdminPage from './AdminPage';
-import api from '../api';
 import { TestBrowserRouter } from '../test-utils/router';
 
 // Mock api
@@ -72,6 +70,8 @@ const mockUsers = [
 ];
 
 const mockWhitelist = ['allowed@example.com', 'another@example.com'];
+const mockBlacklist = ['blocked@example.com', 'spam@example.com'];
+const mockAccessMode = { mode: 'WHITELIST' };
 
 const renderAdminPage = () => {
     return render(
@@ -94,6 +94,12 @@ describe('AdminPage', () => {
         mockApiGet.mockImplementation((url: string) => {
             if (url.includes('/whitelist')) {
                 return Promise.resolve({ data: mockWhitelist });
+            }
+            if (url.includes('/blacklist')) {
+                return Promise.resolve({ data: mockBlacklist });
+            }
+            if (url.includes('/access-mode')) {
+                return Promise.resolve({ data: mockAccessMode });
             }
             if (url.includes('/users')) {
                 return Promise.resolve({
@@ -338,6 +344,12 @@ describe('AdminPage', () => {
             if (url.includes('/whitelist')) {
                 return Promise.resolve({ data: mockWhitelist });
             }
+            if (url.includes('/blacklist')) {
+                return Promise.resolve({ data: mockBlacklist });
+            }
+            if (url.includes('/access-mode')) {
+                return Promise.resolve({ data: mockAccessMode });
+            }
             if (url.includes('/users')) {
                 return Promise.reject(new Error('Network error'));
             }
@@ -351,6 +363,246 @@ describe('AdminPage', () => {
             // Page should still render
             expect(screen.getByRole('tab', { name: /admin.users/i })).toBeInTheDocument();
         }, { timeout: 5000 });
+    });
+
+    describe('Blacklist Management', () => {
+        it('displays blacklist tab', async () => {
+            renderAdminPage();
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: /admin.blacklistTab/i })).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+
+        it('switches to blacklist tab and displays emails', async () => {
+            renderAdminPage();
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: /admin.blacklistTab/i })).toBeInTheDocument();
+            }, { timeout: 5000 });
+
+            const blacklistTab = screen.getByRole('tab', { name: /admin.blacklistTab/i });
+            fireEvent.click(blacklistTab);
+
+            await waitFor(() => {
+                expect(screen.getByText('blocked@example.com')).toBeInTheDocument();
+                expect(screen.getByText('spam@example.com')).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+
+        it('adds email to blacklist', async () => {
+            mockApiPost.mockResolvedValueOnce({ data: 'Success' });
+            mockApiPost.mockResolvedValueOnce({ data: 'Success' }); // For verify-admin
+
+            renderAdminPage();
+
+            const blacklistTab = screen.getByRole('tab', { name: /admin.blacklistTab/i });
+            fireEvent.click(blacklistTab);
+
+            await waitFor(() => {
+                const emailInput = screen.getByLabelText(/admin.whitelistEmailLabel/i);
+                fireEvent.change(emailInput, { target: { value: 'newblocked@example.com' } });
+
+                const reasonInput = screen.getByLabelText(/admin.reasonLabel/i);
+                fireEvent.change(reasonInput, { target: { value: 'Test reason' } });
+
+                const addButton = screen.getByRole('button', { name: /admin.whitelistAdd/i });
+                fireEvent.click(addButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                // Should show password confirmation dialog
+                expect(screen.getByRole('dialog')).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+
+        it('validates email format when adding to blacklist', async () => {
+            renderAdminPage();
+
+            const blacklistTab = screen.getByRole('tab', { name: /admin.blacklistTab/i });
+            fireEvent.click(blacklistTab);
+
+            await waitFor(() => {
+                const emailInput = screen.getByLabelText(/admin.whitelistEmailLabel/i);
+                fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+
+                const addButton = screen.getByRole('button', { name: /admin.whitelistAdd/i });
+                fireEvent.click(addButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                expect(mockShowNotification).toHaveBeenCalledWith(
+                    expect.stringContaining('invalidEmail'),
+                    'error'
+                );
+            }, { timeout: 5000 });
+        });
+
+        it('removes email from blacklist', async () => {
+            mockApiDelete.mockResolvedValueOnce({ data: 'Success' });
+            mockApiPost.mockResolvedValueOnce({ data: 'Success' }); // For verify-admin
+
+            renderAdminPage();
+
+            const blacklistTab = screen.getByRole('tab', { name: /admin.blacklistTab/i });
+            fireEvent.click(blacklistTab);
+
+            await waitFor(() => {
+                expect(screen.getByText('blocked@example.com')).toBeInTheDocument();
+            }, { timeout: 5000 });
+
+            // Find the list item containing the email, then find the delete button inside it
+            const listItems = screen.getAllByRole('listitem');
+            expect(listItems.length).toBeGreaterThan(0);
+            
+            // Find the list item that contains our email
+            const targetItem = listItems.find(item => 
+                item.textContent?.includes('blocked@example.com')
+            );
+            
+            expect(targetItem).toBeInTheDocument();
+            
+            // Find the delete button within this list item
+            const deleteButton = within(targetItem!).getByRole('button');
+            fireEvent.click(deleteButton);
+
+            await waitFor(() => {
+                // Should show password confirmation dialog
+                expect(screen.getByRole('dialog')).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+    });
+
+    describe('Access Control Mode', () => {
+        it('displays access control tab', async () => {
+            renderAdminPage();
+
+            await waitFor(() => {
+                expect(screen.getByRole('tab', { name: /admin.accessControlTab/i })).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+
+        it('displays current access mode', async () => {
+            renderAdminPage();
+
+            const accessControlTab = screen.getByRole('tab', { name: /admin.accessControlTab/i });
+            fireEvent.click(accessControlTab);
+
+            await waitFor(() => {
+                expect(screen.getByText(/admin.accessMode.title/i)).toBeInTheDocument();
+                expect(screen.getByText(/admin.accessMode.currentMode/i)).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+
+        it('opens change mode dialog when button is clicked', async () => {
+            renderAdminPage();
+
+            const accessControlTab = screen.getByRole('tab', { name: /admin.accessControlTab/i });
+            fireEvent.click(accessControlTab);
+
+            await waitFor(() => {
+                const changeModeButton = screen.getByRole('button', { name: /admin.accessMode.changeMode/i });
+                fireEvent.click(changeModeButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                expect(screen.getByRole('dialog')).toBeInTheDocument();
+                expect(screen.getByText(/admin.accessMode.changeModeTitle/i)).toBeInTheDocument();
+            }, { timeout: 5000 });
+        });
+
+        it('requests OTP code', async () => {
+            mockApiPost.mockResolvedValueOnce({ data: 'OTP sent' });
+
+            renderAdminPage();
+
+            const accessControlTab = screen.getByRole('tab', { name: /admin.accessControlTab/i });
+            fireEvent.click(accessControlTab);
+
+            await waitFor(() => {
+                const changeModeButton = screen.getByRole('button', { name: /admin.accessMode.changeMode/i });
+                fireEvent.click(changeModeButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                const requestOtpButton = screen.getByRole('button', { name: /admin.accessMode.requestOtp/i });
+                fireEvent.click(requestOtpButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                expect(mockApiPost).toHaveBeenCalledWith('/api/admin/access-mode/request-otp');
+                expect(mockShowNotification).toHaveBeenCalledWith(
+                    expect.stringContaining('otpSent'),
+                    'success'
+                );
+            }, { timeout: 5000 });
+        });
+
+        it('validates required fields when changing mode', async () => {
+            renderAdminPage();
+
+            const accessControlTab = screen.getByRole('tab', { name: /admin.accessControlTab/i });
+            fireEvent.click(accessControlTab);
+
+            await waitFor(() => {
+                const changeModeButton = screen.getByRole('button', { name: /admin.accessMode.changeMode/i });
+                fireEvent.click(changeModeButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                const submitButton = screen.getByRole('button', { name: /common.submit/i });
+                // Button should be disabled without OTP
+                expect(submitButton).toBeDisabled();
+            }, { timeout: 5000 });
+        });
+
+        it('changes access mode with valid credentials', async () => {
+            mockApiPost.mockResolvedValueOnce({ data: 'OTP sent' }); // Request OTP
+            mockApiPost.mockResolvedValueOnce({ data: 'Mode changed' }); // Change mode
+            mockApiGet.mockResolvedValueOnce({ data: { mode: 'BLACKLIST' } }); // Refresh mode
+
+            renderAdminPage();
+
+            const accessControlTab = screen.getByRole('tab', { name: /admin.accessControlTab/i });
+            fireEvent.click(accessControlTab);
+
+            await waitFor(() => {
+                const changeModeButton = screen.getByRole('button', { name: /admin.accessMode.changeMode/i });
+                fireEvent.click(changeModeButton);
+            }, { timeout: 5000 });
+
+            // Request OTP
+            await waitFor(() => {
+                const requestOtpButton = screen.getByRole('button', { name: /admin.accessMode.requestOtp/i });
+                fireEvent.click(requestOtpButton);
+            }, { timeout: 5000 });
+
+            // Fill form
+            await waitFor(() => {
+                const passwordInput = screen.getByLabelText(/admin.adminPasswordLabel/i);
+                const otpInput = screen.getByLabelText(/admin.accessMode.otpLabel/i);
+                const reasonInput = screen.getByLabelText(/admin.accessMode.reasonLabel/i);
+
+                fireEvent.change(passwordInput, { target: { value: 'admin123' } });
+                fireEvent.change(otpInput, { target: { value: '123456' } });
+                fireEvent.change(reasonInput, { target: { value: 'Test reason' } });
+
+                const submitButton = screen.getByRole('button', { name: /common.submit/i });
+                fireEvent.click(submitButton);
+            }, { timeout: 5000 });
+
+            await waitFor(() => {
+                expect(mockApiPost).toHaveBeenCalledWith(
+                    '/api/admin/access-mode/change',
+                    expect.objectContaining({
+                        mode: 'BLACKLIST',
+                        password: 'admin123',
+                        otpCode: '123456',
+                        reason: 'Test reason'
+                    })
+                );
+            }, { timeout: 5000 });
+        });
     });
 });
 

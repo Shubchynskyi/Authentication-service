@@ -1,7 +1,6 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
-import axios from 'axios';
 import { Routes, Route } from 'react-router-dom';
 import { TestBrowserRouter, TestMemoryRouter } from '../test-utils/router';
 
@@ -17,7 +16,6 @@ vi.mock('../utils/token', () => ({
 
 // Mock axios
 vi.mock('axios');
-const mockedAxios = axios as any;
 
 // Mock api
 const mockApiGet = vi.fn();

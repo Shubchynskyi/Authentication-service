@@ -2,8 +2,6 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
-import api from '../api';
-import * as tokenUtils from '../utils/token';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
 const { mockApiPost, mockApiDefaults, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens } = vi.hoisted(() => {
