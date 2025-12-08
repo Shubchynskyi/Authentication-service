@@ -45,12 +45,12 @@ public class LoginAttemptService {
             dbUser.setLockTime(LocalDateTime.now().plusMinutes(5));
             userRepository.save(dbUser);
             
-            // Send email about temporary lock
+            // Send email about temporary lock asynchronously (don't block the response)
             String emailContent = String.format(
                     EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE,
                     5, frontendUrl, 5);
-            emailService.sendEmail(dbUser.getEmail(), EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_SUBJECT, emailContent);
-            log.info("Temporary lock email sent to {}", dbUser.getEmail());
+            emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_SUBJECT, emailContent);
+            log.info("Temporary lock email queued for {}", dbUser.getEmail());
         } else if (currentAttempts > 5 && dbUser.getLockTime() == null) {
             // Set lock time if it wasn't set before
             dbUser.setLockTime(LocalDateTime.now().plusMinutes(5));
@@ -60,12 +60,12 @@ public class LoginAttemptService {
 
         // Check if we just reached 10 attempts (full block)
         if (currentAttempts == 10 && dbUser.isBlocked()) {
-            // Send email about full block
+            // Send email about full block asynchronously (don't block the response)
             String emailContent = String.format(
                     EmailConstants.ACCOUNT_BLOCKED_TEMPLATE,
                     frontendUrl);
-            emailService.sendEmail(dbUser.getEmail(), EmailConstants.ACCOUNT_BLOCKED_SUBJECT, emailContent);
-            log.info("Account blocked email sent to {}", dbUser.getEmail());
+            emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_BLOCKED_SUBJECT, emailContent);
+            log.info("Account blocked email queued for {}", dbUser.getEmail());
         }
     }
 }

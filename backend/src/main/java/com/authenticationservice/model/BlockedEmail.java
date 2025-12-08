@@ -22,8 +22,16 @@ public class BlockedEmail {
     @Column(unique = true, nullable = false)
     private String email;
 
+    @Column(length = 1000)
+    private String reason;
+
     public BlockedEmail(String email) {
         this.email = email;
+    }
+
+    public BlockedEmail(String email, String reason) {
+        this.email = email;
+        this.reason = reason;
     }
 }
 

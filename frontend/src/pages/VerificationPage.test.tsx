@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import VerificationPage from './VerificationPage';
 import axios from 'axios';
@@ -66,6 +66,7 @@ describe('VerificationPage', () => {
         mockShowNotification.mockClear();
         mockNavigate.mockClear();
         localStorage.clear();
+        cleanup();
     });
 
     it('renders verification form', () => {

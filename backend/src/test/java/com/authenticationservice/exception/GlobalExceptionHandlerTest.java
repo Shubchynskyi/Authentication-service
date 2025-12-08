@@ -166,13 +166,14 @@ class GlobalExceptionHandlerTest {
             when(bindingResult.getFieldErrors()).thenReturn(fieldErrors);
 
             // Act
-            ResponseEntity<String> response = globalExceptionHandler.handleValidationException(ex);
+            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleValidationException(ex);
 
             // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertNotNull(response.getBody());
-            assertTrue(response.getBody().contains("Email is required"));
-            assertTrue(response.getBody().contains("Password is required"));
+            assertEquals("Validation Error", response.getBody().get("error"));
+            assertTrue(response.getBody().get("message").contains("Email is required"));
+            assertTrue(response.getBody().get("message").contains("Password is required"));
         }
 
         @Test
@@ -192,12 +193,13 @@ class GlobalExceptionHandlerTest {
                     .thenReturn("Email is required");
 
             // Act
-            ResponseEntity<String> response = globalExceptionHandler.handleValidationException(ex);
+            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleValidationException(ex);
 
             // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertNotNull(response.getBody());
-            assertEquals("Email is required", response.getBody());
+            assertEquals("Validation Error", response.getBody().get("error"));
+            assertEquals("Email is required", response.getBody().get("message"));
         }
 
         @Test
@@ -217,12 +219,13 @@ class GlobalExceptionHandlerTest {
                     .thenThrow(new org.springframework.context.NoSuchMessageException("Message not found"));
 
             // Act
-            ResponseEntity<String> response = globalExceptionHandler.handleValidationException(ex);
+            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleValidationException(ex);
 
             // Assert
             assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
             assertNotNull(response.getBody());
-            assertEquals("{validation.email.required}", response.getBody());
+            assertEquals("Validation Error", response.getBody().get("error"));
+            assertEquals("{validation.email.required}", response.getBody().get("message"));
         }
     }
 

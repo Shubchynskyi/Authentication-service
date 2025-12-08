@@ -13,11 +13,25 @@ beforeAll(() => {
       message.includes('Registration error:') ||
       message.includes('Error fetching') ||
       message.includes('Invalid JWT token format') ||
-      message.includes('Failed to decode tokens')
+      message.includes('Failed to decode tokens') ||
+      message.includes('Warning: The current testing environment is not configured to support act(...)')
     ) {
       return; // Suppress these expected errors in tests
     }
     originalError(...args);
+  });
+  
+  // Suppress act warnings from React Testing Library
+  const originalWarn = console.warn;
+  console.warn = vi.fn((...args: any[]) => {
+    const message = args[0]?.toString() || '';
+    if (
+      message.includes('Warning: The current testing environment is not configured to support act(...)') ||
+      message.includes('act(...) is not supported')
+    ) {
+      return; // Suppress act warnings
+    }
+    originalWarn(...args);
   });
 });
 

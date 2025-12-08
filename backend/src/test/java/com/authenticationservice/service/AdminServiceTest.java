@@ -2,6 +2,7 @@ package com.authenticationservice.service;
 
 import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
+import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.Role;
@@ -456,22 +457,24 @@ class AdminServiceTest {
     @DisplayName("Whitelist Retrieval Tests")
     class WhitelistRetrievalTests {
         @Test
-        @DisplayName("Should return list of whitelisted emails")
+        @DisplayName("Should return list of whitelisted emails with reasons")
         void getWhitelist_shouldReturnListOfEmails() {
             // Arrange
-            AllowedEmail a1 = new AllowedEmail("a@example.com");
-            AllowedEmail a2 = new AllowedEmail("b@example.com");
+            AllowedEmail a1 = new AllowedEmail("a@example.com", "r1");
+            AllowedEmail a2 = new AllowedEmail("b@example.com", null);
             when(allowedEmailRepository.findAll())
                     .thenReturn(Arrays.asList(a1, a2));
 
             // Act
-            List<String> whitelist = adminService.getWhitelist();
+            List<AllowedEmailDTO> whitelist = adminService.getWhitelist();
 
             // Assert
             assertNotNull(whitelist);
             assertEquals(2, whitelist.size());
-            assertTrue(whitelist.contains("a@example.com"));
-            assertTrue(whitelist.contains("b@example.com"));
+            assertEquals("a@example.com", whitelist.get(0).getEmail());
+            assertEquals("r1", whitelist.get(0).getReason());
+            assertEquals("b@example.com", whitelist.get(1).getEmail());
+            assertNull(whitelist.get(1).getReason());
         }
     }
 

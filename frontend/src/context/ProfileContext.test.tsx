@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { ProfileProvider, useProfile } from './ProfileContext';
 import { AuthProvider, useAuth } from './AuthContext';
@@ -97,6 +97,7 @@ describe('ProfileContext', () => {
     afterEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        cleanup();
     });
 
     describe('Initialization', () => {

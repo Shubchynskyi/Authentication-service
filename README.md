@@ -38,4 +38,28 @@ This project is a full-stack authentication and user profile management solution
 
 - Use environment variables (see `env.example`) or secure secret management solutions for sensitive configuration.  
 
+### Implemented Features
+
+- **Whitelist/Blacklist Access Control**: Configurable access mode that allows restricting user registration and login to whitelisted emails or blocking specific emails via blacklist. Access mode can be set via `ACCESS_MODE_DEFAULT` environment variable (values: `WHITELIST`, `BLACKLIST`, `OPEN`).
+
+- **OAuth2 Google Authentication**: Users can authenticate using their Google accounts. Tokens are securely passed via URL fragments to prevent server-side logging.
+
+- **Asynchronous Email Notifications**: Lock and block notifications are sent asynchronously to prevent delays in API responses.
+
+- **Multi-language Support**: Full localization for 4 languages (EN, DE, RU, UA) including validation error messages.
+
+### Roadmap (Future Improvements)
+
+1. **Authorization Code Flow for OAuth2**
+   - Current implementation passes tokens via URL fragment which, while secure from server logs, still appears in browser history
+   - Future improvement: implement one-time authorization code exchange where tokens are returned via secure API call instead of URL
+   - This provides better security as tokens never appear in URLs
+
+2. **Decoy Page Mode (Security Through Obscurity)**
+   - New environment variable `HIDE_LOGIN_PAGE` (boolean)
+   - When enabled, generates a decoy HTML page with multiple random links
+   - Only one specific link leads to the actual login page
+   - Provides additional protection against automated attacks and casual intruders
+   - The real login endpoint would be accessible via a secret path or specific link
+
 

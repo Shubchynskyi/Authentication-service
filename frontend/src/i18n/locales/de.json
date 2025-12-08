@@ -114,7 +114,11 @@
       "emailAlreadyExists": "E-Mail ist bereits auf der Blacklist",
       "added": "E-Mail zur Blacklist hinzugefügt",
       "removed": "E-Mail von der Blacklist entfernt",
-      "invalidEmail": "Geben Sie eine gültige E-Mail ein (muss @ enthalten)"
+      "invalidEmail": "Geben Sie eine gültige E-Mail ein (muss @ enthalten)",
+      "reason": "Grund",
+      "userCreateWarning": "Diese E-Mail befindet sich auf der Blacklist. Der Benutzer wird erstellt, aber die E-Mail wird automatisch aus der Blacklist entfernt.",
+      "userWillBeRemovedFromList": "Nach der Erstellung wird die E-Mail aus der Blacklist entfernt.",
+      "userBlockedNow": "Ein bestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden."
     },
     "accessMode": {
       "title": "Zugriffskontrollmodus",

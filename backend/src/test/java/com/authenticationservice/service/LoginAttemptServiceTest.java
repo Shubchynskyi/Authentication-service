@@ -92,7 +92,7 @@ class LoginAttemptServiceTest {
         }
 
         @Test
-        @DisplayName("Should send email when reached 5 attempts")
+        @DisplayName("Should send email asynchronously when reached 5 attempts")
         void handleFailedLogin_shouldSendEmail_whenReached5Attempts() {
             // Arrange
             testUser.setFailedLoginAttempts(4);
@@ -103,7 +103,7 @@ class LoginAttemptServiceTest {
             loginAttemptService.handleFailedLogin(testUser, FRONTEND_URL);
 
             // Assert
-            verify(emailService).sendEmail(eq(testUser.getEmail()), anyString(), anyString());
+            verify(emailService).sendEmailAsync(eq(testUser.getEmail()), anyString(), anyString());
         }
 
         @Test
@@ -124,7 +124,7 @@ class LoginAttemptServiceTest {
         }
 
         @Test
-        @DisplayName("Should send email when reached 10 attempts and account is blocked")
+        @DisplayName("Should send email asynchronously when reached 10 attempts and account is blocked")
         void handleFailedLogin_shouldSendEmail_whenReached10Attempts() {
             // Arrange
             testUser.setFailedLoginAttempts(9);
@@ -142,7 +142,7 @@ class LoginAttemptServiceTest {
             loginAttemptService.handleFailedLogin(testUser, FRONTEND_URL);
 
             // Assert
-            verify(emailService, atLeastOnce()).sendEmail(eq(testUser.getEmail()), anyString(), anyString());
+            verify(emailService, atLeastOnce()).sendEmailAsync(eq(testUser.getEmail()), anyString(), anyString());
         }
 
         @Test

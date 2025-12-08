@@ -401,6 +401,10 @@ describe('api', () => {
             await import('./api');
         });
 
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
         it('should redirect to login when tokens are removed in another tab', async () => {
             localStorage.setItem('accessToken', 'token');
             localStorage.setItem('refreshToken', 'refresh');

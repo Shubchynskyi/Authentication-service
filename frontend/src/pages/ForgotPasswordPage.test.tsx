@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import axios from 'axios';
@@ -40,6 +40,7 @@ describe('ForgotPasswordPage', () => {
         vi.clearAllMocks();
         mockShowNotification.mockClear();
         localStorage.clear();
+        cleanup();
     });
 
     it('renders forgot password form', () => {

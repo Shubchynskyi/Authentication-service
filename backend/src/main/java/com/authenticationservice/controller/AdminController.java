@@ -10,7 +10,10 @@ import org.springframework.web.bind.annotation.*;
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.constants.SecurityConstants;
+import com.authenticationservice.dto.AccessListUpdateResponse;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
+import com.authenticationservice.dto.AllowedEmailDTO;
+import com.authenticationservice.dto.BlockedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.dto.UpdateUserRolesRequest;
 import com.authenticationservice.model.AccessMode;
@@ -89,7 +92,7 @@ public class AdminController {
     }
 
     @GetMapping(ApiConstants.WHITELIST_URL)
-    public ResponseEntity<List<String>> getWhitelist() {
+    public ResponseEntity<List<AllowedEmailDTO>> getWhitelist() {
         return ResponseEntity.ok(adminService.getWhitelist());
     }
 
@@ -112,17 +115,17 @@ public class AdminController {
     }
 
     @GetMapping("/blacklist")
-    public ResponseEntity<List<String>> getBlacklist() {
+    public ResponseEntity<List<BlockedEmailDTO>> getBlacklist() {
         return ResponseEntity.ok(adminService.getBlacklist());
     }
 
     @PostMapping("/blacklist/add")
-    public ResponseEntity<String> addToBlacklist(
+    public ResponseEntity<AccessListUpdateResponse> addToBlacklist(
             @RequestParam String email,
             @RequestParam(required = false) String reason) {
         // Exception handling is done via GlobalExceptionHandler
-        adminService.addToBlacklist(email, reason != null ? reason : "");
-        return ResponseEntity.ok("Email added to blacklist");
+        AccessListUpdateResponse response = adminService.addToBlacklist(email, reason != null ? reason : "");
+        return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/blacklist/remove")

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import PrivateRoute from './PrivateRoute';
@@ -23,6 +23,7 @@ describe('PrivateRoute', () => {
     afterEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        cleanup();
     });
 
     it('renders children when user is authenticated', async () => {

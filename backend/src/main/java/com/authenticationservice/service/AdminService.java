@@ -16,7 +16,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
 
+import com.authenticationservice.dto.AccessListUpdateResponse;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
+import com.authenticationservice.dto.AllowedEmailDTO;
+import com.authenticationservice.dto.BlockedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.model.AccessListChangeLog;
 import com.authenticationservice.model.AccessMode;
@@ -66,13 +69,14 @@ public class AdminService {
         if (allowedEmailRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already exists in whitelist");
         }
-        AllowedEmail allowedEmail = new AllowedEmail(email);
+        String normalizedReason = reason != null ? reason.trim() : "";
+        AllowedEmail allowedEmail = new AllowedEmail(email, normalizedReason.isEmpty() ? null : normalizedReason);
         allowedEmailRepository.save(allowedEmail);
         log.info("Email added to whitelist: {}", email);
         
         // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, email, 
-                AccessListChangeLog.AccessListAction.ADD, reason);
+                AccessListChangeLog.AccessListAction.ADD, normalizedReason);
     }
 
     public void removeFromWhitelist(String email) {
@@ -90,17 +94,33 @@ public class AdminService {
                 AccessListChangeLog.AccessListAction.REMOVE, reason);
     }
 
-    public void addToBlacklist(String email, String reason) {
+    public AccessListUpdateResponse addToBlacklist(String email, String reason) {
         if (blockedEmailRepository.findByEmail(email).isPresent()) {
             throw new RuntimeException("Email already exists in blacklist");
         }
-        BlockedEmail blockedEmail = new BlockedEmail(email);
+        String normalizedReason = reason != null ? reason.trim() : "";
+        BlockedEmail blockedEmail = new BlockedEmail(email, normalizedReason.isEmpty() ? null : normalizedReason);
         blockedEmailRepository.save(blockedEmail);
         log.info("Email added to blacklist: {}", email);
         
+        boolean userBlocked = false;
+        if (userRepository.findByEmail(email).isPresent()) {
+            User existingUser = userRepository.findByEmail(email).orElseThrow();
+            existingUser.setBlocked(true);
+            existingUser.setBlockReason(normalizedReason.isEmpty() ? "Email is blacklisted" : normalizedReason);
+            userRepository.save(existingUser);
+            userBlocked = true;
+            log.info("Existing user {} marked as blocked due to blacklist", email);
+        }
+
         // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, email, 
                 AccessListChangeLog.AccessListAction.ADD, reason);
+
+        String message = userBlocked
+                ? "Email added to blacklist. Existing user has been blocked and will not be able to login."
+                : "Email added to blacklist.";
+        return new AccessListUpdateResponse(message, userBlocked, blockedEmail.getReason());
     }
 
     public void removeFromBlacklist(String email, String reason) {
@@ -115,9 +135,10 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<String> getBlacklist() {
+    public List<BlockedEmailDTO> getBlacklist() {
         return blockedEmailRepository.findAll()
-                .stream().map(BlockedEmail::getEmail)
+                .stream()
+                .map(entry -> new BlockedEmailDTO(entry.getEmail(), entry.getReason()))
                 .toList();
     }
 
@@ -283,9 +304,10 @@ public class AdminService {
     }
 
     @Transactional(readOnly = true)
-    public List<String> getWhitelist() {
+    public List<AllowedEmailDTO> getWhitelist() {
         return allowedEmailRepository.findAll()
-                .stream().map(AllowedEmail::getEmail)
+                .stream()
+                .map(entry -> new AllowedEmailDTO(entry.getEmail(), entry.getReason()))
                 .toList();
     }
 

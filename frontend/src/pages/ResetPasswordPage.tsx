@@ -7,6 +7,7 @@ import axios from 'axios';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { validatePassword } from '../utils/passwordValidation';
+import PasswordHint from '../components/PasswordHint';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -80,8 +81,14 @@ const ResetPasswordPage: React.FC = () => {
             navigate('/login', { replace: true });
         } catch (error) {
             let message = t('common.error');
-            if (axios.isAxiosError(error)) {
-                message = String(error.response?.data || t('common.error'));
+            if (axios.isAxiosError(error) && error.response?.data) {
+                const data = error.response.data;
+                // Handle both object response {error, message} and string response
+                if (typeof data === 'object' && data.message) {
+                    message = data.message;
+                } else if (typeof data === 'string') {
+                    message = data;
+                }
             }
             showNotification(message, 'error');
         } finally {
@@ -115,13 +122,7 @@ const ResetPasswordPage: React.FC = () => {
                         helperText={passwordError || ''}
                         required
                     />
-                    <Typography
-                        variant="caption"
-                        color="text.secondary"
-                        sx={{ mt: 0.5, minHeight: 40 }}
-                    >
-                        {t('errors.passwordRequirements')}
-                    </Typography>
+                    <PasswordHint text={t('errors.passwordRequirements')} />
                     <TextField
                         label={t('common.confirmPassword')}
                         fullWidth

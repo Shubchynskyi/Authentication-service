@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { Routes, Route } from 'react-router-dom';
 import { TestBrowserRouter, TestMemoryRouter } from '../test-utils/router';
@@ -101,6 +101,7 @@ describe('Authentication Flow Integration', () => {
     afterEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        cleanup();
     });
 
     it('allows user to navigate from home to login', async () => {

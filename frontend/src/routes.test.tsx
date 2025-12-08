@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import AppRoutes from './routes';
 import { TestMemoryRouter } from './test-utils/router';
@@ -86,6 +86,7 @@ describe('routes.tsx', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        cleanup();
     });
 
     describe('PrivateRoute', () => {

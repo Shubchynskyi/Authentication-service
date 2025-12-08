@@ -36,6 +36,7 @@ services:
 
   frontend:
     container_name: ${AUTH_FRONTEND_CONTAINER_NAME:-auth-frontend}
+    image: ${FRONTEND_IMAGE_NAME:-auth-frontend:latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile

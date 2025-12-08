@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { vi, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import LanguageSwitcher from './LanguageSwitcher';
 
@@ -48,6 +48,7 @@ describe('LanguageSwitcher', () => {
     afterEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        cleanup();
     });
 
     it('renders correctly', async () => {

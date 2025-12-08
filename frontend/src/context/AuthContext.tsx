@@ -114,7 +114,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         clearTokens();
         delete api.defaults.headers.common['Authorization'];
         setIsAuthenticated(false);
-        window.location.href = '/';
+        if (typeof window !== 'undefined') {
+            const target = '/';
+            if (typeof window.location.replace === 'function') {
+                window.location.replace(target);
+            } else {
+                window.location.href = target;
+            }
+        }
     }, []);
 
     const setTokens = useCallback((accessToken: string, refreshToken: string) => {

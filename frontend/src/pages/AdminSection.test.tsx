@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import AdminSection from './AdminSection';
 
@@ -29,6 +29,7 @@ describe('AdminSection', () => {
         vi.clearAllMocks();
         mockUseProfile.mockReset();
         mockUseProfile.mockClear();
+        cleanup();
     });
 
     it('renders children when user is admin', async () => {

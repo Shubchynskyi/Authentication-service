@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, RenderOptions } from '@testing-library/react';
+import { render, RenderOptions, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach } from 'vitest';
 import { TestBrowserRouter, TestMemoryRouter } from './router';
 import { MemoryRouterProps } from 'react-router-dom';
@@ -43,6 +43,7 @@ export const setupTestCleanup = () => {
     afterEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
+        cleanup();
     });
 };
 

@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import PublicRoute from './PublicRoute';
@@ -30,6 +30,7 @@ describe('PublicRoute', () => {
         // Reset mock after each test
         vi.mocked(tokenUtils.isJwtExpired).mockReset();
         vi.mocked(tokenUtils.isJwtExpired).mockClear();
+        cleanup();
     });
 
     it('renders children when user is not authenticated', async () => {

@@ -22,6 +22,7 @@ fi
 # Use variables from .env or defaults
 BUILDER_IMAGE_NAME=${BUILDER_IMAGE_NAME:-auth-service-builder}
 FINAL_IMAGE_NAME=${FINAL_IMAGE_NAME:-auth-service:latest}
+FRONTEND_IMAGE_NAME=${FRONTEND_IMAGE_NAME:-auth-frontend:latest}
 APP_TEST_CONTAINER_NAME=${APP_TEST_CONTAINER_NAME:-auth-service-test-builder}
 AUTH_SERVICE_CONTAINER_NAME=${AUTH_SERVICE_CONTAINER_NAME:-auth-service}
 AUTH_FRONTEND_CONTAINER_NAME=${AUTH_FRONTEND_CONTAINER_NAME:-auth-frontend}
@@ -32,6 +33,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BACKEND_DIR="$SCRIPT_DIR/backend"
 JAR_PATH="$BACKEND_DIR/$JAR_NAME"
 VOLUME_NAME=${VOLUME_NAME:-postgres_data}
+DEFAULT_COMPOSE_PROJECT_NAME=$(basename "$SCRIPT_DIR" | tr '[:upper:]' '[:lower:]')
+COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$DEFAULT_COMPOSE_PROJECT_NAME}
+COMPOSE_SERVICE_PREFIX="${COMPOSE_PROJECT_NAME}-"
 
 echo -e "${GREEN}=== Starting Docker Cleanup ===${NC}"
 
@@ -46,6 +50,26 @@ else
     echo -e "${YELLOW}Compose file not found. Stopping containers manually...${NC}"
 fi
 
+remove_container_if_exists() {
+    local name="$1"
+    if docker ps -a --format '{{.Names}}' | grep -Eq "^${name}\$"; then
+        echo "Removing container $name..."
+        docker rm -f "$name" || true
+    else
+        echo "Container $name not found. Skipping..."
+    fi
+}
+
+remove_containers_by_pattern() {
+    local pattern="$1"
+    local matches
+    matches=$(docker ps -a --format '{{.Names}}' | grep -E "$pattern" || true)
+    if [ -n "$matches" ]; then
+        echo "Removing containers matching pattern: $pattern"
+        echo "$matches" | xargs -r docker rm -f || true
+    fi
+}
+
 # Define all containers to be removed (in case some weren't stopped by compose)
 ALL_CONTAINERS=(
     "$APP_TEST_CONTAINER_NAME"
@@ -54,41 +78,58 @@ ALL_CONTAINERS=(
     "$AUTH_DB_CONTAINER_NAME"
 )
 
+# Containers created by docker-compose with project prefix
+COMPOSE_CONTAINERS_PATTERNS=(
+    "^${COMPOSE_SERVICE_PREFIX}auth-service(-[0-9]+)?$"
+    "^${COMPOSE_SERVICE_PREFIX}frontend(-[0-9]+)?$"
+    "^${COMPOSE_SERVICE_PREFIX}db(-[0-9]+)?$"
+)
+
 # Remove any remaining containers related to the application
 echo -e "${YELLOW}Removing any remaining containers...${NC}"
 for CONTAINER in "${ALL_CONTAINERS[@]}"; do
-    if docker ps -a --format '{{.Names}}' | grep -Eq "^${CONTAINER}\$"; then
-        echo "Removing container $CONTAINER..."
-        docker rm -f "$CONTAINER" || true
-    else
-        echo "Container $CONTAINER not found. Skipping..."
-    fi
+    remove_container_if_exists "$CONTAINER"
+done
+
+for PATTERN in "${COMPOSE_CONTAINERS_PATTERNS[@]}"; do
+    remove_containers_by_pattern "$PATTERN"
 done
 
 # Define all images to be removed
-ALL_IMAGES=(
-    "$BUILDER_IMAGE_NAME"
-    "$FINAL_IMAGE_NAME"
+FINAL_IMAGE_REPO="${FINAL_IMAGE_NAME%%:*}"
+BUILDER_IMAGE_REPO="${BUILDER_IMAGE_NAME%%:*}"
+FRONTEND_IMAGE_REPO="${FRONTEND_IMAGE_NAME%%:*}"
+
+ALL_IMAGE_PATTERNS=(
+    "$BUILDER_IMAGE_REPO"
+    "$FINAL_IMAGE_REPO"
+    "$FRONTEND_IMAGE_REPO"
     "authentication-service-auth-service"
     "authentication-service-frontend"
+    "${COMPOSE_SERVICE_PREFIX}auth-service"
+    "${COMPOSE_SERVICE_PREFIX}frontend"
 )
 
-# Remove all images related to the application
+collect_image_ids() {
+    local pattern="$1"
+    docker images --format "{{.Repository}}:{{.Tag}} {{.ID}}" | grep -Ei "^${pattern}(:|$)" | awk '{print $2}' || true
+}
+
 echo -e "${YELLOW}Removing images...${NC}"
-# Remove all images related to the application
-echo -e "${YELLOW}Removing images...${NC}"
-for IMAGE in "${ALL_IMAGES[@]}"; do
-    # Find all image IDs associated with the repository name
-    IMAGE_IDS=$(docker images --format "{{.ID}} {{.Repository}}" | grep "$IMAGE" | awk '{print $1}')
-    
-    if [ -n "$IMAGE_IDS" ]; then
-        echo "Found images for $IMAGE. Removing..."
-        # Convert newlines to spaces
-        echo "$IMAGE_IDS" | xargs -r docker rmi -f || true
-    else
-        echo "No images found for $IMAGE. Skipping..."
-    fi
+IMAGE_IDS=()
+for IMAGE_PATTERN in "${ALL_IMAGE_PATTERNS[@]}"; do
+    while IFS= read -r ID; do
+        [ -n "$ID" ] && IMAGE_IDS+=("$ID")
+    done < <(collect_image_ids "$IMAGE_PATTERN")
 done
+
+if [ "${#IMAGE_IDS[@]}" -gt 0 ]; then
+    mapfile -t UNIQUE_IMAGE_IDS < <(printf "%s\n" "${IMAGE_IDS[@]}" | sort -u)
+    echo "Found image IDs: ${UNIQUE_IMAGE_IDS[*]}"
+    printf "%s\n" "${UNIQUE_IMAGE_IDS[@]}" | xargs -r docker rmi -f || true
+else
+    echo "No images matched configured patterns. Skipping..."
+fi
 
 # Remove the JAR file if it exists
 if [ -f "$JAR_PATH" ]; then

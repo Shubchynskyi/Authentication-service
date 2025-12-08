@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import App from './App';
 
@@ -48,6 +48,10 @@ vi.mock('./context/ProfileContext', () => ({
 describe('App', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    afterEach(() => {
+        cleanup();
     });
 
     it('should render all providers in correct order', () => {

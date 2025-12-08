@@ -50,6 +50,11 @@ interface User {
     authProvider?: 'LOCAL' | 'GOOGLE';
 }
 
+interface BlacklistEntry {
+    email: string;
+    reason?: string | null;
+}
+
 interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
@@ -79,7 +84,7 @@ const AdminPage = () => {
     const [tabValue, setTabValue] = useState(0);
     const [users, setUsers] = useState<User[]>([]);
     const [whitelist, setWhitelist] = useState<string[]>([]);
-    const [blacklist, setBlacklist] = useState<string[]>([]);
+    const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
     const [accessMode, setAccessMode] = useState<'WHITELIST' | 'BLACKLIST'>('WHITELIST');
     const [totalElements, setTotalElements] = useState(0);
     const [page, setPage] = useState(0);
@@ -120,8 +125,11 @@ const AdminPage = () => {
     const fetchWhitelist = async () => {
         try {
             const response = await api.get('/api/admin/whitelist');
-            // Ensure whitelist is always an array
-            setWhitelist(Array.isArray(response.data) ? response.data : []);
+            const data = Array.isArray(response.data) ? response.data : [];
+            const normalized = data.map((entry: any) =>
+                typeof entry === 'string' ? entry : entry?.email || ''
+            ).filter((email: string) => !!email);
+            setWhitelist(normalized);
         } catch (error) {
             console.error('Error fetching whitelist:', error);
             setWhitelist([]); // Set empty array on error
@@ -131,7 +139,12 @@ const AdminPage = () => {
     const fetchBlacklist = async () => {
         try {
             const response = await api.get('/api/admin/blacklist');
-            setBlacklist(Array.isArray(response.data) ? response.data : []);
+            const data = Array.isArray(response.data) ? response.data : [];
+            const normalized = data.map((entry: any) => ({
+                email: entry.email || entry,
+                reason: entry.reason || null
+            }));
+            setBlacklist(normalized);
         } catch (error) {
             console.error('Error fetching blacklist:', error);
             setBlacklist([]);
@@ -157,13 +170,17 @@ const AdminPage = () => {
                     size: rowsPerPage
                 }
             });
-            setUsers(response.data.content);
-            setTotalElements(response.data.totalElements);
+            const content = Array.isArray(response.data?.content) ? response.data.content : [];
+            const total = typeof response.data?.totalElements === 'number'
+                ? response.data.totalElements
+                : content.length;
+            setUsers(content);
+            setTotalElements(total);
         } catch (error) {
             console.error('Error fetching users:', error);
-            alert('Failed to fetch users. Please try again later.');
+            showNotification(t('common.error'), 'error');
         }
-    }, [page, rowsPerPage]);
+    }, [page, rowsPerPage, showNotification, t]);
 
     useEffect(() => {
         fetchWhitelist();
@@ -253,6 +270,21 @@ const AdminPage = () => {
 
     const handleSubmit = async () => {
         try {
+            const trimmedEmail = formData.email.trim().toLowerCase();
+            const blacklistedEntry = blacklist.find(
+                (entry) => entry.email.toLowerCase() === trimmedEmail
+            );
+            if (!selectedUser && blacklistedEntry) {
+                const reasonPart = blacklistedEntry.reason
+                    ? `\n${t('admin.blacklist.reason')}: ${blacklistedEntry.reason}`
+                    : '';
+                const warning = `${t('admin.blacklist.userCreateWarning')}${reasonPart}\n${t('admin.blacklist.userWillBeRemovedFromList')}`;
+                const confirmed = window.confirm(warning);
+                if (!confirmed) {
+                    return;
+                }
+            }
+
             const url = selectedUser
                 ? `/api/admin/users/${selectedUser.id}`
                 : '/api/admin/users';
@@ -314,12 +346,13 @@ const AdminPage = () => {
                         await api.post('/api/admin/whitelist/add', null, {
                             params: { 
                                 email: pendingAction.data,
-                                reason: pendingAction.reason || ''
+                                reason: pendingAction.reason ?? ''
                             }
                         });
                         setNewEmail('');
                         setWhitelistReason('');
                         fetchWhitelist();
+                        fetchUsers();
                         showNotification(t('admin.whitelist.added'), 'success');
                     } catch (addErr) {
                         if (axios.isAxiosError(addErr)) {
@@ -341,15 +374,17 @@ const AdminPage = () => {
                     await api.delete('/api/admin/whitelist/remove', {
                         params: { 
                             email: pendingAction.data,
-                            reason: pendingAction.reason || ''
+                            reason: pendingAction.reason ?? ''
                         }
                     });
                     fetchWhitelist();
+                    fetchUsers();
+                    setWhitelistReason('');
                     showNotification(t('admin.whitelist.removed'), 'success');
                     break;
                 case 'ADD_BLACKLIST':
                     try {
-                        await api.post('/api/admin/blacklist/add', null, {
+                        const response = await api.post('/api/admin/blacklist/add', null, {
                             params: { 
                                 email: pendingAction.data,
                                 reason: pendingAction.reason || ''
@@ -358,7 +393,16 @@ const AdminPage = () => {
                         setNewBlacklistEmail('');
                         setBlacklistReason('');
                         fetchBlacklist();
-                        showNotification(t('admin.blacklist.added'), 'success');
+                        const serverMessage = typeof response.data === 'string'
+                            ? response.data
+                            : response.data?.message;
+                        const userBlocked = typeof response.data === 'object' && !!response.data?.userBlocked;
+                        showNotification(serverMessage || t('admin.blacklist.added'), 'success');
+                        if (userBlocked) {
+                            showNotification(t('admin.blacklist.userBlockedNow'), 'warning');
+                        }
+                        // Refresh users to reflect potential blocks
+                        fetchUsers();
                     } catch (addErr) {
                         if (axios.isAxiosError(addErr)) {
                             const status = addErr.response?.status;
@@ -383,6 +427,8 @@ const AdminPage = () => {
                         }
                     });
                     fetchBlacklist();
+                    fetchUsers();
+                    setBlacklistReason('');
                     showNotification(t('admin.blacklist.removed'), 'success');
                     break;
             }
@@ -417,7 +463,7 @@ const AdminPage = () => {
     };
 
     const handleRemoveFromWhitelist = (email: string) => {
-        setPendingAction({ type: 'REMOVE_WHITELIST', data: email, reason: whitelistReason });
+        setPendingAction({ type: 'REMOVE_WHITELIST', data: email, reason: '' });
         setConfirmActionDialog(true);
     };
 
@@ -432,7 +478,7 @@ const AdminPage = () => {
     };
 
     const handleRemoveFromBlacklist = (email: string) => {
-        setPendingAction({ type: 'REMOVE_BLACKLIST', data: email, reason: blacklistReason });
+        setPendingAction({ type: 'REMOVE_BLACKLIST', data: email, reason: '' });
         setConfirmActionDialog(true);
     };
 
@@ -572,12 +618,12 @@ const AdminPage = () => {
                                     </TableCell>
                                     <TableCell>
                                         <Tooltip title={t('admin.edit')}>
-                                            <IconButton onClick={() => handleOpenDialog(user)}>
+                                            <IconButton aria-label={t('admin.edit')} onClick={() => handleOpenDialog(user)}>
                                                 <EditIcon />
                                             </IconButton>
                                         </Tooltip>
                                         <Tooltip title={t('admin.delete')}>
-                                            <IconButton onClick={() => handleDelete(user.id)}>
+                                            <IconButton aria-label={t('admin.delete')} onClick={() => handleDelete(user.id)}>
                                                 <DeleteIcon />
                                             </IconButton>
                                         </Tooltip>
@@ -637,6 +683,7 @@ const AdminPage = () => {
                                 <ListItemSecondaryAction>
                                     <IconButton
                                         edge="end"
+                                        aria-label={t('admin.delete')}
                                         onClick={() => handleRemoveFromWhitelist(email)}
                                     >
                                         <DeleteIcon />
@@ -677,13 +724,18 @@ const AdminPage = () => {
                     </Box>
 
                     <List>
-                        {(Array.isArray(blacklist) ? blacklist : []).map((email) => (
-                            <ListItem key={email}>
-                                <ListItemText primary={email} />
+                        {(Array.isArray(blacklist) ? blacklist : []).map((entry) => (
+                            <ListItem key={entry.email}>
+                                <ListItemText
+                                    primary={entry.email}
+                                    secondary={entry.reason || undefined}
+                                    secondaryTypographyProps={{ sx: { whiteSpace: 'pre-wrap' } }}
+                                />
                                 <ListItemSecondaryAction>
                                     <IconButton
                                         edge="end"
-                                        onClick={() => handleRemoveFromBlacklist(email)}
+                                        aria-label={t('admin.delete')}
+                                        onClick={() => handleRemoveFromBlacklist(entry.email)}
                                     >
                                         <DeleteIcon />
                                     </IconButton>

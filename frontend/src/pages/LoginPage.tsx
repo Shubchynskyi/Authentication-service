@@ -56,10 +56,9 @@ const LoginPage = () => {
 
         try {
             await login(email, password);
-            // Small delay to ensure tokens are saved and state is updated
-            setTimeout(() => {
-                navigate('/', { replace: true });
-            }, 50);
+            const redirectTo =
+                (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname || '/';
+            navigate(redirectTo, { replace: true });
         } catch (error) {
             // Error is already handled in AuthContext, but we show a generic message
             // to not reveal account existence

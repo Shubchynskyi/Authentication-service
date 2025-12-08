@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import ProfilePage from './ProfilePage';
 import { TestBrowserRouter } from '../test-utils/router';
@@ -73,6 +73,7 @@ describe('ProfilePage', () => {
     afterEach(() => {
         vi.clearAllMocks();
         mockLogout.mockClear();
+        cleanup();
     });
 
     it('renders profile information', () => {

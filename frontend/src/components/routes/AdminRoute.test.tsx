@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import AdminRoute from './AdminRoute';
@@ -43,6 +43,7 @@ describe('AdminRoute', () => {
         vi.clearAllMocks();
         mockApiGet.mockClear();
         localStorage.clear();
+        cleanup();
     });
 
     it('renders children when user is admin', async () => {

@@ -11,6 +11,7 @@ const OAuth2RedirectHandler = () => {
     const { t } = useTranslation();
 
     useEffect(() => {
+        // Error comes via query parameters (?error=...)
         const error = searchParams.get('error');
         
         if (error) {
@@ -43,9 +44,23 @@ const OAuth2RedirectHandler = () => {
             return;
         }
 
-        // Get and decode tokens from URL parameters
-        const encodedAccessToken = searchParams.get('accessToken');
-        const encodedRefreshToken = searchParams.get('refreshToken');
+        // Tokens come via URL fragment (#accessToken=...&refreshToken=...)
+        // URL fragment is not sent to server, providing better security
+        const hash = window.location.hash;
+        if (!hash || hash.length <= 1) {
+            // No hash fragment, clear tokens and redirect with error
+            clearTokens();
+            navigate('/', { 
+                replace: true,
+                state: { error: t('auth.loginError.generalError') }
+            });
+            return;
+        }
+
+        // Parse hash fragment (remove leading #)
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const encodedAccessToken = hashParams.get('accessToken');
+        const encodedRefreshToken = hashParams.get('refreshToken');
         
         if (!encodedAccessToken || !encodedRefreshToken) {
             // Clear tokens if no valid tokens received
@@ -84,6 +99,9 @@ const OAuth2RedirectHandler = () => {
             return;
         }
 
+        // Clear hash from URL for security (tokens should not remain in browser history)
+        window.history.replaceState(null, '', window.location.pathname);
+
         // Set new tokens
         setTokens(accessToken, refreshToken);
         navigate('/', { replace: true });
@@ -92,4 +110,4 @@ const OAuth2RedirectHandler = () => {
     return null;
 };
 
-export default OAuth2RedirectHandler; 
+export default OAuth2RedirectHandler;

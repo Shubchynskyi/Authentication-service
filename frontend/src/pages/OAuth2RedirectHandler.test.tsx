@@ -35,7 +35,21 @@ vi.mock('react-i18next', () => ({
     }),
 }));
 
+// Helper to set window.location.hash
+const setLocationHash = (hash: string) => {
+    Object.defineProperty(window, 'location', {
+        value: { 
+            ...window.location,
+            hash,
+            pathname: '/oauth2/success'
+        },
+        writable: true,
+    });
+};
+
 describe('OAuth2RedirectHandler', () => {
+    const originalLocation = window.location;
+
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(tokenUtils.clearTokens).mockClear();
@@ -43,6 +57,8 @@ describe('OAuth2RedirectHandler', () => {
         mockSetTokens.mockClear();
         mockNavigate.mockClear();
         localStorage.clear();
+        // Reset location hash
+        setLocationHash('');
     });
 
     afterEach(() => {
@@ -52,6 +68,11 @@ describe('OAuth2RedirectHandler', () => {
         mockSetTokens.mockClear();
         mockNavigate.mockClear();
         localStorage.clear();
+        // Restore original location
+        Object.defineProperty(window, 'location', {
+            value: originalLocation,
+            writable: true,
+        });
     });
 
     it('handles error parameter and navigates with error message', async () => {
@@ -124,14 +145,12 @@ describe('OAuth2RedirectHandler', () => {
         const encodedAccessToken = encodeURIComponent(accessToken);
         const encodedRefreshToken = encodeURIComponent(refreshToken);
 
+        // Tokens come via URL hash fragment
+        setLocationHash(`#accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`);
         vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(true);
 
         render(
-            <TestMemoryRouter
-                initialEntries={[
-                    `/oauth2/redirect?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`,
-                ]}
-            >
+            <TestMemoryRouter initialEntries={['/oauth2/success']}>
                 <OAuth2RedirectHandler />
             </TestMemoryRouter>
         );
@@ -168,14 +187,12 @@ describe('OAuth2RedirectHandler', () => {
         const encodedAccessToken = encodeURIComponent(accessToken);
         const encodedRefreshToken = encodeURIComponent(refreshToken);
 
+        // Tokens come via URL hash fragment
+        setLocationHash(`#accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`);
         vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(false);
 
         render(
-            <TestMemoryRouter
-                initialEntries={[
-                    `/oauth2/redirect?accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`,
-                ]}
-            >
+            <TestMemoryRouter initialEntries={['/oauth2/success']}>
                 <OAuth2RedirectHandler />
             </TestMemoryRouter>
         );
@@ -190,11 +207,12 @@ describe('OAuth2RedirectHandler', () => {
     });
 
     it('handles decode error gracefully', async () => {
-        // Invalid URL encoding that will cause decode error
+        // Invalid URL encoding that will cause decode error in hash fragment
+        setLocationHash('#accessToken=%E0%A4%A&refreshToken=test');
         vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(false);
 
         render(
-            <TestMemoryRouter initialEntries={['/oauth2/redirect?accessToken=%E0%A4%A&refreshToken=test']}>
+            <TestMemoryRouter initialEntries={['/oauth2/success']}>
                 <OAuth2RedirectHandler />
             </TestMemoryRouter>
         );

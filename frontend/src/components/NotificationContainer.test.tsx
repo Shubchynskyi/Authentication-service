@@ -1,4 +1,4 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import NotificationContainer from './NotificationContainer';
 
@@ -30,6 +30,7 @@ describe('NotificationContainer', () => {
         vi.clearAllMocks();
         vi.useRealTimers();
         mockRemoveNotification.mockClear();
+        cleanup();
     });
 
     it('renders all notifications', async () => {

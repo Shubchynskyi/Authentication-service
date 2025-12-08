@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import EditProfilePage from './EditProfilePage';
 import { TestBrowserRouter } from '../test-utils/router';
@@ -128,6 +128,7 @@ describe('EditProfilePage', () => {
         mockUpdateProfile.mockClear();
         mockShowNotification.mockClear();
         mockNavigate.mockClear();
+        cleanup();
     });
 
     it('renders edit profile form', async () => {

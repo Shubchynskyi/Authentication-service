@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { vi, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import HomePage from './HomePage';
 import { TestBrowserRouter } from '../test-utils/router';
@@ -41,6 +41,7 @@ describe('HomePage', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        cleanup();
     });
 
     it('renders correctly', async () => {

@@ -74,7 +74,7 @@ jwt:
 
 password:
   validation:
-    pattern: ${PASSWORD_REGEX:^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$
+    pattern: ${PASSWORD_REGEX:^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$}
 
 access:
   mode:

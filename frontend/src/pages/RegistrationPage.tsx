@@ -15,6 +15,7 @@ import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { validatePassword } from '../utils/passwordValidation';
+import PasswordHint from '../components/PasswordHint';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -153,13 +154,7 @@ const RegistrationPage: React.FC = () => {
             helperText={passwordError || ''}
             required
           />
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ mt: 0.5, minHeight: 40 }}
-          >
-            {t('errors.passwordRequirements')}
-          </Typography>
+          <PasswordHint text={t('errors.passwordRequirements')} />
           <Button
             type="submit"
             variant="contained"

@@ -120,7 +120,11 @@
       "emailAlreadyExists": "Email is already in blacklist",
       "added": "Email added to blacklist",
       "removed": "Email removed from blacklist",
-      "invalidEmail": "Enter a valid email (must contain @)"
+      "invalidEmail": "Enter a valid email (must contain @)",
+      "reason": "Reason",
+      "userCreateWarning": "This email is in the blacklist. The user will be created but the email will be removed from the blacklist automatically.",
+      "userWillBeRemovedFromList": "After creation the email will be removed from the blacklist.",
+      "userBlockedNow": "Existing user with this email will no longer be able to log in."
     },
     "accessMode": {
       "title": "Access Control Mode",
