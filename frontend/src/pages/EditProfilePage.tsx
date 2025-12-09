@@ -12,10 +12,12 @@ import {
 import { styled } from '@mui/material/styles';
 import { useProfile } from '../context/ProfileContext';
 import { useNotification } from '../context/NotificationContext';
-import axios from 'axios';
 import { useTranslation } from 'react-i18next';
 import { validatePassword } from '../utils/passwordValidation';
 import PasswordHint from '../components/PasswordHint';
+import { validatePasswordFlow } from '../utils/passwordChecks';
+import { extractErrorMessage } from '../utils/apiError';
+import PasswordFields from '../components/PasswordFields';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -37,6 +39,7 @@ const EditProfilePage: React.FC = () => {
     const [name, setName] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
     const [newPasswordError, setNewPasswordError] = useState('');
 
     // Recalculate password error when language changes
@@ -56,16 +59,19 @@ const EditProfilePage: React.FC = () => {
     const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
 
-        if (newPassword && !currentPassword) {
-            showNotification(t('profile.notifications.currentPasswordRequired'), 'error');
-            return;
-        }
-
         if (newPassword) {
-            const passwordValidationError = validatePassword(newPassword, t);
-            if (passwordValidationError) {
-                setNewPasswordError(passwordValidationError);
-                showNotification(passwordValidationError, 'error');
+            const strengthError = validatePassword(newPassword, t);
+            const passwordCheckError = validatePasswordFlow({
+                password: newPassword,
+                confirmPassword,
+                currentPassword,
+                t,
+                requireConfirm: true,
+                requireCurrent: true,
+            });
+            if (passwordCheckError) {
+                setNewPasswordError(strengthError || '');
+                showNotification(passwordCheckError, 'error');
                 return;
             }
             setNewPasswordError('');
@@ -80,16 +86,18 @@ const EditProfilePage: React.FC = () => {
             showNotification(t('profile.notifications.updateSuccess'), 'success');
             navigate('/profile', { replace: true });
         } catch (error) {
-            if (axios.isAxiosError(error)) {
-                const msg = String(error.response?.data || '').toLowerCase();
-                if (msg.includes('incorrect current password') || msg.includes('wrong current password')) {
-                    showNotification(t('profile.notifications.incorrectCurrentPassword'), 'error');
-                } else {
-                    showNotification(t('profile.notifications.updateError'), 'error');
-                }
-            } else {
-                showNotification(t('profile.notifications.updateError'), 'error');
-            }
+            const message = extractErrorMessage(error, {
+                fallbackMessage: t('profile.notifications.updateError'),
+                transform: (raw) => {
+                    const lowered = raw.toLowerCase();
+                    if (lowered.includes('incorrect current password') || lowered.includes('wrong current password')) {
+                        return t('profile.notifications.incorrectCurrentPassword');
+                    }
+                    // For other cases, keep previous behavior: show generic updateError
+                    return t('profile.notifications.updateError');
+                },
+            });
+            showNotification(message, 'error');
         }
     };
 
@@ -107,17 +115,18 @@ const EditProfilePage: React.FC = () => {
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
             <StyledPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
-                    Edit Profile
+                    {t('profile.editTitle')}
                 </Typography>
-                <form onSubmit={handleUpdate} style={{ width: '100%' }}>
+                <form onSubmit={handleUpdate} style={{ width: '100%' }} noValidate>
                     <TextField
-                        label="Name"
+                        label={t('common.name')}
                         fullWidth
                         margin="normal"
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
                         required
+                        InputLabelProps={{ required: false }}
                     />
                     {isGoogleUser ? (
                         <Alert severity="info" sx={{ mt: 2, mb: 2 }}>
@@ -126,7 +135,7 @@ const EditProfilePage: React.FC = () => {
                     ) : (
                         <>
                             <TextField
-                                label="Current Password"
+                                label={t('common.currentPassword')}
                                 fullWidth
                                 margin="normal"
                                 type="password"
@@ -134,27 +143,26 @@ const EditProfilePage: React.FC = () => {
                                 onChange={(e) => setCurrentPassword(e.target.value)}
                                 required={!!newPassword}
                             />
-                            <TextField
-                                label="New Password (optional)"
-                                fullWidth
-                                margin="normal"
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => {
-                                    setNewPassword(e.target.value);
-                                    if (e.target.value) {
-                                        const error = validatePassword(e.target.value, t);
+                            <PasswordFields
+                                passwordLabel={`${t('common.newPassword')} (${t('common.optional')})`}
+                                confirmLabel={t('common.confirmPassword')}
+                                password={newPassword}
+                                confirmPassword={confirmPassword}
+                                onPasswordChange={(value) => {
+                                    setNewPassword(value);
+                                    if (value) {
+                                        const error = validatePassword(value, t);
                                         setNewPasswordError(error);
                                     } else {
                                         setNewPasswordError('');
                                     }
                                 }}
-                                error={!!newPasswordError}
-                                helperText={newPasswordError || ''}
+                                onConfirmPasswordChange={setConfirmPassword}
+                                passwordError={newPasswordError}
+                                passwordHelperText={newPasswordError || ''}
+                                confirmRequired={!!newPassword}
+                                renderHint={<PasswordHint text={t('errors.passwordRequirements')} />}
                             />
-
-                            {/* Static password requirements hint, always visible */}
-                            <PasswordHint text={t('errors.passwordRequirements')} />
                         </>
                     )}
                     <Button

@@ -216,11 +216,12 @@ describe('ThemeContext', () => {
 
         it('should have primary and secondary colors', () => {
             const TestThemeComponent = () => {
-                const { theme } = useTheme();
+                const { theme, toggleTheme } = useTheme();
                 return (
                     <div>
                         <div data-testid="primary-color">{theme.palette.primary.main}</div>
                         <div data-testid="secondary-color">{theme.palette.secondary.main}</div>
+                        <button data-testid="toggle-theme-colors" onClick={toggleTheme}>toggle</button>
                     </div>
                 );
             };
@@ -234,6 +235,12 @@ describe('ThemeContext', () => {
             // Check that primary and secondary colors are set
             expect(screen.getByTestId('primary-color')).toHaveTextContent('#1976d2');
             expect(screen.getByTestId('secondary-color')).toHaveTextContent('#dc004e');
+
+            const toggleButton = screen.getByTestId('toggle-theme-colors');
+            fireEvent.click(toggleButton);
+
+            expect(screen.getByTestId('primary-color')).toHaveTextContent('#80cbc4');
+            expect(screen.getByTestId('secondary-color')).toHaveTextContent('#f48fb1');
         });
     });
 

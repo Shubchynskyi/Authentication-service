@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, TextField, Button, Typography, Paper, CircularProgress } from '@mui/material';
+import { Box, Button, Typography, Paper, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import api from '../api';
-import axios from 'axios';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
 import { validatePassword } from '../utils/passwordValidation';
+import { validatePasswordFlow } from '../utils/passwordChecks';
+import { extractErrorMessage } from '../utils/apiError';
+import { getQueryParam } from '../utils/queryParams';
 import PasswordHint from '../components/PasswordHint';
+import PasswordFields from '../components/PasswordFields';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
     padding: theme.spacing(4),
@@ -40,8 +43,7 @@ const ResetPasswordPage: React.FC = () => {
     }, [i18n.language, newPassword, t]);
 
     useEffect(() => {
-        const searchParams = new URLSearchParams(location.search);
-        const tokenFromUrl = searchParams.get('token');
+        const tokenFromUrl = getQueryParam(location.search, 'token');
         if (tokenFromUrl) {
             setToken(tokenFromUrl);
         } else {
@@ -52,23 +54,19 @@ const ResetPasswordPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!newPassword) {
-            showNotification(t('errors.passwordRequired'), 'error');
-            return;
-        }
-
-        const passwordValidationError = validatePassword(newPassword, t);
-        if (passwordValidationError) {
-            setPasswordError(passwordValidationError);
-            showNotification(passwordValidationError, 'error');
+        const strengthError = newPassword ? validatePassword(newPassword, t) : '';
+        const passwordCheckError = validatePasswordFlow({
+            password: newPassword,
+            confirmPassword,
+            t,
+            requirePassword: true,
+        });
+        if (passwordCheckError) {
+            setPasswordError(strengthError || '');
+            showNotification(passwordCheckError, 'error');
             return;
         }
         setPasswordError('');
-
-        if (newPassword !== confirmPassword) {
-            showNotification(t('errors.passwordMismatch'), 'error');
-            return;
-        }
 
         setIsLoading(true);
         try {
@@ -80,16 +78,7 @@ const ResetPasswordPage: React.FC = () => {
             showNotification(t('auth.passwordResetSuccess'), 'success');
             navigate('/login', { replace: true });
         } catch (error) {
-            let message = t('common.error');
-            if (axios.isAxiosError(error) && error.response?.data) {
-                const data = error.response.data;
-                // Handle both object response {error, message} and string response
-                if (typeof data === 'object' && data.message) {
-                    message = data.message;
-                } else if (typeof data === 'string') {
-                    message = data;
-                }
-            }
+            const message = extractErrorMessage(error, { fallbackMessage: t('common.error') });
             showNotification(message, 'error');
         } finally {
             setIsLoading(false);
@@ -103,34 +92,26 @@ const ResetPasswordPage: React.FC = () => {
                     {t('common.resetPassword')}
                 </Typography>
                 <form onSubmit={handleSubmit} style={{ width: '100%' }}>
-                    <TextField
-                        label={t('common.newPassword')}
-                        fullWidth
-                        margin="normal"
-                        type="password"
-                        value={newPassword}
-                        onChange={(e) => {
-                            setNewPassword(e.target.value);
-                            if (e.target.value) {
-                                const error = validatePassword(e.target.value, t);
+                    <PasswordFields
+                        passwordLabel={t('common.newPassword')}
+                        confirmLabel={t('common.confirmPassword')}
+                        password={newPassword}
+                        confirmPassword={confirmPassword}
+                        onPasswordChange={(value) => {
+                            setNewPassword(value);
+                            if (value) {
+                                const error = validatePassword(value, t);
                                 setPasswordError(error);
                             } else {
                                 setPasswordError('');
                             }
                         }}
-                        error={!!passwordError}
-                        helperText={passwordError || ''}
-                        required
-                    />
-                    <PasswordHint text={t('errors.passwordRequirements')} />
-                    <TextField
-                        label={t('common.confirmPassword')}
-                        fullWidth
-                        margin="normal"
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        required
+                        onConfirmPasswordChange={setConfirmPassword}
+                        passwordError={passwordError}
+                        passwordHelperText={passwordError || ''}
+                        passwordRequired
+                        confirmRequired
+                        renderHint={<PasswordHint text={t('errors.passwordRequirements')} />}
                     />
                     <Button
                         type="submit"

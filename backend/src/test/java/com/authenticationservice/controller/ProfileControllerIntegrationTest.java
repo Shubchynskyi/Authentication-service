@@ -224,6 +224,21 @@ class ProfileControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return bad request when new password is provided without current password")
+    void updateProfile_shouldReturnBadRequest_whenPasswordWithoutCurrent() throws Exception {
+        ProfileUpdateRequest request = new ProfileUpdateRequest();
+        request.setName(TestConstants.TestData.UPDATED_NAME);
+        request.setPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+
+        mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
+                        .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Current password is required")));
+    }
+
+    @Test
     @DisplayName("Should return bad request when current password is incorrect")
     void updateProfile_shouldReturnBadRequest_whenCurrentPasswordIncorrect() throws Exception {
         // Arrange

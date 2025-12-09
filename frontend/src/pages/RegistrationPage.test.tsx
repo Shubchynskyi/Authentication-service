@@ -41,6 +41,8 @@ const renderRegistrationPage = () => {
     return renderWithRouter(<RegistrationPage />);
 };
 
+const getPasswordInput = () => screen.getAllByLabelText(/Password/i)[0];
+
 describe('RegistrationPage', () => {
     setupTestCleanup();
 
@@ -50,7 +52,9 @@ describe('RegistrationPage', () => {
         expect(screen.getByRole('heading', { name: /Register/i })).toBeInTheDocument();
         expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Username/i)).toBeInTheDocument();
-        expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
+        const passwordFields = screen.getAllByLabelText(/Password/i);
+        expect(passwordFields.length).toBeGreaterThanOrEqual(2);
+        expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Register/i })).toBeInTheDocument();
     });
 
@@ -105,11 +109,13 @@ describe('RegistrationPage', () => {
 
         const emailInput = screen.getByLabelText(/Email/i);
         const usernameInput = screen.getByLabelText(/Username/i);
-        const passwordInput = screen.getByLabelText(/Password/i);
+        const passwordInput = getPasswordInput();
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
         fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
         fireEvent.change(usernameInput, { target: { value: 'New User' } });
         fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Password123@' } });
 
         const submitButton = screen.getByRole('button', { name: /Register/i });
         fireEvent.click(submitButton);
@@ -132,7 +138,7 @@ describe('RegistrationPage', () => {
     it('shows password validation error for invalid password', async () => {
         renderRegistrationPage();
 
-        const passwordInput = screen.getByLabelText(/Password/i);
+        const passwordInput = getPasswordInput();
         fireEvent.change(passwordInput, { target: { value: 'weak' } });
 
         await waitFor(() => {
@@ -154,11 +160,13 @@ describe('RegistrationPage', () => {
 
         const emailInput = screen.getByLabelText(/Email/i);
         const usernameInput = screen.getByLabelText(/Username/i);
-        const passwordInput = screen.getByLabelText(/Password/i);
+        const passwordInput = getPasswordInput();
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
         fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
         fireEvent.change(usernameInput, { target: { value: 'User' } });
         fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Password123@' } });
 
         const submitButton = screen.getByRole('button', { name: /Register/i });
         fireEvent.click(submitButton);
@@ -184,11 +192,13 @@ describe('RegistrationPage', () => {
 
         const emailInput = screen.getByLabelText(/Email/i);
         const usernameInput = screen.getByLabelText(/Username/i);
-        const passwordInput = screen.getByLabelText(/Password/i);
+        const passwordInput = getPasswordInput();
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
         fireEvent.change(emailInput, { target: { value: 'notwhitelisted@example.com' } });
         fireEvent.change(usernameInput, { target: { value: 'User' } });
         fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Password123@' } });
 
         const submitButton = screen.getByRole('button', { name: /Register/i });
         fireEvent.click(submitButton);
@@ -216,11 +226,13 @@ describe('RegistrationPage', () => {
 
         const emailInput = screen.getByLabelText(/Email/i);
         const usernameInput = screen.getByLabelText(/Username/i);
-        const passwordInput = screen.getByLabelText(/Password/i);
+        const passwordInput = getPasswordInput();
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
         fireEvent.change(emailInput, { target: { value: 'blocked@example.com' } });
         fireEvent.change(usernameInput, { target: { value: 'User' } });
         fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Password123@' } });
 
         const submitButton = screen.getByRole('button', { name: /Register/i });
         fireEvent.click(submitButton);
@@ -233,6 +245,27 @@ describe('RegistrationPage', () => {
                 alert.textContent?.includes('Registration is forbidden')
             );
             expect(blacklistAlert).toBeInTheDocument();
+        }, { timeout: 5000 });
+    });
+
+    it('shows error when passwords do not match', async () => {
+        renderRegistrationPage();
+
+        const emailInput = screen.getByLabelText(/Email/i);
+        const usernameInput = screen.getByLabelText(/Username/i);
+        const passwordInput = getPasswordInput();
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+
+        fireEvent.change(emailInput, { target: { value: 'newuser@example.com' } });
+        fireEvent.change(usernameInput, { target: { value: 'New User' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Different123@' } });
+
+        const submitButton = screen.getByRole('button', { name: /Register/i });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockShowNotification).toHaveBeenCalledWith('Passwords do not match', 'error');
         }, { timeout: 5000 });
     });
 

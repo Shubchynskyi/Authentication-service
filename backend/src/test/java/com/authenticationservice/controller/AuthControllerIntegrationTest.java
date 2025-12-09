@@ -10,10 +10,12 @@ import com.authenticationservice.dto.ResetPasswordRequest;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.AllowedEmail;
+import com.authenticationservice.model.BlockedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AccessModeSettingsRepository;
 import com.authenticationservice.repository.AllowedEmailRepository;
+import com.authenticationservice.repository.BlockedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
@@ -91,6 +93,9 @@ class AuthControllerIntegrationTest {
     private AllowedEmailRepository allowedEmailRepository;
 
     @Autowired
+    private BlockedEmailRepository blockedEmailRepository;
+
+    @Autowired
     private AccessModeSettingsRepository accessModeSettingsRepository;
 
     @Autowired
@@ -108,6 +113,25 @@ class AuthControllerIntegrationTest {
     private User testUser;
     private Role userRole;
 
+    private void setAccessMode(AccessMode mode) {
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            AccessModeSettings settings = accessModeSettingsRepository.findById(1L)
+                    .orElseGet(() -> {
+                        AccessModeSettings s = new AccessModeSettings();
+                        s.setId(1L);
+                        return s;
+                    });
+            settings.setMode(mode);
+            accessModeSettingsRepository.save(settings);
+            accessModeSettingsRepository.flush();
+            return null;
+        });
+        // Clear caches of access mode service if any (ensures fresh mode for next call)
+        entityManager.flush();
+        entityManager.clear();
+    }
+
     @BeforeEach
     void setUp() {
         // Use TransactionTemplate to explicitly commit transaction
@@ -118,6 +142,8 @@ class AuthControllerIntegrationTest {
             userRepository.flush();
             allowedEmailRepository.deleteAll();
             allowedEmailRepository.flush();
+            blockedEmailRepository.deleteAll();
+            blockedEmailRepository.flush();
             // Don't delete roles - DatabaseInitializer creates them on startup
             // Find existing roles or create if they don't exist
             userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
@@ -138,6 +164,10 @@ class AuthControllerIntegrationTest {
             if (accessModeSettingsRepository.findById(1L).isEmpty()) {
                 AccessModeSettings settings = new AccessModeSettings();
                 settings.setId(1L);
+                settings.setMode(AccessMode.WHITELIST);
+                accessModeSettingsRepository.save(settings);
+            } else {
+                AccessModeSettings settings = accessModeSettingsRepository.findById(1L).orElseThrow();
                 settings.setMode(AccessMode.WHITELIST);
                 accessModeSettingsRepository.save(settings);
             }
@@ -231,6 +261,55 @@ class AuthControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("whitelist")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when email is blacklisted in BLACKLIST mode")
+    void register_shouldReturnBadRequest_whenEmailInBlacklistInBlacklistMode() throws Exception {
+        // Arrange
+        setAccessMode(AccessMode.BLACKLIST);
+
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            BlockedEmail blockedEmail = new BlockedEmail();
+            blockedEmail.setEmail(TestConstants.TestData.NEW_USER_EMAIL);
+            blockedEmailRepository.save(blockedEmail);
+            blockedEmailRepository.flush();
+            entityManager.flush();
+            entityManager.clear();
+            return null;
+        });
+
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail(TestConstants.TestData.NEW_USER_EMAIL);
+        request.setName(TestConstants.TestData.NEW_USER_NAME);
+        request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("blacklist")));
+    }
+
+    @Test
+    @DisplayName("Should register successfully in BLACKLIST mode when email not blocked")
+    void register_shouldSucceed_inBlacklistMode_whenEmailNotBlocked() throws Exception {
+        // Arrange
+        setAccessMode(AccessMode.BLACKLIST);
+
+        RegistrationRequest request = new RegistrationRequest();
+        request.setEmail("blacklist-allowed@example.com");
+        request.setName(TestConstants.TestData.NEW_USER_NAME);
+        request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Check your email")));
     }
 
     @Test
@@ -333,6 +412,50 @@ class AuthControllerIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Password must be at least 8 characters")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when passwords do not match during reset")
+    void resetPassword_shouldReturnBadRequest_whenPasswordsDoNotMatch() throws Exception {
+        // Arrange
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        String resetToken = transactionTemplate.execute(status -> {
+            String token = java.util.UUID.randomUUID().toString();
+            testUser.setResetPasswordToken(token);
+            testUser.setResetPasswordTokenExpiry(java.time.LocalDateTime.now().plusHours(1));
+            userRepository.save(testUser);
+            userRepository.flush();
+            return token;
+        });
+
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken(resetToken);
+        request.setNewPassword(TestConstants.TestData.NEW_PASSWORD_VALUE);
+        request.setConfirmPassword("Different123@");
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESET_PASSWORD_URL)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("do not match")));
+    }
+
+    @Test
+    @DisplayName("Should return bad request when reset fields are missing")
+    void resetPassword_shouldReturnBadRequest_whenFieldsMissing() throws Exception {
+        // Arrange
+        ResetPasswordRequest request = new ResetPasswordRequest();
+        request.setToken("");
+        request.setNewPassword("");
+        request.setConfirmPassword("");
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESET_PASSWORD_URL)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("required")));
     }
 
     @Test

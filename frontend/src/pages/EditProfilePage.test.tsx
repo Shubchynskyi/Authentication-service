@@ -79,10 +79,13 @@ vi.mock('react-i18next', () => ({
         t: (key: string) => {
             const translations: Record<string, string> = {
                 'profile.editTitle': 'Edit Profile',
+                'common.name': 'Name',
                 'common.username': 'Username',
                 'common.email': 'Email',
                 'common.password': 'Password',
+                'common.currentPassword': 'Current Password',
                 'common.newPassword': 'New Password',
+                'common.optional': 'optional',
                 'common.confirmPassword': 'Confirm Password',
                 'common.save': 'Save',
                 'common.cancel': 'Cancel',
@@ -91,6 +94,7 @@ vi.mock('react-i18next', () => ({
                 'profile.googleAuthInfo': 'Password change is not available for Google-authenticated accounts',
                 'errors.requiredField': 'This field is required',
                 'errors.passwordMismatch': 'Passwords do not match',
+                'errors.confirmPasswordRequired': 'Confirm password is required',
                 'errors.passwordRequirements': 'Password requirements',
                 'profile.notifications.currentPasswordRequired': 'Enter current password to change password',
                 'profile.notifications.updateSuccess': 'Profile updated successfully',
@@ -194,6 +198,7 @@ describe('EditProfilePage', () => {
 
         expect(screen.getByLabelText(/Current Password/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/New Password \(optional\)/i)).toBeInTheDocument();
+        expect(screen.getByLabelText(/Confirm Password/i)).toBeInTheDocument();
     });
 
     it('validates password when new password is entered', async () => {
@@ -241,6 +246,50 @@ describe('EditProfilePage', () => {
         }, { timeout: 5000 });
     });
 
+    it('shows error when confirm password is missing for new password', async () => {
+        renderEditProfilePage();
+
+        const nameInput = await screen.findByLabelText(/^Name/i);
+        const currentPasswordInput = screen.getByLabelText(/Current Password/i);
+        const newPasswordInput = screen.getByLabelText(/New Password \(optional\)/i);
+        const submitButton = screen.getByRole('button', { name: /Save/i });
+
+        fireEvent.change(nameInput, { target: { value: 'Updated Name' } });
+        fireEvent.change(currentPasswordInput, { target: { value: 'OldPassword123@' } });
+        fireEvent.change(newPasswordInput, { target: { value: 'NewPassword123@' } });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                'Confirm password is required',
+                'error'
+            );
+        }, { timeout: 5000 });
+    });
+
+    it('shows error when confirm password does not match', async () => {
+        renderEditProfilePage();
+
+        const nameInput = await screen.findByLabelText(/^Name/i);
+        const currentPasswordInput = screen.getByLabelText(/Current Password/i);
+        const newPasswordInput = screen.getByLabelText(/New Password \(optional\)/i);
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
+        const submitButton = screen.getByRole('button', { name: /Save/i });
+
+        fireEvent.change(nameInput, { target: { value: 'Updated Name' } });
+        fireEvent.change(currentPasswordInput, { target: { value: 'OldPassword123@' } });
+        fireEvent.change(newPasswordInput, { target: { value: 'NewPassword123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Mismatch123@' } });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                'Passwords do not match',
+                'error'
+            );
+        }, { timeout: 5000 });
+    });
+
     it('updates profile with name only', async () => {
         renderEditProfilePage();
 
@@ -276,11 +325,13 @@ describe('EditProfilePage', () => {
         const nameInput = await screen.findByLabelText(/^Name/i);
         const currentPasswordInput = screen.getByLabelText(/Current Password/i);
         const newPasswordInput = screen.getByLabelText(/New Password \(optional\)/i);
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
         const submitButton = screen.getByRole('button', { name: /Save/i });
 
         fireEvent.change(nameInput, { target: { value: 'Updated Name' } });
         fireEvent.change(currentPasswordInput, { target: { value: 'OldPassword123@' } });
         fireEvent.change(newPasswordInput, { target: { value: 'NewPassword123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'NewPassword123@' } });
         fireEvent.click(submitButton);
 
         await waitFor(() => {
@@ -304,11 +355,13 @@ describe('EditProfilePage', () => {
         const nameInput = await screen.findByLabelText(/^Name/i);
         const currentPasswordInput = screen.getByLabelText(/Current Password/i);
         const newPasswordInput = screen.getByLabelText(/New Password \(optional\)/i);
+        const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
         const submitButton = screen.getByRole('button', { name: /Save/i });
 
         fireEvent.change(nameInput, { target: { value: 'Updated Name' } });
         fireEvent.change(currentPasswordInput, { target: { value: 'WrongPassword123@' } });
         fireEvent.change(newPasswordInput, { target: { value: 'NewPassword123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'NewPassword123@' } });
         
         const form = submitButton.closest('form');
         if (form) {

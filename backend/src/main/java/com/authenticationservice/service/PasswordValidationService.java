@@ -22,8 +22,9 @@ public class PasswordValidationService {
      * @return true if password is valid, false otherwise
      */
     public boolean isValid(String password) {
-        if (password == null) {
-            return true; // Let @NotNull handle null validation
+        if (password == null || password.isBlank()) {
+            // Allow null/blank when password is optional; other constraints handle required cases
+            return true;
         }
         
         String pattern = passwordValidationConfig.getPattern();

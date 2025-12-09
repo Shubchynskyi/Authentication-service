@@ -86,6 +86,7 @@ public class GlobalExceptionHandler {
                 message.contains("already exists") ||
                 message.contains("not found") ||
                 message.contains("not in whitelist") ||
+                message.contains("blacklist") ||
                 message.contains("already in whitelist") ||
                 message.contains("Role not found") ||
                 message.contains("Insufficient permissions") ||

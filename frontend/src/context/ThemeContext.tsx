@@ -16,14 +16,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         return savedTheme ? savedTheme === 'dark' : false;
     });
 
+    const primaryMain = isDarkMode ? '#80cbc4' : '#1976d2';
+    const secondaryMain = isDarkMode ? '#f48fb1' : '#dc004e';
+
     const theme = createTheme({
         palette: {
             mode: isDarkMode ? 'dark' : 'light',
             primary: {
-                main: '#1976d2',
+                main: primaryMain,
             },
             secondary: {
-                main: '#dc004e',
+                main: secondaryMain,
             },
             background: {
                 default: isDarkMode ? '#303030' : '#f5f5f5',
@@ -36,6 +39,13 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     root: {
                         backgroundColor: isDarkMode ? '#424242' : '#ffffff',
                         color: isDarkMode ? '#ffffff' : '#000000',
+                    },
+                },
+            },
+            MuiLink: {
+                styleOverrides: {
+                    root: {
+                        color: primaryMain,
                     },
                 },
             },

@@ -62,4 +62,9 @@ This project is a full-stack authentication and user profile management solution
    - Provides additional protection against automated attacks and casual intruders
    - The real login endpoint would be accessible via a secret path or specific link
 
+3. **Domain-Specific Handling for Whitelist Violations**
+   - Replace generic `RuntimeException` with a dedicated `EmailNotWhitelistedException`
+   - Map the exception to a consistent HTTP response (e.g., 403/400) via a global handler with a standardized error code/message
+   - Keep user-facing messages and error codes centralized (config/constants) to avoid hardcoded strings and simplify localization
+
 

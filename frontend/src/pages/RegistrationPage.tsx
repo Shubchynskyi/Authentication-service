@@ -15,7 +15,10 @@ import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { validatePassword } from '../utils/passwordValidation';
+import { validatePasswordFlow } from '../utils/passwordChecks';
+import { extractErrorMessage } from '../utils/apiError';
 import PasswordHint from '../components/PasswordHint';
+import PasswordFields from '../components/PasswordFields';
 
 const StyledPaper = styled(Paper)(({ theme }) => ({
   padding: theme.spacing(4),
@@ -35,6 +38,7 @@ const RegistrationPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -67,12 +71,18 @@ const RegistrationPage: React.FC = () => {
       showNotification(t('errors.passwordRequired'), 'error');
       return;
     }
-
-    const passwordValidationError = validatePassword(password, t);
-    if (passwordValidationError) {
+    const strengthError = validatePassword(password, t);
+    const passwordCheckError = validatePasswordFlow({
+      password,
+      confirmPassword,
+      t,
+      requirePassword: true,
+      requireConfirm: true,
+    });
+    if (passwordCheckError) {
       setIsLoading(false);
-      setPasswordError(passwordValidationError);
-      showNotification(passwordValidationError, 'error');
+      setPasswordError(strengthError || '');
+      showNotification(passwordCheckError, 'error');
       return;
     }
     setPasswordError('');
@@ -87,23 +97,17 @@ const RegistrationPage: React.FC = () => {
       navigate('/verify', { state: { email: email } });
     } catch (err) {
       setMessageType('error');
-      if (axios.isAxiosError(err)) {
-        if (err.response?.data) {
-          const errorData = String(err.response.data);
-          // Check if error message contains whitelist error
-          if (errorData.includes('not in whitelist') || errorData.includes('whitelist')) {
-            setMessage(t('auth.loginError.notInWhitelist'));
-          } else {
-            setMessage(errorData);
+      const message = extractErrorMessage(err, {
+        fallbackMessage: t('auth.loginError.serverError'),
+        transform: (raw) => {
+          const lowered = raw.toLowerCase();
+          if (lowered.includes('not in whitelist') || lowered.includes('whitelist')) {
+            return t('auth.loginError.notInWhitelist');
           }
-        } else if (err.message) {
-          setMessage(err.message);
-        } else {
-          setMessage(t('auth.loginError.serverError'));
-        }
-      } else {
-        setMessage(t('auth.loginError.serverError'));
-      }
+          return raw;
+        },
+      });
+      setMessage(message);
       console.error('Registration error:', err);
     } finally {
       setIsLoading(false);
@@ -135,26 +139,27 @@ const RegistrationPage: React.FC = () => {
             onChange={e => setName(e.target.value)}
             required
           />
-          <TextField
-            label={t('common.password')}
-            fullWidth
-            margin="normal"
-            type="password"
-            value={password}
-            onChange={e => {
-              setPassword(e.target.value);
-              if (e.target.value) {
-                const error = validatePassword(e.target.value, t);
+          <PasswordFields
+            passwordLabel={t('common.password')}
+            confirmLabel={t('common.confirmPassword')}
+            password={password}
+            confirmPassword={confirmPassword}
+            onPasswordChange={(value) => {
+              setPassword(value);
+              if (value) {
+                const error = validatePassword(value, t);
                 setPasswordError(error);
               } else {
                 setPasswordError('');
               }
             }}
-            error={!!passwordError}
-            helperText={passwordError || ''}
-            required
+            onConfirmPasswordChange={setConfirmPassword}
+            passwordError={passwordError}
+            passwordHelperText={passwordError || ''}
+            passwordRequired
+            confirmRequired
+            renderHint={<PasswordHint text={t('errors.passwordRequirements')} />}
           />
-          <PasswordHint text={t('errors.passwordRequirements')} />
           <Button
             type="submit"
             variant="contained"
