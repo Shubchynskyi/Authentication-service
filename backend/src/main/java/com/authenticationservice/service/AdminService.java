@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 
 import com.authenticationservice.dto.AccessListUpdateResponse;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
@@ -36,6 +38,7 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.BlockedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
+import com.authenticationservice.util.EmailUtils;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,25 +60,35 @@ public class AdminService {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final EmailService emailService;
+    private final MessageSource messageSource;
 
     @Value("${frontend.url}")
     private String frontendUrl;
+
+    private String normalizeEmail(String email) {
+        return EmailUtils.normalize(email);
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+    }
 
     public void addToWhitelist(String email) {
         addToWhitelist(email, null);
     }
 
     public void addToWhitelist(String email, String reason) {
-        if (allowedEmailRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email already exists in whitelist");
+        String normalizedEmail = normalizeEmail(email);
+        if (allowedEmailRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new RuntimeException(getMessage("email.duplicate.whitelist"));
         }
         String normalizedReason = reason != null ? reason.trim() : "";
-        AllowedEmail allowedEmail = new AllowedEmail(email, normalizedReason.isEmpty() ? null : normalizedReason);
+        AllowedEmail allowedEmail = new AllowedEmail(normalizedEmail, normalizedReason.isEmpty() ? null : normalizedReason);
         allowedEmailRepository.save(allowedEmail);
-        log.info("Email added to whitelist: {}", email);
+        log.info("Email added to whitelist: {}", normalizedEmail);
         
         // Log the change
-        logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, email, 
+        logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, normalizedEmail, 
                 AccessListChangeLog.AccessListAction.ADD, normalizedReason);
     }
 
@@ -84,37 +97,39 @@ public class AdminService {
     }
 
     public void removeFromWhitelist(String email, String reason) {
-        AllowedEmail existing = allowedEmailRepository.findByEmail(email)
+        String normalizedEmail = normalizeEmail(email);
+        AllowedEmail existing = allowedEmailRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Email not found in whitelist"));
         allowedEmailRepository.delete(existing);
-        log.info("Email removed from whitelist: {}", email);
+        log.info("Email removed from whitelist: {}", normalizedEmail);
         
         // Log the change
-        logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, email, 
+        logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, normalizedEmail, 
                 AccessListChangeLog.AccessListAction.REMOVE, reason);
     }
 
     public AccessListUpdateResponse addToBlacklist(String email, String reason) {
-        if (blockedEmailRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("Email already exists in blacklist");
+        String normalizedEmail = normalizeEmail(email);
+        if (blockedEmailRepository.findByEmail(normalizedEmail).isPresent()) {
+            throw new RuntimeException(getMessage("email.duplicate.blacklist"));
         }
         String normalizedReason = reason != null ? reason.trim() : "";
-        BlockedEmail blockedEmail = new BlockedEmail(email, normalizedReason.isEmpty() ? null : normalizedReason);
+        BlockedEmail blockedEmail = new BlockedEmail(normalizedEmail, normalizedReason.isEmpty() ? null : normalizedReason);
         blockedEmailRepository.save(blockedEmail);
-        log.info("Email added to blacklist: {}", email);
+        log.info("Email added to blacklist: {}", normalizedEmail);
         
         boolean userBlocked = false;
-        if (userRepository.findByEmail(email).isPresent()) {
-            User existingUser = userRepository.findByEmail(email).orElseThrow();
+        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+            User existingUser = userRepository.findByEmail(normalizedEmail).orElseThrow();
             existingUser.setBlocked(true);
             existingUser.setBlockReason(normalizedReason.isEmpty() ? "Email is blacklisted" : normalizedReason);
             userRepository.save(existingUser);
             userBlocked = true;
-            log.info("Existing user {} marked as blocked due to blacklist", email);
+            log.info("Existing user {} marked as blocked due to blacklist", normalizedEmail);
         }
 
         // Log the change
-        logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, email, 
+        logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, normalizedEmail, 
                 AccessListChangeLog.AccessListAction.ADD, reason);
 
         String message = userBlocked
@@ -124,13 +139,14 @@ public class AdminService {
     }
 
     public void removeFromBlacklist(String email, String reason) {
-        BlockedEmail existing = blockedEmailRepository.findByEmail(email)
+        String normalizedEmail = normalizeEmail(email);
+        BlockedEmail existing = blockedEmailRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Email not found in blacklist"));
         blockedEmailRepository.delete(existing);
-        log.info("Email removed from blacklist: {}", email);
+        log.info("Email removed from blacklist: {}", normalizedEmail);
         
         // Log the change
-        logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, email, 
+        logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, normalizedEmail, 
                 AccessListChangeLog.AccessListAction.REMOVE, reason);
     }
 
@@ -165,14 +181,16 @@ public class AdminService {
 
     @Transactional
     public void createUser(AdminUpdateUserRequest request) {
-        log.info("Starting user creation process for email: {}", request.getEmail());
+        String normalizedEmail = normalizeEmail(request.getEmail());
+        request.setEmail(normalizedEmail);
+        log.info("Starting user creation process for email: {}", normalizedEmail);
         
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new RuntimeException("User with this email already exists");
         }
 
         User user = new User();
-        user.setEmail(request.getEmail());
+        user.setEmail(normalizedEmail);
         user.setName(request.getUsername());
         
         // Generate temporary password and verification token
@@ -265,10 +283,12 @@ public class AdminService {
         }
         if (request.getEmail() != null && !request.getEmail().isBlank() &&
                 !request.getEmail().equalsIgnoreCase(user.getEmail())) {
-            if (userRepository.existsByEmail(request.getEmail())) {
+            String normalizedEmail = normalizeEmail(request.getEmail());
+            request.setEmail(normalizedEmail);
+            if (userRepository.existsByEmail(normalizedEmail)) {
                 throw new RuntimeException("User with this email already exists");
             }
-            user.setEmail(request.getEmail());
+            user.setEmail(normalizedEmail);
         }
 
         // Handle blocking/unblocking and timestamps
@@ -312,7 +332,8 @@ public class AdminService {
     }
 
     public boolean verifyAdminPassword(String email, String password) {
-        User user = userRepository.findByEmail(email)
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // Check if user is admin
@@ -378,13 +399,14 @@ public class AdminService {
     @Transactional
     public void changeAccessMode(AccessMode newMode, String adminEmail, String adminPassword, 
                                  String otpCode, String reason) {
+        String normalizedAdminEmail = normalizeEmail(adminEmail);
         // Verify admin password
-        if (!verifyAdminPassword(adminEmail, adminPassword)) {
+        if (!verifyAdminPassword(normalizedAdminEmail, adminPassword)) {
             throw new RuntimeException("Invalid admin password");
         }
 
         // Verify OTP
-        if (!otpService.validateOtp(adminEmail, otpCode)) {
+        if (!otpService.validateOtp(normalizedAdminEmail, otpCode)) {
             throw new RuntimeException("Invalid or expired OTP code");
         }
 
@@ -403,7 +425,7 @@ public class AdminService {
         // Update settings
         settings.setMode(newMode);
         settings.setUpdatedAt(LocalDateTime.now());
-        settings.setUpdatedBy(adminEmail);
+        settings.setUpdatedBy(normalizedAdminEmail);
         settings.setReason(reason);
         accessModeSettingsRepository.save(settings);
 
@@ -411,12 +433,12 @@ public class AdminService {
         AccessModeChangeLog changeLog = new AccessModeChangeLog();
         changeLog.setOldMode(oldMode);
         changeLog.setNewMode(newMode);
-        changeLog.setChangedBy(adminEmail);
+        changeLog.setChangedBy(normalizedAdminEmail);
         changeLog.setChangedAt(LocalDateTime.now());
         changeLog.setReason(reason);
         accessModeChangeLogRepository.save(changeLog);
 
-        log.info("Access mode changed from {} to {} by {} (reason: {})", oldMode, newMode, adminEmail, reason);
+        log.info("Access mode changed from {} to {} by {} (reason: {})", oldMode, newMode, normalizedAdminEmail, reason);
     }
 
     /**
@@ -425,7 +447,8 @@ public class AdminService {
      * @param adminEmail Admin email
      */
     public void sendModeChangeOtp(String adminEmail) {
-        String otp = otpService.generateOtp(adminEmail);
+        String normalizedAdminEmail = normalizeEmail(adminEmail);
+        String otp = otpService.generateOtp(normalizedAdminEmail);
         
         String emailContent = String.format(
                 "You requested to change access mode.\n\n" +
@@ -434,8 +457,8 @@ public class AdminService {
                 "If you did not request this change, please ignore this email.",
                 otp);
         
-        emailService.sendEmail(adminEmail, "Access Mode Change - OTP Code", emailContent);
-        log.info("OTP sent to admin email: {}", adminEmail);
+        emailService.sendEmail(normalizedAdminEmail, "Access Mode Change - OTP Code", emailContent);
+        log.info("OTP sent to admin email: {}", normalizedAdminEmail);
     }
 
     /**

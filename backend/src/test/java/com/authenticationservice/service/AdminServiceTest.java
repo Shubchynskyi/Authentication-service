@@ -24,9 +24,11 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.context.MessageSource;
 
 import java.util.*;
 import java.util.HashSet;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -67,6 +69,9 @@ class AdminServiceTest {
     private EmailService emailService;
 
     @Mock
+    private MessageSource messageSource;
+
+    @Mock
     private SecurityContext securityContext;
 
     @Mock
@@ -96,6 +101,8 @@ class AdminServiceTest {
 
         // Setup service configuration
         ReflectionTestUtils.setField(adminService, "frontendUrl", TestConstants.Urls.FRONTEND_URL);
+        lenient().when(messageSource.getMessage(anyString(), isNull(), any(Locale.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         
         // Mock accessListChangeLogRepository to avoid NullPointerException (lenient because not all tests use it)
         lenient().when(accessListChangeLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
@@ -266,11 +273,32 @@ class AdminServiceTest {
             AllowedEmail existing = new AllowedEmail(email);
             when(allowedEmailRepository.findByEmail(email))
                     .thenReturn(Optional.of(existing));
+            when(messageSource.getMessage(eq("email.duplicate.whitelist"), isNull(), any(Locale.class)))
+                    .thenReturn(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST);
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class, 
                 () -> adminService.addToWhitelist(email));
             assertEquals(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST, ex.getMessage());
+        }
+
+        @Test
+        @DisplayName("Should normalize email before adding to whitelist")
+        void addToWhitelist_shouldNormalizeEmail_beforeSaving() {
+            // Arrange
+            String mixedCaseEmail = "User@Example.COM";
+            String normalizedEmail = mixedCaseEmail.toLowerCase(Locale.ROOT);
+            when(allowedEmailRepository.findByEmail(normalizedEmail))
+                    .thenReturn(Optional.empty());
+            when(allowedEmailRepository.save(any(AllowedEmail.class)))
+                    .thenAnswer(invocation -> invocation.getArgument(0));
+
+            // Act
+            assertDoesNotThrow(() -> adminService.addToWhitelist(mixedCaseEmail));
+
+            // Assert
+            verify(allowedEmailRepository).findByEmail(normalizedEmail);
+            verify(allowedEmailRepository).save(argThat(allowed -> normalizedEmail.equals(allowed.getEmail())));
         }
 
         @Test

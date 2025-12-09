@@ -23,6 +23,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.ArgumentCaptor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -156,6 +157,37 @@ class AuthServiceTest {
                         verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         verify(userRepository).save(any(User.class));
                         verify(mailSender).send(any(SimpleMailMessage.class));
+                }
+
+                @Test
+                @DisplayName("Should normalize email before registration checks")
+                void register_shouldNormalizeEmail_beforeChecks() {
+                        // Arrange
+                        RegistrationRequest request = createRegistrationRequest();
+                        String mixedCaseEmail = "User@Example.COM";
+                        String normalizedEmail = mixedCaseEmail.toLowerCase();
+                        request.setEmail(mixedCaseEmail);
+                        Role userRole = createUserRole();
+
+                        doNothing().when(accessControlService).checkRegistrationAccess(normalizedEmail);
+                        when(userRepository.findByEmail(normalizedEmail))
+                                        .thenReturn(Optional.empty());
+                        when(roleRepository.findByName(SecurityConstants.ROLE_USER))
+                                        .thenReturn(Optional.of(userRole));
+                        when(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD))
+                                        .thenReturn(TestConstants.UserData.ENCODED_PASSWORD);
+                        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+                        when(userRepository.save(userCaptor.capture()))
+                                        .thenAnswer(invocation -> invocation.getArgument(0));
+
+                        // Act
+                        authService.register(request);
+
+                        // Assert
+                        assertEquals(normalizedEmail, request.getEmail());
+                        User savedUser = userCaptor.getValue();
+                        assertEquals(normalizedEmail, savedUser.getEmail());
+                        verify(accessControlService).checkRegistrationAccess(normalizedEmail);
                 }
 
                 @Test
@@ -318,6 +350,34 @@ class AuthServiceTest {
         @Nested
         @DisplayName("Authentication Tests")
         class AuthenticationTests {
+                @Test
+                @DisplayName("Should normalize email before login lookup")
+                void login_shouldNormalizeEmail_beforeLookup() {
+                        // Arrange
+                        String mixedCaseEmail = "Test@Example.COM";
+                        loginRequest.setEmail(mixedCaseEmail);
+                        when(userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL))
+                                        .thenReturn(Optional.of(testUser));
+                        when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
+                                        .thenReturn(true);
+                        when(jwtTokenProvider.generateAccessToken(any(User.class)))
+                                        .thenReturn(TestConstants.Tokens.ACCESS_TOKEN);
+                        when(jwtTokenProvider.generateRefreshToken(any(User.class)))
+                                        .thenReturn(TestConstants.Tokens.REFRESH_TOKEN);
+                        when(userRepository.save(any(User.class)))
+                                        .thenReturn(testUser);
+                        doNothing().when(accessControlService).checkLoginAccess(TestConstants.UserData.TEST_EMAIL);
+
+                        // Act
+                        Map<String, String> tokens = authService.login(loginRequest);
+
+                        // Assert
+                        assertEquals(TestConstants.UserData.TEST_EMAIL, loginRequest.getEmail());
+                        assertNotNull(tokens);
+                        verify(userRepository).findByEmail(TestConstants.UserData.TEST_EMAIL);
+                        verify(accessControlService).checkLoginAccess(TestConstants.UserData.TEST_EMAIL);
+                }
+
                 @Test
                 @DisplayName("Should return tokens when credentials are valid")
                 void login_shouldReturnTokens_whenCredentialsValid() {
