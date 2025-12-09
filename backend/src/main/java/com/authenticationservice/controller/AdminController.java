@@ -14,6 +14,7 @@ import com.authenticationservice.dto.AccessListUpdateResponse;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.BlockedEmailDTO;
+import com.authenticationservice.dto.PagedResponse;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.dto.UpdateUserRolesRequest;
 import com.authenticationservice.model.AccessMode;
@@ -46,11 +47,19 @@ public class AdminController {
     }
 
     @GetMapping(ApiConstants.USERS_URL)
-    public ResponseEntity<Page<UserDTO>> getAllUsers(
+    public ResponseEntity<PagedResponse<UserDTO>> getAllUsers(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String search) {
-        return ResponseEntity.ok(adminService.getAllUsers(PageRequest.of(page, size), search));
+        Page<UserDTO> usersPage = adminService.getAllUsers(PageRequest.of(page, size), search);
+        PagedResponse<UserDTO> response = new PagedResponse<>(
+                usersPage.getContent(),
+                usersPage.getNumber(),
+                usersPage.getSize(),
+                usersPage.getTotalElements(),
+                usersPage.getTotalPages()
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping(ApiConstants.USERS_URL)

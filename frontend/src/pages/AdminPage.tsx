@@ -904,7 +904,12 @@ const AdminPage = () => {
                 <DialogTitle>{t('admin.blacklist.warningTitle')}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 2 }}>
-                        <Typography gutterBottom color="warning.main" fontWeight="bold">
+                        <Typography
+                            gutterBottom
+                            color="warning.main"
+                            fontWeight="bold"
+                            sx={{ textAlign: 'center', whiteSpace: 'pre-line' }}
+                        >
                             ⚠️ {t('admin.blacklist.warningMessage')}
                         </Typography>
                         <Typography variant="body2" sx={{ mt: 2 }}>

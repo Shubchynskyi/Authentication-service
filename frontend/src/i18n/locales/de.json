@@ -124,7 +124,7 @@
       "userWillBeRemovedFromList": "Nach der Erstellung wird die E-Mail aus der Blacklist entfernt.",
       "userBlockedNow": "Ein bestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden.",
       "warningTitle": "Warnung",
-      "warningMessage": "Achtung! Bestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden!",
+      "warningMessage": "Achtung!\nBestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden!",
       "warningDetails": "Das Hinzufügen der E-Mail zur Blacklist blockiert die Anmeldung für den Benutzer, falls dieser bereits existiert. Sind Sie sicher, dass Sie fortfahren möchten?"
     },
     "accessMode": {

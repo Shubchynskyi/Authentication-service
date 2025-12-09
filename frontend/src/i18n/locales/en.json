@@ -130,7 +130,7 @@
       "userWillBeRemovedFromList": "After creation the email will be removed from the blacklist.",
       "userBlockedNow": "Existing user with this email will no longer be able to log in.",
       "warningTitle": "Warning",
-      "warningMessage": "Warning! Existing user with this email will no longer be able to log in!",
+      "warningMessage": "Warning!\nExisting user with this email will no longer be able to log in!",
       "warningDetails": "Adding email to blacklist will block login for the user if they already exist. Are you sure you want to continue?"
     },
     "accessMode": {

@@ -67,4 +67,16 @@ This project is a full-stack authentication and user profile management solution
    - Map the exception to a consistent HTTP response (e.g., 403/400) via a global handler with a standardized error code/message
    - Keep user-facing messages and error codes centralized (config/constants) to avoid hardcoded strings and simplify localization
 
+4. **Rate Limit for “Resend Code” Button**
+   - Limit the “Resend code” action to once per minute to prevent spam and email/SMS abuse
+   - Add user-facing feedback for remaining wait time to improve UX
+
+5. **Localized Error for Expired/Old Verification Codes**
+   - When a user requests a new code but tries activating with the old one, return a clear, localized error explaining the code is outdated and a new one was sent
+   - Centralize the error message in existing localization resources to avoid hardcoded strings
+
+6. **Password Reset Email Cooldown**
+   - After a successful reset-code send, block further sends for 10 minutes to prevent spamming
+   - Keep the same generic “email sent if account exists” response to avoid leaking account existence
+
 
