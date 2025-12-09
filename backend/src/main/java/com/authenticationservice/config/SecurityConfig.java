@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -11,7 +12,11 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.web.util.matcher.NegatedRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -39,6 +44,11 @@ public class SecurityConfig {
     private final RateLimitingFilter rateLimitingFilter;
     private final AuthService authService;
 
+    private static final RequestMatcher API_REQUEST_MATCHER = request -> {
+        String path = request.getRequestURI();
+        return path != null && path.startsWith("/api/");
+    };
+
     @Value("${frontend.url}")
     private String frontendUrl;
     
@@ -46,15 +56,51 @@ public class SecurityConfig {
     private String corsAllowedOrigins;
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
         http
+                .securityMatcher("/api/**")
                 .cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(handler -> handler
+                        .authenticationEntryPoint(apiAuthenticationEntryPoint())
+                        .defaultAccessDeniedHandlerFor(
+                                (request, response, accessDeniedException) ->
+                                        response.sendError(HttpStatus.FORBIDDEN.value()),
+                                API_REQUEST_MATCHER
+                        ))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(SecurityConstants.API_AUTH_PREFIX).permitAll();
                     auth.requestMatchers(SecurityConstants.API_ADMIN_PREFIX).hasRole("ADMIN");
                     auth.requestMatchers(SecurityConstants.API_PROTECTED_PREFIX).authenticated();
+                    auth.anyRequest().authenticated();
+                })
+                .httpBasic(Customizer.withDefaults());
+
+        http.addFilterBefore(rateLimitingFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(jwtAuthenticationFilter,
+                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain webSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(new NegatedRequestMatcher(new RequestMatcher() {
+                    @Override
+                    public boolean matches(jakarta.servlet.http.HttpServletRequest request) {
+                        String path = request.getRequestURI();
+                        return path != null && path.startsWith("/api/");
+                    }
+                }))
+                .cors(Customizer.withDefaults())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(SecurityConstants.ROOT_PATH).permitAll();
                     auth.requestMatchers(SecurityConstants.LOGIN_PATH).permitAll();
                     auth.requestMatchers(SecurityConstants.REGISTER_PATH).permitAll();
@@ -62,6 +108,7 @@ public class SecurityConfig {
                     auth.requestMatchers(SecurityConstants.FORGOT_PASSWORD_PATH).permitAll();
                     auth.requestMatchers(SecurityConstants.RESET_PASSWORD_PATH).permitAll();
                     auth.requestMatchers("/oauth2/**").permitAll();
+                    auth.requestMatchers("/login/oauth2/**").permitAll();
                     auth.anyRequest().authenticated();
                 })
                 .oauth2Login(oauth2 -> oauth2
@@ -71,20 +118,14 @@ public class SecurityConfig {
                                 String email = oauth2User.getAttribute("email");
                                 String name = oauth2User.getAttribute("name");
 
-                                // Generate JWT tokens
                                 Map<String, String> tokens = authService.handleOAuth2Login(email, name);
 
-                                // Security: Use URL fragment (#) instead of query parameters
-                                // Fragments are not sent to server, reducing risk of token exposure in logs
-                                // Note: This still has risks (browser history, referrer headers)
-                                // Better solution: Use POST redirect or one-time code exchange
                                 String accessToken = URLEncoder.encode(tokens.get("accessToken"), StandardCharsets.UTF_8);
                                 String refreshToken = URLEncoder.encode(tokens.get("refreshToken"), StandardCharsets.UTF_8);
                                 response.sendRedirect(frontendUrl + "/oauth2/success#" +
                                         "accessToken=" + accessToken +
                                         "&refreshToken=" + refreshToken);
                             } catch (Exception e) {
-                                // Security: Don't expose error details in URL
                                 log.error("OAuth2 login failed", e);
                                 response.sendRedirect(frontendUrl + "/oauth2/success?error=authentication_failed");
                             }
@@ -93,10 +134,16 @@ public class SecurityConfig {
 
         http.addFilterBefore(rateLimitingFilter,
                 org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
-        http.addFilterBefore(jwtAuthenticationFilter,
-                org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint apiAuthenticationEntryPoint() {
+        return (request, response, authException) -> {
+            // Always return 401 for API requests, never redirect
+            response.sendError(HttpStatus.UNAUTHORIZED.value());
+        };
     }
 
     @Bean

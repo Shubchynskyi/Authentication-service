@@ -22,9 +22,9 @@ public class RateLimitingService {
     }
 
     private Bucket newBucket(boolean isAdminPath) {
-        // Admin endpoints have stricter limits: 5 requests per minute
-        // Auth endpoints: 10 requests per minute
-        int capacity = isAdminPath ? 5 : 10;
+        // Admin endpoints: 60 requests per minute (1 per second average)
+        // Auth endpoints: 10 requests per minute (more restricted for security)
+        int capacity = isAdminPath ? 60 : 10;
         Bandwidth limit = Bandwidth.builder()
                 .capacity(capacity)
                 .refillGreedy(capacity, Duration.ofMinutes(1))

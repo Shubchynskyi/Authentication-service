@@ -13,6 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.io.PrintWriter;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -75,14 +77,20 @@ class RateLimitingFilterTest {
         when(probe.isConsumed()).thenReturn(false);
         when(probe.getNanosToWaitForRefill()).thenReturn(30_000_000_000L); // 30 seconds
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
+        
+        PrintWriter writer = mock(PrintWriter.class);
+        when(response.getWriter()).thenReturn(writer);
 
         // Act
         rateLimitingFilter.doFilterInternal(request, response, filterChain);
 
         // Assert
         verify(filterChain, never()).doFilter(any(), any());
+        verify(response).setStatus(429);
+        verify(response).setContentType("application/json");
         verify(response).addHeader("X-Rate-Limit-Retry-After-Seconds", "30");
-        verify(response).sendError(429, "Too many requests");
+        verify(writer).write(contains("Too many requests"));
+        verify(writer).flush();
     }
 
     @Test
@@ -98,12 +106,15 @@ class RateLimitingFilterTest {
         when(probe.isConsumed()).thenReturn(false);
         when(probe.getNanosToWaitForRefill()).thenReturn(60_000_000_000L);
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
+        
+        PrintWriter writer = mock(PrintWriter.class);
+        when(response.getWriter()).thenReturn(writer);
 
         // Act
         rateLimitingFilter.doFilterInternal(request, response, filterChain);
 
         // Assert
-        verify(response).sendError(eq(429), eq("Too many requests"));
+        verify(response).setStatus(429);
     }
 
     @Test
@@ -140,6 +151,9 @@ class RateLimitingFilterTest {
         when(probe.isConsumed()).thenReturn(false);
         when(probe.getNanosToWaitForRefill()).thenReturn(45_000_000_000L); // 45 seconds
         when(bucket.tryConsumeAndReturnRemaining(1)).thenReturn(probe);
+        
+        PrintWriter writer = mock(PrintWriter.class);
+        when(response.getWriter()).thenReturn(writer);
 
         // Act
         rateLimitingFilter.doFilterInternal(request, response, filterChain);
@@ -162,7 +176,7 @@ class RateLimitingFilterTest {
         verify(filterChain, times(1)).doFilter(request, response);
         verify(rateLimitingService, never()).resolveBucket(anyString());
         verify(response, never()).addHeader(anyString(), anyString());
-        verify(response, never()).sendError(anyInt(), anyString());
+        verify(response, never()).setStatus(anyInt());
     }
 }
 

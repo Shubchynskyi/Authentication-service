@@ -55,6 +55,11 @@ interface BlacklistEntry {
     reason?: string | null;
 }
 
+interface WhitelistEntry {
+    email: string;
+    reason?: string | null;
+}
+
 interface TabPanelProps {
     children?: React.ReactNode;
     index: number;
@@ -83,7 +88,7 @@ const AdminPage = () => {
     const { showNotification } = useNotification();
     const [tabValue, setTabValue] = useState(0);
     const [users, setUsers] = useState<User[]>([]);
-    const [whitelist, setWhitelist] = useState<string[]>([]);
+    const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([]);
     const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
     const [accessMode, setAccessMode] = useState<'WHITELIST' | 'BLACKLIST'>('WHITELIST');
     const [totalElements, setTotalElements] = useState(0);
@@ -105,6 +110,7 @@ const AdminPage = () => {
     });
     const [confirmActionDialog, setConfirmActionDialog] = useState(false);
     const [confirmActionPassword, setConfirmActionPassword] = useState('');
+    const [confirmBlacklistDialog, setConfirmBlacklistDialog] = useState(false);
     const [pendingAction, setPendingAction] = useState<{
         type: 'DELETE_USER' | 'ADD_WHITELIST' | 'REMOVE_WHITELIST' | 'ADD_BLACKLIST' | 'REMOVE_BLACKLIST';
         data: any;
@@ -126,9 +132,10 @@ const AdminPage = () => {
         try {
             const response = await api.get('/api/admin/whitelist');
             const data = Array.isArray(response.data) ? response.data : [];
-            const normalized = data.map((entry: any) =>
-                typeof entry === 'string' ? entry : entry?.email || ''
-            ).filter((email: string) => !!email);
+            const normalized = data.map((entry: any) => ({
+                email: typeof entry === 'string' ? entry : entry?.email || '',
+                reason: typeof entry === 'object' ? entry?.reason : null
+            })).filter((entry: any) => !!entry.email);
             setWhitelist(normalized);
         } catch (error) {
             console.error('Error fetching whitelist:', error);
@@ -474,6 +481,11 @@ const AdminPage = () => {
             return;
         }
         setPendingAction({ type: 'ADD_BLACKLIST', data: newBlacklistEmail, reason: blacklistReason });
+        setConfirmBlacklistDialog(true);
+    };
+
+    const handleConfirmBlacklistWarning = () => {
+        setConfirmBlacklistDialog(false);
         setConfirmActionDialog(true);
     };
 
@@ -677,14 +689,18 @@ const AdminPage = () => {
                     </Box>
 
                     <List>
-                        {(Array.isArray(whitelist) ? whitelist : []).map((email) => (
-                            <ListItem key={email}>
-                                <ListItemText primary={email} />
+                        {(Array.isArray(whitelist) ? whitelist : []).map((entry) => (
+                            <ListItem key={entry.email}>
+                                <ListItemText
+                                    primary={entry.email}
+                                    secondary={entry.reason || undefined}
+                                    secondaryTypographyProps={{ sx: { whiteSpace: 'pre-wrap' } }}
+                                />
                                 <ListItemSecondaryAction>
                                     <IconButton
                                         edge="end"
                                         aria-label={t('admin.delete')}
-                                        onClick={() => handleRemoveFromWhitelist(email)}
+                                        onClick={() => handleRemoveFromWhitelist(entry.email)}
                                     >
                                         <DeleteIcon />
                                     </IconButton>
@@ -877,6 +893,34 @@ const AdminPage = () => {
                     }}>{t('common.cancel')}</Button>
                     <Button onClick={handleConfirmAction} variant="contained">
                         {t('common.submit')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            <Dialog open={confirmBlacklistDialog} onClose={() => {
+                setConfirmBlacklistDialog(false);
+                setPendingAction(null);
+            }}>
+                <DialogTitle>{t('admin.blacklist.warningTitle')}</DialogTitle>
+                <DialogContent>
+                    <Box sx={{ pt: 2 }}>
+                        <Typography gutterBottom color="warning.main" fontWeight="bold">
+                            ⚠️ {t('admin.blacklist.warningMessage')}
+                        </Typography>
+                        <Typography variant="body2" sx={{ mt: 2 }}>
+                            {t('admin.blacklist.warningDetails')}
+                        </Typography>
+                    </Box>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => {
+                        setConfirmBlacklistDialog(false);
+                        setPendingAction(null);
+                        setNewBlacklistEmail('');
+                        setBlacklistReason('');
+                    }}>{t('common.cancel')}</Button>
+                    <Button onClick={handleConfirmBlacklistWarning} variant="contained" color="warning">
+                        {t('common.confirm')}
                     </Button>
                 </DialogActions>
             </Dialog>

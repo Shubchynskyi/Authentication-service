@@ -15,6 +15,7 @@
     "save": "Speichern",
     "cancel": "Abbrechen",
     "submit": "Absenden",
+    "confirm": "Bestätigen",
     "verification": "Verifizierung",
     "admin": "Administrator",
     "language": "Sprache",
@@ -118,7 +119,10 @@
       "reason": "Grund",
       "userCreateWarning": "Diese E-Mail befindet sich auf der Blacklist. Der Benutzer wird erstellt, aber die E-Mail wird automatisch aus der Blacklist entfernt.",
       "userWillBeRemovedFromList": "Nach der Erstellung wird die E-Mail aus der Blacklist entfernt.",
-      "userBlockedNow": "Ein bestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden."
+      "userBlockedNow": "Ein bestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden.",
+      "warningTitle": "Warnung",
+      "warningMessage": "Achtung! Bestehender Benutzer mit dieser E-Mail kann sich nicht mehr anmelden!",
+      "warningDetails": "Das Hinzufügen der E-Mail zur Blacklist blockiert die Anmeldung für den Benutzer, falls dieser bereits existiert. Sind Sie sicher, dass Sie fortfahren möchten?"
     },
     "accessMode": {
       "title": "Zugriffskontrollmodus",
@@ -126,7 +130,7 @@
       "whitelist": "Whitelist",
       "blacklist": "Blacklist",
       "whitelistDescription": "Nur E-Mails auf der Whitelist können sich registrieren. Blacklist blockiert die Anmeldung.",
-      "blacklistDescription": "Alle E-Mails können sich registrieren, außer denen auf der Blacklist. Blacklist blockiert sowohl Registrierung als auch Anmeldung.",
+      "blacklistDescription": "Alle E-Mails können sich registrieren, außer denen auf der Blacklist. Blacklist blockiert sowohl Registrierung als auch Anmeldung. Whitelist wird ignoriert.",
       "changeMode": "Modus ändern",
       "requestOtp": "OTP-Code anfordern",
       "otpSent": "OTP-Code wurde an Ihre E-Mail gesendet",

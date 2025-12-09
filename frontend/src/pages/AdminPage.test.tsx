@@ -108,7 +108,10 @@ const mockUsers = [
     },
 ];
 
-const mockWhitelist = ['allowed1@example.com', 'allowed2@example.com'];
+const mockWhitelist = [
+    { email: 'allowed1@example.com', reason: 'Approved user' },
+    { email: 'allowed2@example.com', reason: null },
+];
 const mockBlacklist = [
     { email: 'blocked1@example.com', reason: 'Spam' },
     { email: 'blocked2@example.com', reason: null },
@@ -526,6 +529,16 @@ describe('AdminPage', () => {
             const addButton = screen.getByRole('button', { name: /Add to Whitelist/i });
             fireEvent.click(addButton);
 
+            // First, wait for warning dialog with unique text
+            await waitFor(() => {
+                expect(screen.getByText(/admin\.blacklist\.warningMessage/i)).toBeInTheDocument();
+            }, { timeout: 5000 });
+
+            // Click confirm button in warning dialog
+            const confirmButtons = screen.getAllByRole('button', { name: /Confirm/i });
+            fireEvent.click(confirmButtons[0]);
+
+            // Then wait for password confirmation dialog
             await waitFor(() => {
                 expect(screen.getByText(/Confirm Action/i)).toBeInTheDocument();
             }, { timeout: 5000 });

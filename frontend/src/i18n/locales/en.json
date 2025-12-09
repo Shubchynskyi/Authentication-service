@@ -16,6 +16,7 @@
     "save": "Save",
     "cancel": "Cancel",
     "submit": "Submit",
+    "confirm": "Confirm",
     "verification": "Verification",
     "admin": "Administrator",
     "language": "Language",
@@ -124,7 +125,10 @@
       "reason": "Reason",
       "userCreateWarning": "This email is in the blacklist. The user will be created but the email will be removed from the blacklist automatically.",
       "userWillBeRemovedFromList": "After creation the email will be removed from the blacklist.",
-      "userBlockedNow": "Existing user with this email will no longer be able to log in."
+      "userBlockedNow": "Existing user with this email will no longer be able to log in.",
+      "warningTitle": "Warning",
+      "warningMessage": "Warning! Existing user with this email will no longer be able to log in!",
+      "warningDetails": "Adding email to blacklist will block login for the user if they already exist. Are you sure you want to continue?"
     },
     "accessMode": {
       "title": "Access Control Mode",
@@ -132,7 +136,7 @@
       "whitelist": "Whitelist",
       "blacklist": "Blacklist",
       "whitelistDescription": "Only emails in whitelist can register. Blacklist blocks login.",
-      "blacklistDescription": "All emails can register except those in blacklist. Blacklist blocks both registration and login.",
+      "blacklistDescription": "All emails can register except those in blacklist. Blacklist blocks both registration and login. Whitelist is ignored.",
       "changeMode": "Change mode",
       "requestOtp": "Request OTP code",
       "otpSent": "OTP code sent to your email",

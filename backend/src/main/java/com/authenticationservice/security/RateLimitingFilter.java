@@ -49,8 +49,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } else {
             long waitForRefill = probe.getNanosToWaitForRefill() / 1_000_000_000;
+            response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
+            response.setContentType("application/json");
             response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
-            response.sendError(HttpStatus.TOO_MANY_REQUESTS.value(), "Too many requests");
+            response.getWriter().write("{\"error\":\"Too many requests\",\"retryAfter\":" + waitForRefill + "}");
+            response.getWriter().flush();
+            // Do NOT call filterChain.doFilter() - stop processing here
         }
     }
 

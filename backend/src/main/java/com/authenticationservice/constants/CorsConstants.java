@@ -12,6 +12,7 @@ public final class CorsConstants {
     public static final List<String> ALLOWED_HEADERS = Arrays.asList(
         SecurityConstants.AUTHORIZATION_HEADER,
         SecurityConstants.CONTENT_TYPE_HEADER,
+        "Accept-Language",
         "Accept",
         "Origin",
         "X-Requested-With"
