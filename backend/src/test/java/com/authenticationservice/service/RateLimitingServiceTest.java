@@ -1,5 +1,6 @@
 package com.authenticationservice.service;
 
+import com.authenticationservice.config.RateLimitConfig;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,7 +16,10 @@ class RateLimitingServiceTest {
 
     @BeforeEach
     void setUp() {
-        rateLimitingService = new RateLimitingService();
+        RateLimitConfig rateLimitConfig = new RateLimitConfig();
+        rateLimitConfig.setAdminPerMinute(300);
+        rateLimitConfig.setAuthPerMinute(10); // Keep low for fast tests
+        rateLimitingService = new RateLimitingService(rateLimitConfig);
     }
 
     @Test
@@ -46,21 +50,21 @@ class RateLimitingServiceTest {
     }
 
     @Test
-    @DisplayName("Should allow 10 requests per minute")
-    void resolveBucket_shouldAllow10RequestsPerMinute() {
+    @DisplayName("Should allow configured requests per minute for auth path")
+    void resolveBucket_shouldRespectConfiguredAuthLimit() {
         // Arrange
         String ipAddress = "192.168.1.1";
         Bucket bucket = rateLimitingService.resolveBucket(ipAddress);
 
-        // Act & Assert - should allow 10 requests
+        // Act & Assert - should allow configured number of requests
         for (int i = 0; i < 10; i++) {
             ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
             assertTrue(probe.isConsumed(), "Request " + (i + 1) + " should be allowed");
         }
 
-        // 11th request should be blocked
+        // Next request should be blocked
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
-        assertFalse(probe.isConsumed(), "11th request should be blocked");
+        assertFalse(probe.isConsumed(), "Request beyond limit should be blocked");
     }
 
     @Test

@@ -57,6 +57,10 @@ admin:
 frontend:
   url: ${FRONTEND_URL}
 
+rate-limit:
+  admin-per-minute: ${RATE_LIMIT_ADMIN_PER_MINUTE:300} # TODO: tighten limits after testing
+  auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:120}
+
 logging:
   level:
     root: INFO

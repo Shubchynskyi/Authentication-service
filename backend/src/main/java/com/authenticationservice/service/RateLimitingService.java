@@ -1,7 +1,9 @@
 package com.authenticationservice.service;
 
+import com.authenticationservice.config.RateLimitConfig;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -9,8 +11,10 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
+@RequiredArgsConstructor
 public class RateLimitingService {
 
+    private final RateLimitConfig rateLimitConfig;
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
 
     public Bucket resolveBucket(String key) {
@@ -22,9 +26,8 @@ public class RateLimitingService {
     }
 
     private Bucket newBucket(boolean isAdminPath) {
-        // Admin endpoints: 60 requests per minute (1 per second average)
-        // Auth endpoints: 10 requests per minute (more restricted for security)
-        int capacity = isAdminPath ? 60 : 10;
+        // Values are loaded from configuration to allow easy runtime tuning
+        int capacity = isAdminPath ? rateLimitConfig.getAdminPerMinute() : rateLimitConfig.getAuthPerMinute();
         Bandwidth limit = Bandwidth.builder()
                 .capacity(capacity)
                 .refillGreedy(capacity, Duration.ofMinutes(1))
