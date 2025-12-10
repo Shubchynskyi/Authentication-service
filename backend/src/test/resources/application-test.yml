@@ -25,6 +25,11 @@ logging:
     root: WARN
     '[com.authenticationservice]': INFO
 
+rate-limit:
+  admin-per-minute: 300
+  auth-per-minute: 120
+  resend-per-minute: 1
+
 testcontainers:
   docker:
     api-version: "1.24"

@@ -12,5 +12,6 @@ import org.springframework.context.annotation.Configuration;
 public class RateLimitConfig {
     private int adminPerMinute;
     private int authPerMinute;
+    private int resendPerMinute;
 }
 

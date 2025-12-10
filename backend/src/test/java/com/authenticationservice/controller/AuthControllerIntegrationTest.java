@@ -75,6 +75,8 @@ class AuthControllerIntegrationTest {
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
         TestPropertyConfigurator.configureProperties(registry, postgres);
+        // Ensure resend rate limit is non-zero for tests (bucket4j requires positive capacity)
+        registry.add("rate-limit.resend-per-minute", () -> 1);
     }
 
     @Autowired
@@ -734,6 +736,93 @@ class AuthControllerIntegrationTest {
     }
 
     @Test
+    @DisplayName("Should return 429 when resend is requested within cooldown window")
+    void resendVerification_shouldReturn429_whenWithinCooldown() throws Exception {
+        // Arrange
+        String cooldownEmail = "resend429@example.com";
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Role ROLE_USER not found"));
+            User user = new User();
+            user.setEmail(cooldownEmail);
+            user.setName("Cooldown User");
+            user.setPassword(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD));
+            user.setEnabled(true);
+            user.setBlocked(false);
+            user.setEmailVerified(false);
+            user.setVerificationToken("initial-token");
+            user.setAuthProvider(com.authenticationservice.model.AuthProvider.LOCAL);
+            java.util.Set<Role> roles = new java.util.HashSet<>();
+            roles.add(userRole);
+            user.setRoles(roles);
+            return userRepository.save(user);
+        });
+
+        // First resend should succeed
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("{\"email\":\"" + cooldownEmail + "\"}"))
+                .andExpect(status().isOk());
+
+        // Second resend immediately should be rate-limited
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("{\"email\":\"" + cooldownEmail + "\"}"))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(header().exists("Retry-After"))
+                .andExpect(jsonPath("$.retryAfterSeconds").exists())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("resend")));
+    }
+
+    @Test
+    @DisplayName("Should return localized error when old verification code is used after resend")
+    void verify_shouldReturnError_whenOldCodeUsedAfterResend() throws Exception {
+        // Arrange: set old token and mark as not verified
+        String resendEmail = "oldcode-resend@example.com";
+        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        transactionTemplate.execute(status -> {
+            Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
+                    .orElseThrow(() -> new RuntimeException("Role ROLE_USER not found"));
+            User user = userRepository.findByEmail(resendEmail).orElse(null);
+            if (user == null) {
+                user = new User();
+                user.setEmail(resendEmail);
+                user.setName("OldCode User");
+                user.setPassword(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD));
+                user.setEnabled(true);
+                user.setBlocked(false);
+                user.setAuthProvider(com.authenticationservice.model.AuthProvider.LOCAL);
+                java.util.Set<Role> roles = new java.util.HashSet<>();
+                roles.add(userRole);
+                user.setRoles(roles);
+            }
+            user.setEmailVerified(false);
+            user.setVerificationToken("old-token");
+            userRepository.save(user);
+            userRepository.flush();
+            return null;
+        });
+
+        // Trigger resend to generate a new token (old one becomes outdated)
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.RESEND_VERIFICATION_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content("{\"email\":\"" + resendEmail + "\"}"))
+                .andExpect(status().isOk());
+
+        com.authenticationservice.dto.VerificationRequest request = new com.authenticationservice.dto.VerificationRequest();
+        request.setEmail(resendEmail);
+        request.setCode("old-token");
+
+        // Act & Assert: old code should be rejected with localized message (default locale en)
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.VERIFY_URL)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Verification code is invalid or expired")));
+    }
+
+    @Test
     @DisplayName("Should initiate password reset successfully")
     void forgotPassword_shouldInitiatePasswordResetSuccessfully() throws Exception {
         // Act & Assert
@@ -741,7 +830,7 @@ class AuthControllerIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content("{\"email\":\"" + TestConstants.UserData.TEST_EMAIL + "\"}"))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("password reset link has been sent")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("within 10 minutes")));
     }
 
     @Test

@@ -75,6 +75,9 @@ describe('ForgotPasswordPage', () => {
                 'success'
             );
         }, { timeout: 5000 });
+
+        expect(submitButton).toBeDisabled();
+        expect(screen.getByText(/request another link/i)).toBeInTheDocument();
     });
 
     it('handles API error', async () => {

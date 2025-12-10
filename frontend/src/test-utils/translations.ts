@@ -20,6 +20,7 @@ export const testTranslations: Record<string, string> = {
   'auth.forgotPasswordTitle': 'Forgot Password',
   'auth.forgotPasswordDescription': 'Enter your email to reset password',
   'auth.forgotPasswordSuccessGeneric': 'Password reset email sent',
+  'auth.forgotPasswordCooldownActive': 'You can request another link in {{time}}.',
   'auth.verification.invalidLink': 'Invalid verification link',
   'auth.passwordResetSuccess': 'Password reset successful',
   // Common

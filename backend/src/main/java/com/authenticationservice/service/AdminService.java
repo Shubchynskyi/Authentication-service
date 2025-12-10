@@ -23,6 +23,8 @@ import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.BlockedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
+import com.authenticationservice.constants.MessageConstants;
+import com.authenticationservice.exception.AccessListDuplicateException;
 import com.authenticationservice.model.AccessListChangeLog;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeChangeLog;
@@ -80,7 +82,10 @@ public class AdminService {
     public void addToWhitelist(String email, String reason) {
         String normalizedEmail = normalizeEmail(email);
         if (allowedEmailRepository.findByEmail(normalizedEmail).isPresent()) {
-            throw new RuntimeException(getMessage("email.duplicate.whitelist"));
+            throw new AccessListDuplicateException(
+                    AccessListChangeLog.AccessListType.WHITELIST,
+                    "email.duplicate.whitelist",
+                    getMessage("email.duplicate.whitelist"));
         }
         String normalizedReason = reason != null ? reason.trim() : "";
         AllowedEmail allowedEmail = new AllowedEmail(normalizedEmail, normalizedReason.isEmpty() ? null : normalizedReason);
@@ -111,7 +116,10 @@ public class AdminService {
     public AccessListUpdateResponse addToBlacklist(String email, String reason) {
         String normalizedEmail = normalizeEmail(email);
         if (blockedEmailRepository.findByEmail(normalizedEmail).isPresent()) {
-            throw new RuntimeException(getMessage("email.duplicate.blacklist"));
+            throw new AccessListDuplicateException(
+                    AccessListChangeLog.AccessListType.BLACKLIST,
+                    "email.duplicate.blacklist",
+                    getMessage("email.duplicate.blacklist"));
         }
         String normalizedReason = reason != null ? reason.trim() : "";
         BlockedEmail blockedEmail = new BlockedEmail(normalizedEmail, normalizedReason.isEmpty() ? null : normalizedReason);
@@ -219,9 +227,9 @@ public class AdminService {
             log.info("User saved to database: {}", user.getEmail());
 
             // Automatically add to whitelist and remove from blacklist if present
-            String reason = "User created by admin";
+            String reason = MessageConstants.WHITELIST_REASON_ADMIN_CREATED;
             if (allowedEmailRepository.findByEmail(user.getEmail()).isEmpty()) {
-                AllowedEmail allowedEmail = new AllowedEmail(user.getEmail());
+                AllowedEmail allowedEmail = new AllowedEmail(user.getEmail(), reason);
                 allowedEmailRepository.save(allowedEmail);
                 log.info("Email {} automatically added to whitelist", user.getEmail());
                 logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, user.getEmail(),

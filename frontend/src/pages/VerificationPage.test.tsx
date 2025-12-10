@@ -187,6 +187,33 @@ describe('VerificationPage', () => {
         }, { timeout: 5000 });
     });
 
+    it('disables resend during cooldown when backend returns 429', async () => {
+        mockedAxios.post.mockRejectedValueOnce({
+            response: {
+                status: 429,
+                data: { message: 'Too many resend attempts', retryAfterSeconds: 30 },
+                headers: { 'retry-after': '30' },
+            },
+        });
+
+        renderVerificationPage({ email: 'test@example.com' });
+
+        const resendButton = screen.getByRole('button', { name: /auth.resendCode/i });
+        fireEvent.click(resendButton);
+
+        await waitFor(() => {
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                expect.stringContaining('Too many resend attempts'),
+                'error'
+            );
+        }, { timeout: 5000 });
+
+        await waitFor(() => {
+            expect(resendButton).toBeDisabled();
+            expect(resendButton.textContent).toContain('30');
+        }, { timeout: 5000 });
+    });
+
     it('shows loading state during verification', async () => {
         mockedAxios.post.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
 

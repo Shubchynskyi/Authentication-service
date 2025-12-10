@@ -4,8 +4,10 @@ import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
+import com.authenticationservice.exception.AccessListDuplicateException;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.Role;
+import com.authenticationservice.model.BlockedEmail;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
@@ -277,7 +279,7 @@ class AdminServiceTest {
                     .thenReturn(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST);
 
             // Act & Assert
-            RuntimeException ex = assertThrows(RuntimeException.class, 
+            AccessListDuplicateException ex = assertThrows(AccessListDuplicateException.class, 
                 () -> adminService.addToWhitelist(email));
             assertEquals(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST, ex.getMessage());
         }
@@ -328,6 +330,28 @@ class AdminServiceTest {
             RuntimeException ex = assertThrows(RuntimeException.class, 
                 () -> adminService.removeFromWhitelist(email));
             assertEquals(TestConstants.ErrorMessages.EMAIL_NOT_IN_WHITELIST, ex.getMessage());
+        }
+    }
+
+    @Nested
+    @DisplayName("Blacklist Management Tests")
+    class BlacklistManagementTests {
+
+        @Test
+        @DisplayName("Should throw exception when email already exists in blacklist")
+        void addToBlacklist_shouldThrowException_whenEmailAlreadyExists() {
+            // Arrange
+            String email = "existing-blacklist@example.com";
+            BlockedEmail existing = new BlockedEmail(email, null);
+            when(blockedEmailRepository.findByEmail(email))
+                    .thenReturn(Optional.of(existing));
+            when(messageSource.getMessage(eq("email.duplicate.blacklist"), isNull(), any(Locale.class)))
+                    .thenReturn(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST);
+
+            // Act & Assert
+            AccessListDuplicateException ex = assertThrows(AccessListDuplicateException.class,
+                    () -> adminService.addToBlacklist(email, null));
+            assertEquals(TestConstants.ErrorMessages.EMAIL_ALREADY_IN_WHITELIST, ex.getMessage());
         }
     }
 

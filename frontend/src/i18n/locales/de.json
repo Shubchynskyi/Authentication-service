@@ -53,7 +53,8 @@
       "notInWhitelist": "Diese E-Mail steht nicht auf der Whitelist. Registrierung ist verboten."
     },
     "forgotPasswordDescription": "Geben Sie Ihre E-Mail ein, wir senden einen Zurücksetzungslink.",
-    "forgotPasswordSuccessGeneric": "Falls ein Konto existiert, haben wir eine E-Mail zum Zurücksetzen gesendet.",
+    "forgotPasswordSuccessGeneric": "Falls ein Konto existiert, senden wir innerhalb von 10 Minuten eine E-Mail zum Zurücksetzen. Bitte warten Sie vor einer erneuten Anfrage.",
+    "forgotPasswordCooldownActive": "Sie können in {{time}} erneut anfordern.",
     "verification": {
       "verifying": "E-Mail wird verifiziert...",
       "successRedirect": "E-Mail verifiziert! Weiterleitung zur Anmeldung...",

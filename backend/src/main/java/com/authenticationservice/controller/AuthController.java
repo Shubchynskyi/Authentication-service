@@ -82,7 +82,9 @@ public class AuthController {
         }
         // Exception handling is done via GlobalExceptionHandler
         authService.initiatePasswordReset(email);
-        return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_INITIATED);
+        return ResponseEntity.ok(String.format(
+                MessageConstants.PASSWORD_RESET_INITIATED,
+                authService.getPasswordResetCooldownMinutes()));
     }
 
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)

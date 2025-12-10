@@ -17,11 +17,17 @@ public class MessageConstants {
     public static final String INTERNAL_SERVER_ERROR = "Internal server error";
     public static final String EMAIL_REQUIRED = "Email is required.";
     public static final String VERIFICATION_RESENT_SUCCESS = "Verification code resent. Check your email (server console output).";
-    public static final String PASSWORD_RESET_INITIATED = "If an account with that email exists, a password reset link has been sent.";
+    public static final String PASSWORD_RESET_INITIATED = "If an account with that email exists, you will receive a password reset link within %d minutes.";
     public static final String RESET_PASSWORD_FIELDS_REQUIRED = "Token, new password, and confirm password are required.";
     public static final String PASSWORDS_DO_NOT_MATCH = "Passwords do not match.";
     public static final String PASSWORD_RESET_SUCCESS = "Password has been reset successfully.";
+    public static final String VERIFICATION_CODE_INVALID_OR_EXPIRED = "verification.code.invalidOrExpired";
+    public static final String RESEND_RATE_LIMIT_EXCEEDED = "Too many resend attempts. Please wait before trying again.";
 
     // ProfileController specific messages
     public static final String PROFILE_UPDATED_SUCCESS = "Profile updated successfully";
+
+    // Access list reasons
+    public static final String WHITELIST_REASON_ADMIN_CREATED = "User was created by administrator";
+
 }

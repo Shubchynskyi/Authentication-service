@@ -65,7 +65,7 @@ public final class TestConstants {
         public static final String EMAIL_SEND_ERROR = "Failed to send email";
         public static final String ADMIN_ROLE_NOT_FOUND = "Admin role not found";
         public static final String EMAIL_ALREADY_VERIFIED = "Email is already verified.";
-        public static final String EMAIL_ALREADY_IN_WHITELIST = "Email already exists in whitelist";
+        public static final String EMAIL_ALREADY_IN_WHITELIST = "User already exists in list";
         public static final String EMAIL_NOT_IN_WHITELIST = "Email not found in whitelist";
         public static final String INSUFFICIENT_PERMISSIONS = "Insufficient permissions";
         public static final String USER_ALREADY_EXISTS = "User with this email already exists";

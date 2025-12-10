@@ -53,7 +53,8 @@
       "notInWhitelist": "Цей email не знаходиться в білому списку. Реєстрація заборонена."
     },
     "forgotPasswordDescription": "Введіть ваш email, ми надішлемо посилання для скидання.",
-    "forgotPasswordSuccessGeneric": "Якщо обліковий запис існує, ми надіслали лист для скидання пароля.",
+    "forgotPasswordSuccessGeneric": "Якщо обліковий запис існує, ми надішлемо лист для скидання пароля протягом 10 хвилин. Зачекайте перед повторним запитом.",
+    "forgotPasswordCooldownActive": "Ви зможете запросити посилання ще раз через {{time}}.",
     "verification": {
       "verifying": "Перевіряємо ваш email...",
       "successRedirect": "Email підтверджено! Перенаправляємо до входу...",

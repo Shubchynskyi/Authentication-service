@@ -1,6 +1,7 @@
 package com.authenticationservice.service;
 
 import com.authenticationservice.constants.EmailConstants;
+import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
@@ -8,6 +9,8 @@ import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.exception.AccountBlockedException;
 import com.authenticationservice.exception.AccountLockedException;
 import com.authenticationservice.exception.InvalidCredentialsException;
+import com.authenticationservice.exception.InvalidVerificationCodeException;
+import com.authenticationservice.exception.TooManyRequestsException;
 import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
@@ -16,8 +19,12 @@ import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
 import com.authenticationservice.util.EmailUtils;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.MessageSource;
+import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -45,9 +52,14 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
     private final AccessControlService accessControlService;
+    private final MessageSource messageSource;
+    private final RateLimitingService rateLimitingService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
+
+    @Value("${password.reset.cooldown-minutes:10}")
+    private int passwordResetCooldownMinutes;
 
     private String normalizeEmail(String email) {
         return EmailUtils.normalize(email);
@@ -113,7 +125,8 @@ public class AuthService {
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
         if (user.getVerificationToken() == null || !user.getVerificationToken().equals(request.getCode())) {
-            throw new RuntimeException("Invalid verification code");
+            throw new InvalidVerificationCodeException(
+                    getMessage(MessageConstants.VERIFICATION_CODE_INVALID_OR_EXPIRED));
         }
         
         user.setEmailVerified(true);
@@ -239,6 +252,13 @@ public class AuthService {
             throw new RuntimeException("Email is already verified.");
         }
 
+        Bucket bucket = rateLimitingService.resolveResendBucket(normalizedEmail);
+        ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
+        if (!probe.isConsumed()) {
+            long retryAfterSeconds = Math.max(1, probe.getNanosToWaitForRefill() / 1_000_000_000);
+            throw new TooManyRequestsException(MessageConstants.RESEND_RATE_LIMIT_EXCEEDED, retryAfterSeconds);
+        }
+
         String verificationToken = UUID.randomUUID().toString();
         user.setVerificationToken(verificationToken);
         userRepository.save(user);
@@ -264,9 +284,17 @@ public class AuthService {
             return;
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lastRequestedAt = user.getLastPasswordResetRequestedAt();
+        if (lastRequestedAt != null && lastRequestedAt.plusMinutes(passwordResetCooldownMinutes).isAfter(now)) {
+            log.info("Password reset request ignored due to cooldown for user {}", normalizedEmail);
+            return;
+        }
+
         String resetToken = UUID.randomUUID().toString();
         user.setResetPasswordToken(resetToken);
         user.setResetPasswordTokenExpiry(LocalDateTime.now().plusHours(1));
+        user.setLastPasswordResetRequestedAt(now);
         userRepository.save(user);
 
         sendPasswordResetEmail(normalizedEmail, resetToken);
@@ -318,6 +346,10 @@ public class AuthService {
     @Transactional(readOnly = true)
     public String generateRandomPassword() {
         return UUID.randomUUID().toString().substring(0, 12);
+    }
+
+    public int getPasswordResetCooldownMinutes() {
+        return passwordResetCooldownMinutes;
     }
 
     @Transactional
@@ -384,5 +416,9 @@ public class AuthService {
         return Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken);
+    }
+
+    private String getMessage(String key) {
+        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 }

@@ -227,7 +227,8 @@ describe('AdminPage', () => {
                 expect(screen.getByText(/Access Control Mode/i)).toBeInTheDocument();
             }, { timeout: 5000 });
 
-            expect(screen.getByText(/Current mode/i)).toBeInTheDocument();
+            const modeLabels = screen.getAllByText(/Current mode/i);
+            expect(modeLabels.length).toBeGreaterThanOrEqual(1);
         });
     });
 
@@ -577,12 +578,11 @@ describe('AdminPage', () => {
             fireEvent.click(accessControlTab);
 
             await waitFor(() => {
-                expect(screen.getByText(/Current mode/i)).toBeInTheDocument();
+                expect(screen.getAllByText(/Current mode/i).length).toBeGreaterThanOrEqual(1);
             }, { timeout: 5000 });
 
-            const modeLine = screen.getByText(/Current mode/i).closest('p');
-            expect(modeLine).not.toBeNull();
-            expect(modeLine).toHaveTextContent(/Whitelist/i);
+            const modeLabels = screen.getAllByText(/Current mode/i);
+            expect(modeLabels[0]).toHaveTextContent(/Whitelist/i);
         });
 
         it('opens change mode dialog', async () => {

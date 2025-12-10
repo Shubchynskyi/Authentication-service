@@ -1,10 +1,12 @@
 package com.authenticationservice.service;
 
+import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.VerificationRequest;
+import com.authenticationservice.exception.TooManyRequestsException;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
@@ -12,9 +14,12 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
+import io.github.bucket4j.Bucket;
+import io.github.bucket4j.ConsumptionProbe;
 import com.authenticationservice.service.AccessControlService;
 import com.authenticationservice.service.EmailService;
 import com.authenticationservice.service.LoginAttemptService;
+import com.authenticationservice.service.RateLimitingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +32,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.context.MessageSource;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -39,6 +45,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService Tests")
@@ -71,11 +78,18 @@ class AuthServiceTest {
         @Mock
         private EmailService emailService;
 
+        @Mock
+        private RateLimitingService rateLimitingService;
+
+        @Mock
+        private MessageSource messageSource;
+
         @InjectMocks
         private AuthService authService;
 
         private User testUser;
         private LoginRequest loginRequest;
+        private Bucket resendBucket;
 
         @BeforeEach
         void setUp() {
@@ -90,6 +104,20 @@ class AuthServiceTest {
                 // Setup service configuration
                 ReflectionTestUtils.setField(authService, "frontendUrl", TestConstants.Urls.FRONTEND_URL);
                 ReflectionTestUtils.setField(authService, "passwordEncoder", passwordEncoder);
+                ReflectionTestUtils.setField(authService, "passwordResetCooldownMinutes", 10);
+                ReflectionTestUtils.setField(authService, "messageSource", messageSource);
+
+                resendBucket = mock(Bucket.class);
+                ConsumptionProbe successProbe = mock(ConsumptionProbe.class);
+                lenient().when(successProbe.isConsumed()).thenReturn(true);
+                lenient().when(resendBucket.tryConsumeAndReturnRemaining(anyLong())).thenReturn(successProbe);
+                lenient().when(rateLimitingService.resolveResendBucket(anyString())).thenReturn(resendBucket);
+
+                lenient().when(messageSource.getMessage(
+                                eq(com.authenticationservice.constants.MessageConstants.VERIFICATION_CODE_INVALID_OR_EXPIRED),
+                                any(),
+                                any()))
+                                .thenReturn(TestConstants.ErrorMessages.INVALID_VERIFICATION_CODE);
         }
 
         /**
@@ -317,6 +345,27 @@ class AuthServiceTest {
                         assertDoesNotThrow(() -> authService.resendVerification(testUser.getEmail()));
                         verify(userRepository).save(testUser);
                         verify(mailSender).send(any(SimpleMailMessage.class));
+                }
+
+                @Test
+                @DisplayName("Should throw TooManyRequestsException when resend is rate limited")
+                void resendVerification_shouldThrowTooManyRequests_whenCooldownActive() {
+                        // Arrange
+                        testUser.setEmailVerified(false);
+                        when(userRepository.findByEmail(testUser.getEmail()))
+                                        .thenReturn(Optional.of(testUser));
+
+                        ConsumptionProbe blockedProbe = mock(ConsumptionProbe.class);
+                        when(blockedProbe.isConsumed()).thenReturn(false);
+                        when(blockedProbe.getNanosToWaitForRefill()).thenReturn(30_000_000_000L);
+                        when(resendBucket.tryConsumeAndReturnRemaining(anyLong())).thenReturn(blockedProbe);
+
+                        // Act & Assert
+                        TooManyRequestsException ex = assertThrows(TooManyRequestsException.class,
+                                        () -> authService.resendVerification(testUser.getEmail()));
+
+                        assertEquals(MessageConstants.RESEND_RATE_LIMIT_EXCEEDED, ex.getMessage());
+                        assertEquals(30L, ex.getRetryAfterSeconds());
                 }
 
                 @Test
@@ -576,6 +625,20 @@ class AuthServiceTest {
                         assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
                         verify(userRepository).save(testUser);
                         verify(mailSender).send(any(SimpleMailMessage.class));
+                }
+
+                @Test
+                @DisplayName("Should skip sending reset email when cooldown not expired")
+                void initiatePasswordReset_shouldSkip_whenCooldownActive() {
+                        // Arrange
+                        testUser.setLastPasswordResetRequestedAt(LocalDateTime.now().minusMinutes(5));
+                        when(userRepository.findByEmail(testUser.getEmail()))
+                                        .thenReturn(Optional.of(testUser));
+
+                        // Act & Assert
+                        assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
+                        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+                        verify(userRepository, never()).save(any(User.class));
                 }
 
                 @Test

@@ -10,6 +10,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.http.HttpHeaders;
 
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -20,6 +21,28 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private final MessageSource messageSource;
+    private static final String BAD_REQUEST = "Bad Request";
+
+    private String resolveMessage(String messageKey, String fallback) {
+        if (messageKey == null) {
+            return fallback;
+        }
+        try {
+            return messageSource.getMessage(messageKey, null, LocaleContextHolder.getLocale());
+        } catch (Exception e) {
+            return fallback != null ? fallback : messageKey;
+        }
+    }
+
+    @ExceptionHandler(AccessListDuplicateException.class)
+    public ResponseEntity<Map<String, String>> handleAccessListDuplicate(AccessListDuplicateException ex) {
+        String message = ex.getResolvedMessage() != null
+                ? ex.getResolvedMessage()
+                : resolveMessage(ex.getMessageKey(), "User already in list");
+        log.warn("Duplicate entry for {}: {}", ex.getListType(), message);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", BAD_REQUEST, "message", message));
+    }
 
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<Map<String, String>> handleAccountLocked(AccountLockedException ex) {
@@ -39,12 +62,33 @@ public class GlobalExceptionHandler {
                         "reason", ex.getReason() != null ? ex.getReason() : "Unknown"));
     }
 
+    @ExceptionHandler(InvalidVerificationCodeException.class)
+    public ResponseEntity<Map<String, String>> handleInvalidVerificationCode(InvalidVerificationCodeException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of(
+                        "error", BAD_REQUEST,
+                        "message", ex.getMessage()));
+    }
+
     @ExceptionHandler(InvalidCredentialsException.class)
     public ResponseEntity<Map<String, String>> handleInvalidCredentials(InvalidCredentialsException ex) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
                         "error", "Unauthorized",
                         "message", ex.getMessage()));
+    }
+
+    @ExceptionHandler(TooManyRequestsException.class)
+    public ResponseEntity<Map<String, Object>> handleTooManyRequests(TooManyRequestsException ex) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Retry-After", String.valueOf(ex.getRetryAfterSeconds()));
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .headers(headers)
+                .body(Map.of(
+                        "error", "Too Many Requests",
+                        "message", ex.getMessage(),
+                        "retryAfterSeconds", ex.getRetryAfterSeconds()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

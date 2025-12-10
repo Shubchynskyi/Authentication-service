@@ -60,6 +60,7 @@ frontend:
 rate-limit:
   admin-per-minute: ${RATE_LIMIT_ADMIN_PER_MINUTE:300} # TODO: tighten limits after testing
   auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:120}
+  resend-per-minute: ${RATE_LIMIT_RESEND_PER_MINUTE:1}
 
 logging:
   level:
@@ -77,6 +78,8 @@ jwt:
   refresh-expiration: 604800000 # 7 days
 
 password:
+  reset:
+    cooldown-minutes: ${PASSWORD_RESET_COOLDOWN_MINUTES:10}
   validation:
     pattern: ${PASSWORD_REGEX:^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$}
 

@@ -43,6 +43,9 @@ public class User {
     @Column(name = "reset_password_token_expiry")
     private LocalDateTime resetPasswordTokenExpiry;
 
+    @Column(name = "last_password_reset_requested_at")
+    private LocalDateTime lastPasswordResetRequestedAt;
+
     @Column(name = "is_enabled")
     private boolean enabled = true;
 

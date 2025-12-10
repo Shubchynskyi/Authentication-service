@@ -34,6 +34,7 @@ const VerificationPage: React.FC = () => {
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   useEffect(() => {
     if (location.state?.email) {
@@ -82,22 +83,44 @@ const VerificationPage: React.FC = () => {
       showNotification(response.data || t('auth.verification.codeResent'), 'success');
     } catch (error) {
       let msg = t('auth.verification.resendError');
-      if (axios.isAxiosError(error)) {
-        if (error.response?.data) {
-          if (typeof error.response.data === 'string') {
-            msg = error.response.data;
-          } else if (error.response.data.message) {
-            msg = error.response.data.message;
-          } else if (error.response.data.error) {
-            msg = error.response.data.error;
-          }
+      let retryAfterSeconds = 60;
+      const maybeResponse = axios.isAxiosError(error) ? error.response : (error as any)?.response;
+      if (maybeResponse?.data) {
+        const data = maybeResponse.data as any;
+        if (typeof data === 'string') {
+          msg = data;
+        } else if (data.message) {
+          msg = data.message;
+        } else if (data.error) {
+          msg = data.error;
         }
+        if (typeof data.retryAfterSeconds === 'number') {
+          retryAfterSeconds = data.retryAfterSeconds;
+        }
+      }
+      const retryAfterHeader = maybeResponse?.headers?.['retry-after'];
+      if (retryAfterHeader && !Number.isNaN(Number(retryAfterHeader))) {
+        retryAfterSeconds = Number(retryAfterHeader);
+      }
+      if (maybeResponse?.status === 429) {
+        setResendCooldown(retryAfterSeconds);
+        msg = `${msg} (${retryAfterSeconds}s)`;
       }
       showNotification(msg, 'error');
     } finally {
       setResendLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (resendCooldown <= 0) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setResendCooldown(prev => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
@@ -138,9 +161,15 @@ const VerificationPage: React.FC = () => {
             variant="outlined"
             fullWidth
             sx={{ mb: 2 }}
-            disabled={resendLoading}
+            disabled={resendLoading || resendCooldown > 0}
           >
-            {resendLoading ? <CircularProgress size={24} /> : t('auth.resendCode')}
+            {resendLoading ? (
+              <CircularProgress size={24} />
+            ) : resendCooldown > 0 ? (
+              `${t('auth.resendCode')} (${resendCooldown}s)`
+            ) : (
+              t('auth.resendCode')
+            )}
           </Button>
 
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1 }}>

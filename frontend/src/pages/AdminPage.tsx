@@ -27,6 +27,7 @@ import {
     FormControlLabel,
     Checkbox
 } from '@mui/material';
+import Chip from '@mui/material/Chip';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import api from '../api';
@@ -127,6 +128,8 @@ const AdminPage = () => {
 
     // Limit for block reason length
     const MAX_BLOCK_REASON_LENGTH = 200; // Maximum symbols for block reason
+    const accessModeLabel = accessMode === 'WHITELIST' ? t('admin.accessMode.whitelist') : t('admin.accessMode.blacklist');
+    const accessModeChipColor: 'success' | 'error' = accessMode === 'WHITELIST' ? 'success' : 'error';
 
     const fetchWhitelist = async () => {
         try {
@@ -542,6 +545,13 @@ const AdminPage = () => {
 
     return (
         <Box sx={{ width: '100%' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
+                <Chip
+                    label={`${t('admin.accessMode.currentMode')}: ${accessModeLabel}`}
+                    color={accessModeChipColor}
+                    sx={{ fontWeight: 600 }}
+                />
+            </Box>
             <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
                 <Tabs value={tabValue} onChange={handleTabChange}>
                     <Tab label={t('admin.users')} />
@@ -768,9 +778,13 @@ const AdminPage = () => {
                         <Typography variant="h6" gutterBottom>
                             {t('admin.accessMode.title')}
                         </Typography>
-                        <Typography variant="body1" gutterBottom>
-                            <strong>{t('admin.accessMode.currentMode')}:</strong> {accessMode === 'WHITELIST' ? t('admin.accessMode.whitelist') : t('admin.accessMode.blacklist')}
-                        </Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+                            <Chip
+                                label={`${t('admin.accessMode.currentMode')}: ${accessModeLabel}`}
+                                color={accessModeChipColor}
+                                sx={{ fontWeight: 600 }}
+                            />
+                        </Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
                             {accessMode === 'WHITELIST' 
                                 ? t('admin.accessMode.whitelistDescription')

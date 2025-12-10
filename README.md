@@ -40,13 +40,15 @@ This project is a full-stack authentication and user profile management solution
 
 ### Implemented Features
 
-- **Whitelist/Blacklist Access Control**: Configurable access mode that allows restricting user registration and login to whitelisted emails or blocking specific emails via blacklist. Access mode can be set via `ACCESS_MODE_DEFAULT` environment variable (values: `WHITELIST`, `BLACKLIST`, `OPEN`).
+- **Whitelist/Blacklist Access Control**: Configurable access mode that allows restricting user registration and login to whitelisted emails or blocking specific emails via blacklist. Access mode can be set via `ACCESS_MODE_DEFAULT` environment variable (values: `WHITELIST`, `BLACKLIST`).
 
 - **OAuth2 Google Authentication**: Users can authenticate using their Google accounts. Tokens are securely passed via URL fragments to prevent server-side logging.
 
 - **Asynchronous Email Notifications**: Lock and block notifications are sent asynchronously to prevent delays in API responses.
 
 - **Multi-language Support**: Full localization for 4 languages (EN, DE, RU, UA) including validation error messages.
+
+- **Resend Code Cooldown**: Backend rate limit (1/min per email) returns HTTP 429 with `Retry-After` and `retryAfterSeconds`; frontend shows countdown and disables the button until cooldown ends.
 
 ### Roadmap (Future Improvements)
 
@@ -62,23 +64,10 @@ This project is a full-stack authentication and user profile management solution
    - Provides additional protection against automated attacks and casual intruders
    - The real login endpoint would be accessible via a secret path or specific link
 
-3. **Domain-Specific Handling for Whitelist Violations**
-   - Replace generic `RuntimeException` with a dedicated `EmailNotWhitelistedException`
-   - Map the exception to a consistent HTTP response (e.g., 403/400) via a global handler with a standardized error code/message
-   - Keep user-facing messages and error codes centralized (config/constants) to avoid hardcoded strings and simplify localization
 
-4. **Rate Limit for “Resend Code” Button**
-   - Limit the “Resend code” action to once per minute to prevent spam and email/SMS abuse
-   - Add user-facing feedback for remaining wait time to improve UX
-
-5. **Localized Error for Expired/Old Verification Codes**
-   - When a user requests a new code but tries activating with the old one, return a clear, localized error explaining the code is outdated and a new one was sent
-   - Centralize the error message in existing localization resources to avoid hardcoded strings
-
-6. **Password Reset Email Cooldown**
-   - After a successful reset-code send, block further sends for 10 minutes to prevent spamming
-   - Keep the same generic “email sent if account exists” response to avoid leaking account existence
-
-7. Add session policy with short-lived access tokens, bounded refresh tokens, and a “remember this device” option with device-bound long-lived refresh and secure storage.
+3. **Session Policy Hardening**
+   - Short-lived access tokens with bounded refresh tokens
+   - “Remember this device” option with device-bound long-lived refresh tokens
+   - Secure storage for device-bound refresh tokens
 
 

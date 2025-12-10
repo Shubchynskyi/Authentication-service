@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 @Service
 @RequiredArgsConstructor
@@ -18,16 +19,28 @@ public class RateLimitingService {
     private final Map<String, Bucket> cache = new ConcurrentHashMap<>();
 
     public Bucket resolveBucket(String key) {
-        return resolveBucket(key, false);
+        return resolveBucket(key, RateLimitType.AUTH);
     }
 
     public Bucket resolveBucket(String key, boolean isAdminPath) {
-        return cache.computeIfAbsent(key, k -> newBucket(isAdminPath));
+        return resolveBucket(key, isAdminPath ? RateLimitType.ADMIN : RateLimitType.AUTH);
     }
 
-    private Bucket newBucket(boolean isAdminPath) {
-        // Values are loaded from configuration to allow easy runtime tuning
-        int capacity = isAdminPath ? rateLimitConfig.getAdminPerMinute() : rateLimitConfig.getAuthPerMinute();
+    public Bucket resolveResendBucket(String emailKey) {
+        return resolveBucket("resend:" + emailKey, RateLimitType.RESEND);
+    }
+
+    private Bucket resolveBucket(String key, RateLimitType type) {
+        return cache.computeIfAbsent(key, k -> newBucket(type));
+    }
+
+    private Bucket newBucket(RateLimitType type) {
+        Supplier<Integer> capacitySupplier = () -> switch (type) {
+            case ADMIN -> rateLimitConfig.getAdminPerMinute();
+            case RESEND -> rateLimitConfig.getResendPerMinute();
+            default -> rateLimitConfig.getAuthPerMinute();
+        };
+        int capacity = Math.max(1, capacitySupplier.get());
         Bandwidth limit = Bandwidth.builder()
                 .capacity(capacity)
                 .refillGreedy(capacity, Duration.ofMinutes(1))
@@ -35,5 +48,11 @@ public class RateLimitingService {
         return Bucket.builder()
                 .addLimit(limit)
                 .build();
+    }
+
+    private enum RateLimitType {
+        AUTH,
+        ADMIN,
+        RESEND
     }
 }
