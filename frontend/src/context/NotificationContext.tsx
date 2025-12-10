@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
 import { AlertColor } from '@mui/material';
 
 interface Notification {
@@ -17,13 +17,13 @@ const NotificationContext = createContext<NotificationContextType | undefined>(u
 
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [notifications, setNotifications] = useState<Notification[]>([]);
-    const [nextId, setNextId] = useState(1);
+    const nextIdRef = useRef(1);
 
+    // Stable callback: use ref for incremental id to avoid changing reference on each call
     const showNotification = useCallback((message: string, type: AlertColor) => {
-        const id = nextId;
-        setNextId(prev => prev + 1);
+        const id = nextIdRef.current++;
         setNotifications(prev => [...prev, { message, type, id }]);
-    }, [nextId]);
+    }, []);
 
     const removeNotification = useCallback((id: number) => {
         setNotifications(prev => prev.filter(notification => notification.id !== id));

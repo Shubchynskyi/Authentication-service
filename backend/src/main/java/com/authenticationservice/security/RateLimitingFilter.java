@@ -14,12 +14,16 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Component
 @RequiredArgsConstructor
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private final RateLimitingService rateLimitingService;
+    private static final List<String> SKIPPED_AUTH_PATH_PREFIXES = List.of(
+            "/api/auth/verify"
+    );
 
     @Override
     protected void doFilterInternal(
@@ -31,6 +35,12 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         boolean isAuthPath = path.startsWith("/api/auth/");
         boolean isAdminPath = path.startsWith("/api/admin/");
+
+        // Skip rate limiting for verification-related endpoints to avoid blocking users
+        if (isAuthPath && shouldSkip(path)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         
         if (!isAuthPath && !isAdminPath) {
             filterChain.doFilter(request, response);
@@ -56,6 +66,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             response.getWriter().flush();
             // Do NOT call filterChain.doFilter() - stop processing here
         }
+    }
+
+    private boolean shouldSkip(String path) {
+        return SKIPPED_AUTH_PATH_PREFIXES.stream().anyMatch(path::startsWith);
     }
 
     /**

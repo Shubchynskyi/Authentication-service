@@ -32,7 +32,7 @@ This project is a full-stack authentication and user profile management solution
   - Node.js and npm for the frontend
   - Docker (optional) for containerized deployment
 - **Quick start**:
-  - Use the provided scripts (`build-and-test.sh`, `deploy.sh`) or the Docker Compose files (`docker-compose.yml`, `docker-compose-server.yaml`) to build and run the full stack.
+  - Use the provided scripts `build-and-test.sh`, `deploy.sh`
 
 ### Environment and Security
 
@@ -78,5 +78,7 @@ This project is a full-stack authentication and user profile management solution
 6. **Password Reset Email Cooldown**
    - After a successful reset-code send, block further sends for 10 minutes to prevent spamming
    - Keep the same generic “email sent if account exists” response to avoid leaking account existence
+
+7. Add session policy with short-lived access tokens, bounded refresh tokens, and a “remember this device” option with device-bound long-lived refresh and secure storage.
 
 
