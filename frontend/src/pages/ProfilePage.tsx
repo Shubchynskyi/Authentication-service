@@ -3,27 +3,15 @@ import { Link } from 'react-router-dom';
 import {
   Box,
   Typography,
-  Paper,
   Button,
   Grid,
   CircularProgress,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import AdminSection from './AdminSection';
 import { useProfile } from '../context/ProfileContext';
 import { useAuth } from '../context/AuthContext';
 import { useTranslation } from 'react-i18next';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  borderRadius: theme.spacing(1),
-  backgroundColor: theme.palette.background.paper,
-  width: '100%',
-  maxWidth: 480,
-}));
+import FormPaper from '../components/FormPaper';
 
 const ProfilePage: React.FC = () => {
   const { profile, isLoading } = useProfile();
@@ -44,7 +32,7 @@ const ProfilePage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-      <StyledPaper elevation={3}>
+      <FormPaper elevation={3}>
         <Typography component="h1" variant="h5" align="center" marginBottom={3}>
           {t('profile.title')}
         </Typography>
@@ -103,7 +91,7 @@ const ProfilePage: React.FC = () => {
             </Button>
           </Grid>
         </Grid>
-      </StyledPaper>
+      </FormPaper>
     </Box>
   );
 };

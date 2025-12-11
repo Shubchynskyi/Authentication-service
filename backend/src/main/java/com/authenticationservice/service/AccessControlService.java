@@ -56,7 +56,7 @@ public class AccessControlService {
                 log.error("Email {} is not in whitelist. Registration denied.", maskEmail(normalizedEmail));
                 throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
             }
-            log.debug("Email {} is in whitelist, registration allowed", normalizedEmail);
+            log.debug("Email {} is in whitelist, registration allowed", maskEmail(normalizedEmail));
         } else {
             // BLACKLIST mode: email must not be in blacklist
             Optional<BlockedEmail> blocked = blockedEmailRepository.findByEmail(normalizedEmail);

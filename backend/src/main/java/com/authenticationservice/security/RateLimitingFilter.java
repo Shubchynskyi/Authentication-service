@@ -1,5 +1,6 @@
 package com.authenticationservice.security;
 
+import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.service.RateLimitingService;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
@@ -62,7 +63,10 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
             response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));
-            response.getWriter().write("{\"error\":\"Too many requests\",\"retryAfter\":" + waitForRefill + "}");
+            response.getWriter().write(String.format(
+                    "{\"error\":\"%s\",\"retryAfter\":%d}",
+                    MessageConstants.TOO_MANY_REQUESTS,
+                    waitForRefill));
             response.getWriter().flush();
             // Do NOT call filterChain.doFilter() - stop processing here
         }

@@ -32,11 +32,12 @@ const mockLogin = vi.fn();
 const mockLogout = vi.fn();
 const mockSetTokens = vi.fn();
 const mockShowNotification = vi.fn();
+const mockIsAuthenticated = vi.fn(() => false);
 
 vi.mock('../context/AuthContext', () => ({
     AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     useAuth: () => ({
-        isAuthenticated: false,
+        isAuthenticated: mockIsAuthenticated(),
         login: mockLogin,
         logout: mockLogout,
         setTokens: mockSetTokens,
@@ -96,6 +97,7 @@ describe('Authentication Flow Integration', () => {
         mockLogin.mockClear();
         mockShowNotification.mockClear();
         mockIsJwtExpired.mockReset();
+        mockIsAuthenticated.mockReturnValue(false);
     });
 
     afterEach(() => {
@@ -131,8 +133,7 @@ describe('Authentication Flow Integration', () => {
     });
 
     it('redirects authenticated user from login to profile', async () => {
-        localStorage.setItem('accessToken', 'valid-token');
-        mockIsJwtExpired.mockReturnValue(false);
+        mockIsAuthenticated.mockReturnValue(true);
         
         const { default: PublicRoute } = await import('../components/routes/PublicRoute');
         const { default: LoginPage } = await import('../pages/LoginPage');
@@ -161,13 +162,10 @@ describe('Authentication Flow Integration', () => {
             expect(screen.getByText('Profile Page')).toBeInTheDocument();
         }, { timeout: 5000 });
         
-        // Reset the mock
-        mockIsJwtExpired.mockReset();
     });
 
     it('redirects unauthenticated user from profile to login', async () => {
-        localStorage.removeItem('accessToken');
-        mockIsJwtExpired.mockReturnValue(true);
+        mockIsAuthenticated.mockReturnValue(false);
         
         const { default: PrivateRoute } = await import('../components/routes/PrivateRoute');
         const { default: ProfilePage } = await import('../pages/ProfilePage');
@@ -195,8 +193,6 @@ describe('Authentication Flow Integration', () => {
             expect(screen.getByText('Login Page')).toBeInTheDocument();
         }, { timeout: 5000 });
         
-        // Reset the mock
-        mockIsJwtExpired.mockReset();
     });
 });
 

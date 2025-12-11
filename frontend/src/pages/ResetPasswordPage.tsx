@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Box, Button, Typography, Paper, CircularProgress } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Box, Button, Typography, CircularProgress } from '@mui/material';
 import api from '../api';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
@@ -11,17 +10,7 @@ import { extractErrorMessage } from '../utils/apiError';
 import { getQueryParam } from '../utils/queryParams';
 import PasswordHint from '../components/PasswordHint';
 import PasswordFields from '../components/PasswordFields';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    borderRadius: theme.spacing(1),
-    backgroundColor: theme.palette.background.paper,
-    width: '100%',
-    maxWidth: 480,
-}));
+import FormPaper from '../components/FormPaper';
 
 const ResetPasswordPage: React.FC = () => {
     const navigate = useNavigate();
@@ -87,7 +76,7 @@ const ResetPasswordPage: React.FC = () => {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <StyledPaper elevation={3}>
+            <FormPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
                     {t('common.resetPassword')}
                 </Typography>
@@ -123,7 +112,7 @@ const ResetPasswordPage: React.FC = () => {
                         {isLoading ? <CircularProgress size={24} /> : t('common.resetPassword')}
                     </Button>
                 </form>
-            </StyledPaper>
+            </FormPaper>
         </Box>
     );
 };

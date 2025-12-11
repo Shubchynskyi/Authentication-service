@@ -4,6 +4,8 @@ import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeSettings;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import com.authenticationservice.config.TestPropertyConfigurator;
+import com.authenticationservice.constants.TestConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
@@ -32,16 +34,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class AccessModeSettingsRepositoryTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
+            .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
+            .withUsername(TestConstants.TestDatabase.USERNAME)
+            .withPassword(TestConstants.TestDatabase.PASSWORD);
 
     @DynamicPropertySource
-    static void configureProperties(org.springframework.test.context.DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        TestPropertyConfigurator.configureProperties(registry, postgres);
     }
 
     @Autowired

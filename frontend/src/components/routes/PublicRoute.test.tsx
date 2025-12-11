@@ -4,11 +4,17 @@ import { vi, describe, it, expect } from 'vitest';
 import PublicRoute from './PublicRoute';
 import { TestMemoryRouter } from '../../test-utils/router';
 import { setupTestCleanup } from '../../test-utils/test-helpers';
-import { setupTokenMocks } from '../../test-utils/mocks';
 
-const { mockIsJwtExpired } = setupTokenMocks('../../utils/token');
+const mockIsAuthenticated = vi.fn(() => false);
+const mockIsLoading = vi.fn(() => false);
 
-// Mock pages for navigation testing
+vi.mock('../../context/AuthContext', () => ({
+    useAuth: () => ({
+        isAuthenticated: mockIsAuthenticated(),
+        isLoading: mockIsLoading(),
+    }),
+}));
+
 const MockProfilePage = () => <div>Profile Page</div>;
 const MockPublicPage = () => <div>Public Content</div>;
 
@@ -16,12 +22,8 @@ describe('PublicRoute', () => {
     setupTestCleanup();
 
     it('renders children when user is not authenticated', async () => {
-        // Ensure no token in localStorage
-        localStorage.removeItem('accessToken');
-        // Mock isJwtExpired to return true (token expired or no token)
-        mockIsJwtExpired.mockImplementation((token: string | null | undefined) => {
-            return token === null || token === undefined || token === '';
-        });
+        mockIsAuthenticated.mockReturnValue(false);
+        mockIsLoading.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/login']}>
@@ -44,8 +46,8 @@ describe('PublicRoute', () => {
     });
 
     it('redirects to profile when user is authenticated', async () => {
-        localStorage.setItem('accessToken', 'valid-token');
-        mockIsJwtExpired.mockReturnValue(false);
+        mockIsAuthenticated.mockReturnValue(true);
+        mockIsLoading.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/login']}>
@@ -69,8 +71,8 @@ describe('PublicRoute', () => {
     });
 
     it('redirects to profile when token is valid', async () => {
-        localStorage.setItem('accessToken', 'valid-token');
-        mockIsJwtExpired.mockReturnValue(false);
+        mockIsAuthenticated.mockReturnValue(true);
+        mockIsLoading.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/register']}>

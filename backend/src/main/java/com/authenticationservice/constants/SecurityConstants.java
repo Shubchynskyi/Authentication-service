@@ -36,4 +36,8 @@ public final class SecurityConstants {
     public static final String OAUTH2_NAME_ATTRIBUTE = "name";
     public static final String ERROR_KEY = "error";
     public static final String PASSWORD_KEY = "password";
+    public static final String MODE_KEY = "mode";
+    public static final String OTP_CODE_KEY = "otpCode";
+    public static final String REASON_KEY = "reason";
+    public static final String ACCESS_TOKEN_KEY = "accessToken";
 }

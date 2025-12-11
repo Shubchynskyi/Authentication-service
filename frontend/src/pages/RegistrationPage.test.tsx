@@ -2,30 +2,35 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import RegistrationPage from './RegistrationPage';
-import { createMockNotificationContext } from '../test-utils/mocks';
 import { renderWithRouter, setupTestCleanup } from '../test-utils/test-helpers';
 
-// Create mocks using vi.hoisted() to avoid hoisting issues
-const { mockAxiosPost, mockIsAxiosError, mockShowNotification, mockNavigate } = vi.hoisted(() => {
-    const mockAxiosPost = vi.fn();
-    const mockIsAxiosError = vi.fn((error: any) => error?.isAxiosError || false);
-    const mockShowNotification = vi.fn();
-    const mockNavigate = vi.fn();
-    return { mockAxiosPost, mockIsAxiosError, mockShowNotification, mockNavigate };
-});
+const { mockShowNotification, mockApiPost, mockIsAxiosError, mockNavigate } = vi.hoisted(() => ({
+    mockShowNotification: vi.fn(),
+    mockApiPost: vi.fn(),
+    mockIsAxiosError: vi.fn((error: any) => error?.isAxiosError || false),
+    mockNavigate: vi.fn(),
+}));
+
+vi.mock('../api', () => ({
+    default: {
+        post: (...args: any[]) => mockApiPost(...args),
+    },
+}));
 
 vi.mock('axios', () => ({
     default: {
-        post: mockAxiosPost,
         isAxiosError: mockIsAxiosError,
     },
     isAxiosError: mockIsAxiosError,
 }));
 
-// Mock NotificationContext
 vi.mock('../context/NotificationContext', () => ({
     NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useNotification: () => createMockNotificationContext({ showNotification: mockShowNotification }),
+    useNotification: () => ({
+        notifications: [],
+        showNotification: mockShowNotification,
+        removeNotification: vi.fn(),
+    }),
 }));
 
 // Mock react-router-dom
@@ -101,7 +106,7 @@ describe('RegistrationPage', () => {
     });
 
     it('submits form with valid data', async () => {
-        mockAxiosPost.mockResolvedValueOnce({
+        mockApiPost.mockResolvedValueOnce({
             data: 'Registration successful',
         });
 
@@ -121,7 +126,7 @@ describe('RegistrationPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(mockAxiosPost).toHaveBeenCalledWith(
+            expect(mockApiPost).toHaveBeenCalledWith(
                 expect.stringContaining('/api/auth/register'),
                 {
                     email: 'newuser@example.com',
@@ -153,7 +158,7 @@ describe('RegistrationPage', () => {
             isAxiosError: true,
             response: { data: 'Email already exists' },
         };
-        mockAxiosPost.mockRejectedValueOnce(axiosError);
+        mockApiPost.mockRejectedValueOnce(axiosError);
         mockIsAxiosError.mockReturnValue(true);
 
         renderRegistrationPage();
@@ -185,7 +190,7 @@ describe('RegistrationPage', () => {
             isAxiosError: true,
             response: { data: 'This email is not in whitelist. Registration is forbidden.' },
         };
-        mockAxiosPost.mockRejectedValueOnce(axiosError);
+        mockApiPost.mockRejectedValueOnce(axiosError);
         mockIsAxiosError.mockReturnValue(true);
 
         renderRegistrationPage();
@@ -219,7 +224,7 @@ describe('RegistrationPage', () => {
             isAxiosError: true,
             response: { data: 'This email is in blacklist. Registration is forbidden.' },
         };
-        mockAxiosPost.mockRejectedValueOnce(axiosError);
+        mockApiPost.mockRejectedValueOnce(axiosError);
         mockIsAxiosError.mockReturnValue(true);
 
         renderRegistrationPage();

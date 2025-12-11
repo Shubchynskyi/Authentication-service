@@ -2,7 +2,6 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import VerifyPage from './VerifyPage';
 import { TestMemoryRouter } from '../test-utils/router';
-import { setupNotificationMocks } from '../test-utils/mocks';
 import { setupTestCleanup } from '../test-utils/test-helpers';
 
 // Mock api
@@ -14,7 +13,16 @@ vi.mock('../api', () => ({
     },
 }));
 
-const { mockShowNotification } = setupNotificationMocks();
+const mockShowNotification = vi.fn();
+
+vi.mock('../context/NotificationContext', () => ({
+    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    useNotification: () => ({
+        notifications: [],
+        showNotification: mockShowNotification,
+        removeNotification: vi.fn(),
+    }),
+}));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();

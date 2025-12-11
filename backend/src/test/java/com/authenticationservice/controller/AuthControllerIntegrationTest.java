@@ -1,6 +1,6 @@
 package com.authenticationservice.controller;
 
-import com.authenticationservice.config.TestPropertyConfigurator;
+import com.authenticationservice.config.BaseIntegrationTest;
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.constants.TestConstants;
@@ -8,17 +8,11 @@ import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
 import com.authenticationservice.model.AccessMode;
-import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.BlockedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
-import com.authenticationservice.repository.AccessModeSettingsRepository;
-import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.BlockedEmailRepository;
-import com.authenticationservice.repository.RoleRepository;
-import com.authenticationservice.repository.UserRepository;
-import com.authenticationservice.security.JwtTokenProvider;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -28,27 +22,20 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.security.test.context.support.WithSecurityContext;
-import org.springframework.security.test.context.support.WithSecurityContextFactory;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import java.util.Collections;
 import java.util.HashMap;
 import jakarta.persistence.EntityManager;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -59,22 +46,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc(addFilters = false)
-@Testcontainers
 @Transactional
 @org.springframework.test.context.TestPropertySource(locations = "classpath:application-test.yml")
 @Import(com.authenticationservice.config.TestConfig.class)
 @DisplayName("AuthController Integration Tests")
-class AuthControllerIntegrationTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
-            .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
-            .withUsername(TestConstants.TestDatabase.USERNAME)
-            .withPassword(TestConstants.TestDatabase.PASSWORD);
+class AuthControllerIntegrationTest extends BaseIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        TestPropertyConfigurator.configureProperties(registry, postgres);
         // Ensure resend rate limit is non-zero for tests (bucket4j requires positive capacity)
         registry.add("rate-limit.resend-per-minute", () -> 1);
     }
@@ -86,28 +65,7 @@ class AuthControllerIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private AllowedEmailRepository allowedEmailRepository;
-
-    @Autowired
     private BlockedEmailRepository blockedEmailRepository;
-
-    @Autowired
-    private AccessModeSettingsRepository accessModeSettingsRepository;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Autowired
-    private JwtTokenProvider jwtTokenProvider;
-
-    @Autowired
-    private org.springframework.transaction.PlatformTransactionManager transactionManager;
 
     @Autowired
     private EntityManager entityManager;
@@ -116,19 +74,7 @@ class AuthControllerIntegrationTest {
     private Role userRole;
 
     private void setAccessMode(AccessMode mode) {
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        transactionTemplate.execute(status -> {
-            AccessModeSettings settings = accessModeSettingsRepository.findById(1L)
-                    .orElseGet(() -> {
-                        AccessModeSettings s = new AccessModeSettings();
-                        s.setId(1L);
-                        return s;
-                    });
-            settings.setMode(mode);
-            accessModeSettingsRepository.save(settings);
-            accessModeSettingsRepository.flush();
-            return null;
-        });
+        ensureAccessModeSettings(mode);
         // Clear caches of access mode service if any (ensures fresh mode for next call)
         entityManager.flush();
         entityManager.clear();
@@ -136,71 +82,23 @@ class AuthControllerIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        // Use TransactionTemplate to explicitly commit transaction
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        TransactionTemplate transactionTemplate = getTransactionTemplate();
         transactionTemplate.execute(status -> {
-            // Clean up
-            userRepository.deleteAll();
-            userRepository.flush();
-            allowedEmailRepository.deleteAll();
-            allowedEmailRepository.flush();
+            cleanupTestData();
             blockedEmailRepository.deleteAll();
             blockedEmailRepository.flush();
-            // Don't delete roles - DatabaseInitializer creates them on startup
-            // Find existing roles or create if they don't exist
-            userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
-                    .orElseGet(() -> {
-                        Role role = new Role();
-                        role.setName(SecurityConstants.ROLE_USER);
-                        return roleRepository.save(role);
-                    });
+            ensureRolesExist();
+            ensureAccessModeSettings(AccessMode.WHITELIST);
 
-            roleRepository.findByName(SecurityConstants.ROLE_ADMIN)
-                    .orElseGet(() -> {
-                        Role adminRole = new Role();
-                        adminRole.setName(SecurityConstants.ROLE_ADMIN);
-                        return roleRepository.save(adminRole);
-                    });
-
-            // Initialize AccessModeSettings if not exists
-            if (accessModeSettingsRepository.findById(1L).isEmpty()) {
-                AccessModeSettings settings = new AccessModeSettings();
-                settings.setId(1L);
-                settings.setMode(AccessMode.WHITELIST);
-                accessModeSettingsRepository.save(settings);
-            } else {
-                AccessModeSettings settings = accessModeSettingsRepository.findById(1L).orElseThrow();
-                settings.setMode(AccessMode.WHITELIST);
-                accessModeSettingsRepository.save(settings);
-            }
-
-            // Create allowed email
-            AllowedEmail allowedEmail = new AllowedEmail();
-            allowedEmail.setEmail(TestConstants.UserData.TEST_EMAIL);
-            allowedEmailRepository.save(allowedEmail);
-
-            // Create test user
-            testUser = new User();
-            testUser.setEmail(TestConstants.UserData.TEST_EMAIL);
-            testUser.setName(TestConstants.UserData.TEST_USERNAME);
-            testUser.setPassword(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD));
-            testUser.setEnabled(true);
-            testUser.setBlocked(false);
-            testUser.setEmailVerified(true);
-            testUser.setLockTime(null);
-            Set<Role> userRoles = new HashSet<>();
-            userRoles.add(userRole);
-            testUser.setRoles(userRoles);
-            userRepository.save(testUser);
-            // Force flush to ensure user is persisted
+            createAllowedEmail(TestConstants.UserData.TEST_EMAIL);
+            testUser = createDefaultTestUser();
+            userRole = getOrCreateRole(SecurityConstants.ROLE_USER);
             userRepository.flush();
             return null;
         });
-        
-        // Verify user is actually in database after commit
-        transactionTemplate.execute(status -> 
+        transactionTemplate.execute(status ->
             userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
+                    .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
         );
     }
 

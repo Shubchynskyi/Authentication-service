@@ -30,4 +30,15 @@ public class MessageConstants {
     // Access list reasons
     public static final String WHITELIST_REASON_ADMIN_CREATED = "User was created by administrator";
 
+    // Access mode / admin verification
+    public static final String ACCESS_MODE_REQUIRED_FIELDS = "Mode, password, and OTP code are required";
+    public static final String ACCESS_MODE_INVALID = "Invalid access mode";
+    public static final String ACCESS_MODE_CHANGED = "Access mode changed successfully";
+    public static final String EMAIL_REMOVED_FROM_BLACKLIST = "Email removed from blacklist";
+    public static final String TOO_MANY_REQUESTS = "Too many requests";
+
+    // Authentication
+    public static final String ACCOUNT_DISABLED = "Account is disabled";
+    public static final String INVALID_REFRESH_TOKEN = "Invalid/expired refresh token";
+
 }

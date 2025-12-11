@@ -2,16 +2,27 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, beforeEach, describe, it, expect } from 'vitest';
 import ForgotPasswordPage from './ForgotPasswordPage';
-import axios from 'axios';
 import { TestBrowserRouter } from '../test-utils/router';
-import { setupNotificationMocks } from '../test-utils/mocks';
 import { setupTestCleanup } from '../test-utils/test-helpers';
 
-// Mock axios
-vi.mock('axios');
-const mockedAxios = axios as any;
+const mockShowNotification = vi.fn();
+const mockApiPost = vi.fn();
 
-const { mockShowNotification } = setupNotificationMocks();
+vi.mock('../context/NotificationContext', () => ({
+    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    useNotification: () => ({
+        notifications: [],
+        showNotification: mockShowNotification,
+        removeNotification: vi.fn(),
+    }),
+}));
+
+vi.mock('../api', () => ({
+    default: {
+        post: (...args: any[]) => mockApiPost(...args),
+    },
+}));
+
 
 const renderForgotPasswordPage = () => {
     return render(
@@ -37,7 +48,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('submits form with valid email', async () => {
-        mockedAxios.post.mockResolvedValueOnce({ data: 'Success' });
+        mockApiPost.mockResolvedValueOnce({ data: 'Success' });
 
         renderForgotPasswordPage();
 
@@ -48,7 +59,7 @@ describe('ForgotPasswordPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(mockedAxios.post).toHaveBeenCalledWith(
+            expect(mockApiPost).toHaveBeenCalledWith(
                 expect.stringContaining('/api/auth/forgot-password'),
                 { email: 'test@example.com' }
             );
@@ -66,7 +77,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('handles API error', async () => {
-        mockedAxios.post.mockRejectedValueOnce(new Error('Network error'));
+        mockApiPost.mockRejectedValueOnce(new Error('Network error'));
 
         renderForgotPasswordPage();
 
@@ -85,7 +96,7 @@ describe('ForgotPasswordPage', () => {
     });
 
     it('shows loading state during submission', async () => {
-        mockedAxios.post.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+        mockApiPost.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
 
         renderForgotPasswordPage();
 

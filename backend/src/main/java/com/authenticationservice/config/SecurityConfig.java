@@ -124,8 +124,8 @@ public class SecurityConfig {
 
                                 Map<String, String> tokens = authService.handleOAuth2Login(email, name);
 
-                                String accessToken = URLEncoder.encode(tokens.get("accessToken"), StandardCharsets.UTF_8);
-                                String refreshToken = URLEncoder.encode(tokens.get("refreshToken"), StandardCharsets.UTF_8);
+                                String accessToken = URLEncoder.encode(tokens.get(SecurityConstants.ACCESS_TOKEN_KEY), StandardCharsets.UTF_8);
+                                String refreshToken = URLEncoder.encode(tokens.get(SecurityConstants.REFRESH_TOKEN_KEY), StandardCharsets.UTF_8);
                                 response.sendRedirect(frontendUrl + "/oauth2/success#" +
                                         "accessToken=" + accessToken +
                                         "&refreshToken=" + refreshToken);

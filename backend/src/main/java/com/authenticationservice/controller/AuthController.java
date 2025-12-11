@@ -17,7 +17,9 @@ import jakarta.validation.Valid;
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.constants.SecurityConstants;
+import com.authenticationservice.dto.EmailRequest;
 import com.authenticationservice.dto.LoginRequest;
+import com.authenticationservice.dto.RefreshTokenRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
 import com.authenticationservice.dto.VerificationRequest;
@@ -50,9 +52,8 @@ public class AuthController {
     }
 
     @PostMapping(ApiConstants.REFRESH_URL)
-    public ResponseEntity<Map<String, String>> refresh(@RequestBody Map<String, String> body) {
-        String refreshToken = body.get(SecurityConstants.REFRESH_TOKEN_KEY);
-        Map<String, String> tokens = authService.refresh(refreshToken);
+    public ResponseEntity<Map<String, String>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+        Map<String, String> tokens = authService.refresh(request.getRefreshToken());
         return ResponseEntity.ok(tokens);
     }
 
@@ -64,24 +65,16 @@ public class AuthController {
     }
 
     @PostMapping(ApiConstants.RESEND_VERIFICATION_URL)
-    public ResponseEntity<String> resendVerification(@RequestBody Map<String, String> body) {
-        String email = body.get(SecurityConstants.EMAIL_KEY);
-        if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(MessageConstants.EMAIL_REQUIRED);
-        }
+    public ResponseEntity<String> resendVerification(@Valid @RequestBody EmailRequest request) {
         // Exception handling is done via GlobalExceptionHandler
-        authService.resendVerification(email);
+        authService.resendVerification(request.getEmail());
         return ResponseEntity.ok(MessageConstants.VERIFICATION_RESENT_SUCCESS);
     }
 
     @PostMapping(ApiConstants.FORGOT_PASSWORD_URL)
-    public ResponseEntity<String> forgotPassword(@RequestBody Map<String, String> body) {
-        String email = body.get(SecurityConstants.EMAIL_KEY);
-        if (email == null || email.isBlank()) {
-            return ResponseEntity.badRequest().body(MessageConstants.EMAIL_REQUIRED);
-        }
+    public ResponseEntity<String> forgotPassword(@Valid @RequestBody EmailRequest request) {
         // Exception handling is done via GlobalExceptionHandler
-        authService.initiatePasswordReset(email);
+        authService.initiatePasswordReset(request.getEmail());
         return ResponseEntity.ok(String.format(
                 MessageConstants.PASSWORD_RESET_INITIATED,
                 authService.getPasswordResetCooldownMinutes()));
@@ -89,15 +82,6 @@ public class AuthController {
 
     @PostMapping(ApiConstants.RESET_PASSWORD_URL)
     public ResponseEntity<String> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
-        if (request.getToken() == null || request.getToken().isBlank() ||
-                request.getNewPassword() == null || request.getNewPassword().isBlank() ||
-                request.getConfirmPassword() == null || request.getConfirmPassword().isBlank()) {
-            return ResponseEntity.badRequest().body(MessageConstants.RESET_PASSWORD_FIELDS_REQUIRED);
-        }
-        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            return ResponseEntity.badRequest().body(MessageConstants.PASSWORDS_DO_NOT_MATCH);
-        }
-
         // Exception handling is done via GlobalExceptionHandler
         authService.resetPassword(request.getToken(), request.getNewPassword());
         return ResponseEntity.ok(MessageConstants.PASSWORD_RESET_SUCCESS);

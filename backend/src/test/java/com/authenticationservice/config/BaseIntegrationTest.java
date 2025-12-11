@@ -5,9 +5,12 @@ import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AllowedEmailRepository;
+import com.authenticationservice.repository.AccessModeSettingsRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
+import com.authenticationservice.model.AccessMode;
+import com.authenticationservice.model.AccessModeSettings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -47,6 +50,9 @@ public abstract class BaseIntegrationTest {
 
     @Autowired
     protected AllowedEmailRepository allowedEmailRepository;
+
+    @Autowired
+    protected AccessModeSettingsRepository accessModeSettingsRepository;
 
     @Autowired
     protected BCryptPasswordEncoder passwordEncoder;
@@ -190,6 +196,26 @@ public abstract class BaseIntegrationTest {
     protected void ensureRolesExist() {
         getOrCreateRole(SecurityConstants.ROLE_USER);
         getOrCreateRole(SecurityConstants.ROLE_ADMIN);
+    }
+
+    /**
+     * Ensures AccessModeSettings exists and sets the provided mode.
+     *
+     * @param mode access mode to set
+     * @return persisted AccessModeSettings
+     */
+    protected AccessModeSettings ensureAccessModeSettings(AccessMode mode) {
+        TransactionTemplate transactionTemplate = getTransactionTemplate();
+        return transactionTemplate.execute(status -> {
+            AccessModeSettings settings = accessModeSettingsRepository.findById(1L)
+                    .orElseGet(() -> {
+                        AccessModeSettings s = new AccessModeSettings();
+                        s.setId(1L);
+                        return s;
+                    });
+            settings.setMode(mode);
+            return accessModeSettingsRepository.saveAndFlush(settings);
+        });
     }
 
     /**

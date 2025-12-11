@@ -14,7 +14,6 @@ import com.authenticationservice.exception.TooManyRequestsException;
 import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
-import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
@@ -37,6 +36,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -46,7 +46,6 @@ import java.util.UUID;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final AllowedEmailRepository allowedEmailRepository;
     private final RoleRepository roleRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final EmailService emailService;
@@ -199,10 +198,7 @@ public class AuthService {
             String accessToken = jwtTokenProvider.generateAccessToken(user);
             String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 
-            Map<String, String> tokens = new java.util.HashMap<>();
-            tokens.put("accessToken", accessToken);
-            tokens.put("refreshToken", refreshToken);
-            return tokens;
+            return buildTokenResponse(accessToken, refreshToken);
         } catch (Exception e) {
             log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(), e);
             throw new RuntimeException("Error generating tokens: "
@@ -212,7 +208,7 @@ public class AuthService {
 
     public Map<String, String> refresh(String refreshToken) {
         if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
-            throw new RuntimeException("Invalid/expired refresh token");
+            throw new RuntimeException(MessageConstants.INVALID_REFRESH_TOKEN);
         }
         String email = normalizeEmail(jwtTokenProvider.getEmailFromRefresh(refreshToken));
         User user = userRepository.findByEmail(email)
@@ -224,7 +220,7 @@ public class AuthService {
         // Security: Check if user account is still active
         if (!user.isEnabled()) {
             log.error("Refresh token used for disabled account: {}", maskEmail(email));
-            throw new RuntimeException("Account is disabled");
+            throw new RuntimeException(MessageConstants.ACCOUNT_DISABLED);
         }
         
         if (user.isBlocked()) {
@@ -235,11 +231,7 @@ public class AuthService {
         String newAccessToken = jwtTokenProvider.generateAccessToken(user);
         String newRefreshToken = jwtTokenProvider.generateRefreshToken(user);
 
-        Map<String, String> result = new HashMap<>();
-        result.put("accessToken", newAccessToken);
-        result.put("refreshToken", newRefreshToken);
-
-        return result;
+        return buildTokenResponse(newAccessToken, newRefreshToken);
     }
 
     public void resendVerification(String email) {
@@ -397,7 +389,7 @@ public class AuthService {
         }
 
         if (!user.isEnabled()) {
-            throw new RuntimeException("Account is disabled");
+            throw new RuntimeException(MessageConstants.ACCOUNT_DISABLED);
         }
 
         if (user.isBlocked()) {
@@ -409,12 +401,18 @@ public class AuthService {
         String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 
         log.debug("Generated tokens for OAuth2 user: {}", maskEmail(normalizedEmail));
-        return Map.of(
-                "accessToken", accessToken,
-                "refreshToken", refreshToken);
+        return buildTokenResponse(accessToken, refreshToken);
     }
 
     private String getMessage(String key) {
-        return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
+        String resolvedKey = Objects.requireNonNull(key, "message key must not be null");
+        return messageSource.getMessage(resolvedKey, null, LocaleContextHolder.getLocale());
+    }
+
+    private Map<String, String> buildTokenResponse(String accessToken, String refreshToken) {
+        Map<String, String> tokens = new HashMap<>();
+        tokens.put(SecurityConstants.ACCESS_TOKEN_KEY, accessToken);
+        tokens.put(SecurityConstants.REFRESH_TOKEN_KEY, refreshToken);
+        return tokens;
     }
 }

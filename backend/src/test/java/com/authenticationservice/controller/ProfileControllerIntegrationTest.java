@@ -1,17 +1,11 @@
 package com.authenticationservice.controller;
 
-import com.authenticationservice.config.TestPropertyConfigurator;
+import com.authenticationservice.config.BaseIntegrationTest;
 import com.authenticationservice.constants.ApiConstants;
-import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.ProfileUpdateRequest;
 import com.authenticationservice.model.AccessMode;
-import com.authenticationservice.model.AccessModeSettings;
-import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
-import com.authenticationservice.repository.AccessModeSettingsRepository;
-import com.authenticationservice.repository.RoleRepository;
-import com.authenticationservice.repository.UserRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -22,17 +16,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.util.HashSet;
-import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -40,24 +27,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
 @AutoConfigureMockMvc(addFilters = false)
-@Testcontainers
 @Transactional
 @org.springframework.test.context.TestPropertySource(locations = "classpath:application-test.yml")
 @Import(com.authenticationservice.config.TestConfig.class)
 @DisplayName("ProfileController Integration Tests")
-class ProfileControllerIntegrationTest {
-
-    @Container
-    @SuppressWarnings("resource") // Testcontainers manages lifecycle automatically via @Testcontainers
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
-            .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
-            .withUsername(TestConstants.TestDatabase.USERNAME)
-            .withPassword(TestConstants.TestDatabase.PASSWORD);
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        TestPropertyConfigurator.configureProperties(registry, postgres);
-    }
+class ProfileControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -65,77 +39,24 @@ class ProfileControllerIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private RoleRepository roleRepository;
-
-    @Autowired
-    private AccessModeSettingsRepository accessModeSettingsRepository;
-
-    @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
-
-    @Autowired
-    private org.springframework.transaction.PlatformTransactionManager transactionManager;
-
     private User testUser;
 
     @BeforeEach
     void setUp() {
-        // Use TransactionTemplate to explicitly commit transaction
-        TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
+        TransactionTemplate transactionTemplate = getTransactionTemplate();
         transactionTemplate.execute(status -> {
-            // Clean up
-            userRepository.deleteAll();
-            userRepository.flush();
-            // Don't delete roles - DatabaseInitializer creates them on startup
-            // Find existing roles or create if they don't exist
-            Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
-                    .orElseGet(() -> {
-                        Role role = new Role();
-                        role.setName(SecurityConstants.ROLE_USER);
-                        return roleRepository.save(role);
-                    });
+            cleanupTestData();
+            ensureRolesExist();
+            ensureAccessModeSettings(AccessMode.WHITELIST);
 
-            roleRepository.findByName(SecurityConstants.ROLE_ADMIN)
-                    .orElseGet(() -> {
-                        Role adminRole = new Role();
-                        adminRole.setName(SecurityConstants.ROLE_ADMIN);
-                        return roleRepository.save(adminRole);
-                    });
-
-            // Initialize AccessModeSettings if not exists
-            if (accessModeSettingsRepository.findById(1L).isEmpty()) {
-                AccessModeSettings settings = new AccessModeSettings();
-                settings.setId(1L);
-                settings.setMode(AccessMode.WHITELIST);
-                accessModeSettingsRepository.save(settings);
-            }
-
-            // Create test user
-            testUser = new User();
-            testUser.setEmail(TestConstants.UserData.TEST_EMAIL);
-            testUser.setName(TestConstants.UserData.TEST_USERNAME);
-            testUser.setPassword(passwordEncoder.encode(TestConstants.UserData.TEST_PASSWORD));
-            testUser.setEnabled(true);
-            testUser.setBlocked(false);
-            testUser.setEmailVerified(true);
-            testUser.setLockTime(null);
-            Set<Role> userRoles = new HashSet<>();
-            userRoles.add(userRole);
-            testUser.setRoles(userRoles);
-            userRepository.save(testUser);
-            // Force flush to ensure user is persisted
+            testUser = createDefaultTestUser();
             userRepository.flush();
             return null;
         });
-        
-        // Verify user is actually in database after commit
-        transactionTemplate.execute(status -> 
-            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
+
+        transactionTemplate.execute(status ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
         );
     }
 
@@ -155,7 +76,7 @@ class ProfileControllerIntegrationTest {
     void getProfile_shouldReturnUnauthorizedWithoutToken() throws Exception {
         // Act & Assert
         mockMvc.perform(get(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

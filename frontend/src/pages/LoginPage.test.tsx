@@ -2,7 +2,6 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import LoginPage from './LoginPage';
-import { createMockAuthContext, createMockNotificationContext } from '../test-utils/mocks';
 import { renderWithRouter, setupTestCleanup } from '../test-utils/test-helpers';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
@@ -38,13 +37,24 @@ vi.mock('../api', () => ({
 // Mock AuthContext
 vi.mock('../context/AuthContext', () => ({
     AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useAuth: () => createMockAuthContext({ login: mockLogin }),
+    useAuth: () => ({
+        isAuthenticated: false,
+        login: mockLogin,
+        logout: vi.fn(),
+        setTokens: vi.fn(),
+        error: null,
+        isLoading: false,
+    }),
 }));
 
-// Mock NotificationContext
+// Mock NotificationContext (local, no hoist issues)
 vi.mock('../context/NotificationContext', () => ({
     NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useNotification: () => createMockNotificationContext({ showNotification: mockShowNotification }),
+    useNotification: () => ({
+        notifications: [],
+        showNotification: mockShowNotification,
+        removeNotification: vi.fn(),
+    }),
 }));
 
 

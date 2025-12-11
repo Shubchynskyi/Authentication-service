@@ -6,24 +6,13 @@ import {
   TextField,
   Button,
   Typography,
-  Paper,
   CircularProgress,
   Link as MuiLink,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  borderRadius: theme.spacing(1),
-  backgroundColor: theme.palette.background.paper,
-  width: '100%',
-  maxWidth: 480,
-}));
+import api from '../api';
+import FormPaper from '../components/FormPaper';
 
 const VerificationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -46,8 +35,8 @@ const VerificationPage: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const response = await axios.post<string>(
-        'http://localhost:8080/api/auth/verify',
+      const response = await api.post<string>(
+        '/api/auth/verify',
         { email, code }
       );
       showNotification(response.data || t('auth.verificationSuccess'), 'success');
@@ -56,12 +45,13 @@ const VerificationPage: React.FC = () => {
       if (axios.isAxiosError(err)) {
         let msg = t('auth.verification.error');
         if (err.response?.data) {
-          if (typeof err.response.data === 'string') {
-            msg = err.response.data;
-          } else if (err.response.data.message) {
-            msg = err.response.data.message;
-          } else if (err.response.data.error) {
-            msg = err.response.data.error;
+          const data = err.response.data;
+          if (typeof data === 'string') {
+            msg = data;
+          } else if (data.message) {
+            msg = data.message;
+          } else if (data.error) {
+            msg = data.error;
           }
         }
         showNotification(msg, 'error');
@@ -124,7 +114,7 @@ const VerificationPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-      <StyledPaper elevation={3}>
+      <FormPaper elevation={3}>
         <Typography component="h1" variant="h5" align="center" marginBottom={3}>
           {t('auth.verificationTitle')}
         </Typography>
@@ -178,7 +168,7 @@ const VerificationPage: React.FC = () => {
             </MuiLink>
           </Box>
         </form>
-      </StyledPaper>
+      </FormPaper>
     </Box>
   );
 };

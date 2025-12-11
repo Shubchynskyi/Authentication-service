@@ -1,5 +1,7 @@
 package com.authenticationservice.repository;
 
+import com.authenticationservice.config.TestPropertyConfigurator;
+import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.model.BlockedEmail;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,16 +33,14 @@ import static org.junit.jupiter.api.Assertions.*;
 class BlockedEmailRepositoryTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15-alpine")
-            .withDatabaseName("testdb")
-            .withUsername("test")
-            .withPassword("test");
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
+            .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
+            .withUsername(TestConstants.TestDatabase.USERNAME)
+            .withPassword(TestConstants.TestDatabase.PASSWORD);
 
     @DynamicPropertySource
-    static void configureProperties(org.springframework.test.context.DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgres::getJdbcUrl);
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        TestPropertyConfigurator.configureProperties(registry, postgres);
     }
 
     @Autowired

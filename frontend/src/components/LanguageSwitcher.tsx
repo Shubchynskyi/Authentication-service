@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Select, MenuItem, FormControl, InputLabel, SelectChangeEvent } from '@mui/material';
 import { availableLanguages } from '../i18n/i18n';
 
-const LanguageSwitcher: React.FC = () => {
+type LanguageSwitcherVariant = 'default' | 'compact';
+
+interface LanguageSwitcherProps {
+  variant?: LanguageSwitcherVariant;
+}
+
+const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({ variant = 'default' }) => {
   const { i18n, t } = useTranslation();
   const currentLang = (i18n.resolvedLanguage || i18n.language).split('-')[0];
 
@@ -14,15 +20,22 @@ const LanguageSwitcher: React.FC = () => {
     i18n.changeLanguage(language);
   };
 
+  const isCompact = variant === 'compact';
+  const controlWidth = isCompact ? 90 : 120;
+  const labelId = isCompact ? undefined : 'language-select-label';
+
   return (
-    <FormControl sx={{ minWidth: 120, marginLeft: 2 }} size="small">
-      <InputLabel id="language-select-label">{t('common.language')}</InputLabel>
+    <FormControl sx={{ minWidth: controlWidth, marginLeft: 2 }} size="small">
+      {!isCompact && (
+        <InputLabel id={labelId}>{t('common.language')}</InputLabel>
+      )}
       <Select
-        labelId="language-select-label"
+        labelId={labelId}
         id="language-select"
         value={currentLang}
-        label={t('common.language')}
+        label={isCompact ? undefined : t('common.language')}
         onChange={handleLanguageChange}
+        displayEmpty={isCompact}
       >
         {Object.entries(availableLanguages).map(([code, name]) => (
           <MenuItem key={code} value={code}>
@@ -34,4 +47,4 @@ const LanguageSwitcher: React.FC = () => {
   );
 };
 
-export default LanguageSwitcher; 
+export default LanguageSwitcher;

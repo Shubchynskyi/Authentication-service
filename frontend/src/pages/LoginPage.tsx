@@ -7,25 +7,13 @@ import {
     Typography,
     Container,
     Grid,
-    Link as MuiLink,
-    Paper
+    Link as MuiLink
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    borderRadius: theme.spacing(1),
-    backgroundColor: theme.palette.background.paper,
-    width: '100%',
-    maxWidth: 480,
-}));
+import FormPaper from '../components/FormPaper';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -76,7 +64,7 @@ const LoginPage = () => {
                     alignItems: 'center',
                 }}
             >
-                <StyledPaper elevation={3}>
+                <FormPaper elevation={3}>
                     <Typography component="h1" variant="h5">
                         {t('auth.loginTitle')}
                     </Typography>
@@ -134,7 +122,7 @@ const LoginPage = () => {
                             </Grid>
                         </Grid>
                     </Box>
-                </StyledPaper>
+                </FormPaper>
             </Box>
         </Container>
     );

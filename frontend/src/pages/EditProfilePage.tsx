@@ -5,11 +5,9 @@ import {
     TextField,
     Button,
     Typography,
-    Paper,
     CircularProgress,
     Alert,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import { useProfile } from '../context/ProfileContext';
 import { useNotification } from '../context/NotificationContext';
 import { useTranslation } from 'react-i18next';
@@ -18,17 +16,7 @@ import PasswordHint from '../components/PasswordHint';
 import { validatePasswordFlow } from '../utils/passwordChecks';
 import { extractErrorMessage } from '../utils/apiError';
 import PasswordFields from '../components/PasswordFields';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    borderRadius: theme.spacing(1),
-    backgroundColor: theme.palette.background.paper,
-    width: '100%',
-    maxWidth: 480,
-}));
+import FormPaper from '../components/FormPaper';
 
 const EditProfilePage: React.FC = () => {
     const navigate = useNavigate();
@@ -113,7 +101,7 @@ const EditProfilePage: React.FC = () => {
 
     return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-start' }}>
-            <StyledPaper elevation={3}>
+            <FormPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
                     {t('profile.editTitle')}
                 </Typography>
@@ -192,7 +180,7 @@ const EditProfilePage: React.FC = () => {
                         {t('profile.backToProfile')}
                     </Button>
                 </form>
-            </StyledPaper>
+            </FormPaper>
         </Box>
     );
 };

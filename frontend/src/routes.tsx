@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { checkAccess } from './api';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegistrationPage from './pages/RegistrationPage';
@@ -15,78 +14,15 @@ import NotFoundPage from './components/NotFoundPage';
 import { CircularProgress, Box } from '@mui/material';
 import VerifyPage from './pages/VerifyPage';
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler';
+import PrivateRoute from './components/routes/PrivateRoute';
+import PublicRoute from './components/routes/PublicRoute';
+import AdminRoute from './components/routes/AdminRoute';
 
 const LoadingScreen = () => (
     <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
     </Box>
 );
-
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
-    const location = useLocation();
-
-    if (isLoading) {
-        return <LoadingScreen />;
-    }
-
-    if (!isAuthenticated) {
-        return <Navigate to="/login" state={{ from: location }} replace />;
-    }
-
-    return <>{children}</>;
-};
-
-const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
-    const [hasAccess, setHasAccess] = useState(false);
-    const [isCheckingAccess, setIsCheckingAccess] = useState(true);
-
-    useEffect(() => {
-        const checkAdminAccess = async () => {
-            if (!isAuthenticated) {
-                setHasAccess(false);
-                setIsCheckingAccess(false);
-                return;
-            }
-
-            try {
-                const canAccess = await checkAccess('admin-panel');
-                setHasAccess(canAccess);
-            } catch (error) {
-                setHasAccess(false);
-            } finally {
-                setIsCheckingAccess(false);
-            }
-        };
-
-        checkAdminAccess();
-    }, [isAuthenticated]);
-
-    if (isLoading || isCheckingAccess) {
-        return <LoadingScreen />;
-    }
-
-    if (!isAuthenticated || !hasAccess) {
-        return <NotFoundPage />;
-    }
-
-    return <>{children}</>;
-};
-
-const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { isAuthenticated, isLoading } = useAuth();
-
-    if (isLoading) {
-        return <LoadingScreen />;
-    }
-
-    if (isAuthenticated) {
-        return <NotFoundPage />;
-    }
-
-    return <>{children}</>;
-};
 
 const AppRoutes: React.FC = () => {
     const { isLoading } = useAuth();
@@ -105,44 +41,44 @@ const AppRoutes: React.FC = () => {
             <Route
                 path="/login"
                 element={
-                    <GuestRoute>
+                    <PublicRoute>
                         <LoginPage />
-                    </GuestRoute>
+                    </PublicRoute>
                 }
             />
             <Route
                 path="/register"
                 element={
-                    <GuestRoute>
+                    <PublicRoute>
                         <RegistrationPage />
-                    </GuestRoute>
+                    </PublicRoute>
                 }
             />
             <Route
                 path="/verify/*"
                 element={
-                    <GuestRoute>
+                    <PublicRoute>
                         <Routes>
                             <Route path="/" element={<VerificationPage />} />
                             <Route path="/email" element={<VerifyPage />} />
                         </Routes>
-                    </GuestRoute>
+                    </PublicRoute>
                 }
             />
             <Route
                 path="/forgot-password"
                 element={
-                    <GuestRoute>
+                    <PublicRoute>
                         <ForgotPasswordPage />
-                    </GuestRoute>
+                    </PublicRoute>
                 }
             />
             <Route
                 path="/reset-password"
                 element={
-                    <GuestRoute>
+                    <PublicRoute>
                         <ResetPasswordPage />
-                    </GuestRoute>
+                    </PublicRoute>
                 }
             />
 
@@ -161,17 +97,10 @@ const AppRoutes: React.FC = () => {
             />
 
             {/* Pages only for admins */}
-            <Route
-                path="/admin/*"
-                element={
-                    <AdminRoute>
-                        <Routes>
-                            <Route path="/" element={<AdminPage />} />
-                            <Route path="*" element={<NotFoundPage />} />
-                        </Routes>
-                    </AdminRoute>
-                }
-            />
+            <Route path="/admin/*" element={<AdminRoute />}>
+                <Route index element={<AdminPage />} />
+                <Route path="*" element={<NotFoundPage />} />
+            </Route>
 
             {/* Non-existent pages */}
             <Route path="*" element={<NotFoundPage />} />

@@ -9,22 +9,23 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.MessageConstants;
-import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.AccessListUpdateResponse;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.BlockedEmailDTO;
+import com.authenticationservice.dto.ChangeAccessModeRequest;
 import com.authenticationservice.dto.PagedResponse;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.dto.UpdateUserRolesRequest;
+import com.authenticationservice.dto.VerifyAdminRequest;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.service.AdminService;
 import com.authenticationservice.repository.RoleRepository;
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.Map;
 import java.security.Principal;
 import org.springframework.http.HttpStatus;
 
@@ -63,7 +64,7 @@ public class AdminController {
     }
 
     @PostMapping(ApiConstants.USERS_URL)
-    public ResponseEntity<String> createUser(@RequestBody AdminUpdateUserRequest request) {
+    public ResponseEntity<String> createUser(@Valid @RequestBody AdminUpdateUserRequest request) {
         // Exception handling is done via GlobalExceptionHandler
         // Note: createUser automatically adds to whitelist and removes from blacklist
         adminService.createUser(request);
@@ -80,7 +81,7 @@ public class AdminController {
     }
 
     @PutMapping(ApiConstants.USER_ID_URL)
-    public ResponseEntity<String> updateUser(@PathVariable Long id, @RequestBody AdminUpdateUserRequest request) {
+    public ResponseEntity<String> updateUser(@PathVariable Long id, @Valid @RequestBody AdminUpdateUserRequest request) {
         // Exception handling is done via GlobalExceptionHandler
         adminService.updateUser(id, request);
         return ResponseEntity.ok(MessageConstants.USER_UPDATED);
@@ -143,7 +144,7 @@ public class AdminController {
             @RequestParam(required = false) String reason) {
         // Exception handling is done via GlobalExceptionHandler
         adminService.removeFromBlacklist(email, reason != null ? reason : "");
-        return ResponseEntity.ok("Email removed from blacklist");
+        return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_BLACKLIST);
     }
 
     @GetMapping("/access-mode")
@@ -160,37 +161,26 @@ public class AdminController {
 
     @PostMapping("/access-mode/change")
     public ResponseEntity<String> changeAccessMode(
-            @RequestBody Map<String, String> request,
+            @Valid @RequestBody ChangeAccessModeRequest request,
             Principal principal) {
         // Exception handling is done via GlobalExceptionHandler
-        String newModeStr = request.get("mode");
-        String password = request.get("password");
-        String otpCode = request.get("otpCode");
-        String reason = request.get("reason");
-
-        if (newModeStr == null || password == null || otpCode == null) {
-            return ResponseEntity.badRequest().body("Mode, password, and OTP code are required");
-        }
-
         AccessMode newMode;
         try {
-            newMode = AccessMode.valueOf(newModeStr.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body("Invalid access mode: " + newModeStr);
+            newMode = AccessMode.valueOf(request.getMode().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(MessageConstants.ACCESS_MODE_INVALID);
         }
-
-        adminService.changeAccessMode(newMode, principal.getName(), password, otpCode, 
-                reason != null ? reason : "");
-        return ResponseEntity.ok("Access mode changed successfully");
+        adminService.changeAccessMode(newMode, principal.getName(), request.getPassword(), request.getOtpCode(),
+                request.getReason() != null ? request.getReason() : "");
+        return ResponseEntity.ok(MessageConstants.ACCESS_MODE_CHANGED);
     }
 
     @PostMapping(ApiConstants.VERIFY_ADMIN_URL)
-    public ResponseEntity<String> verifyAdmin(@RequestBody Map<String, String> request, Principal principal) {
-        String password = request.get(SecurityConstants.PASSWORD_KEY);
+    public ResponseEntity<String> verifyAdmin(@RequestBody VerifyAdminRequest request, Principal principal) {
+        String password = request != null ? request.getPassword() : null;
         if (password == null || password.isBlank()) {
             return ResponseEntity.badRequest().body(MessageConstants.PASSWORD_IS_REQUIRED);
         }
-        
         // Exception handling is done via GlobalExceptionHandler
         boolean verified = adminService.verifyAdminPassword(principal.getName(), password);
         if (!verified) {

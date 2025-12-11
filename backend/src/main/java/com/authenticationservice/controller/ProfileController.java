@@ -1,6 +1,7 @@
 package com.authenticationservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,21 +23,19 @@ public class ProfileController {
 
     @GetMapping(ApiConstants.PROFILE_URL)
     public ResponseEntity<?> getProfile(Principal principal) {
-        try {
-            return ResponseEntity.ok(profileService.getProfile(principal.getName()));
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        return ResponseEntity.ok(profileService.getProfile(principal.getName()));
     }
 
     @PostMapping(ApiConstants.PROFILE_URL)
     public ResponseEntity<String> updateProfile(@Valid @RequestBody ProfileUpdateRequest request, Principal principal) {
-        try {
-            profileService.updateProfile(principal.getName(), request);
-            return ResponseEntity.ok(MessageConstants.PROFILE_UPDATED_SUCCESS);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        profileService.updateProfile(principal.getName(), request);
+        return ResponseEntity.ok(MessageConstants.PROFILE_UPDATED_SUCCESS);
     }
 
     @GetMapping(ApiConstants.CHECK_URL)

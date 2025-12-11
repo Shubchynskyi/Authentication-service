@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import {
   Box,
@@ -7,11 +6,9 @@ import {
   Button,
   Typography,
   Alert,
-  Paper,
   CircularProgress,
   Link as MuiLink,
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { validatePassword } from '../utils/passwordValidation';
@@ -19,17 +16,8 @@ import { validatePasswordFlow } from '../utils/passwordChecks';
 import { extractErrorMessage } from '../utils/apiError';
 import PasswordHint from '../components/PasswordHint';
 import PasswordFields from '../components/PasswordFields';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  borderRadius: theme.spacing(1),
-  backgroundColor: theme.palette.background.paper,
-  width: '100%',
-  maxWidth: 480,
-}));
+import api from '../api';
+import FormPaper from '../components/FormPaper';
 
 const RegistrationPage: React.FC = () => {
   const navigate = useNavigate();
@@ -88,13 +76,13 @@ const RegistrationPage: React.FC = () => {
     setPasswordError('');
 
     try {
-      const response = await axios.post<string>(
-        'http://localhost:8080/api/auth/register',
+      const response = await api.post<string>(
+        '/api/auth/register',
         { email, name, password }
       );
       setMessage(response.data || t('auth.registerSuccess'));
       setMessageType('success');
-      navigate('/verify', { state: { email: email } });
+      navigate('/verify', { state: { email } });
     } catch (err) {
       setMessageType('error');
       const message = extractErrorMessage(err, {
@@ -116,7 +104,7 @@ const RegistrationPage: React.FC = () => {
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <StyledPaper elevation={3}>
+      <FormPaper elevation={3}>
         <Typography component="h1" variant="h5" align="center" marginBottom={3}>
           {t('auth.registerTitle')}
         </Typography>
@@ -188,7 +176,7 @@ const RegistrationPage: React.FC = () => {
             {message}
           </Alert>
         )}
-      </StyledPaper>
+      </FormPaper>
     </Box>
   );
 };

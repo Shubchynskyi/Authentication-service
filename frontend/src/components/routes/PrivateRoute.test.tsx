@@ -4,11 +4,17 @@ import { vi, describe, it, expect } from 'vitest';
 import PrivateRoute from './PrivateRoute';
 import { TestMemoryRouter } from '../../test-utils/router';
 import { setupTestCleanup } from '../../test-utils/test-helpers';
-import { setupTokenMocks } from '../../test-utils/mocks';
 
-const { mockIsJwtExpired } = setupTokenMocks('../../utils/token');
+const mockIsAuthenticated = vi.fn(() => false);
+const mockIsLoading = vi.fn(() => false);
 
-// Mock pages for navigation testing
+vi.mock('../../context/AuthContext', () => ({
+    useAuth: () => ({
+        isAuthenticated: mockIsAuthenticated(),
+        isLoading: mockIsLoading(),
+    }),
+}));
+
 const MockLoginPage = () => <div>Login Page</div>;
 const MockProtectedPage = () => <div>Protected Content</div>;
 
@@ -16,8 +22,8 @@ describe('PrivateRoute', () => {
     setupTestCleanup();
 
     it('renders children when user is authenticated', async () => {
-        localStorage.setItem('accessToken', 'valid-token');
-        mockIsJwtExpired.mockReturnValue(false);
+        mockIsAuthenticated.mockReturnValue(true);
+        mockIsLoading.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/protected']}>
@@ -40,8 +46,8 @@ describe('PrivateRoute', () => {
     });
 
     it('redirects to login when user is not authenticated', async () => {
-        localStorage.removeItem('accessToken');
-        mockIsJwtExpired.mockReturnValue(true);
+        mockIsAuthenticated.mockReturnValue(false);
+        mockIsLoading.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/protected']}>
@@ -65,8 +71,8 @@ describe('PrivateRoute', () => {
     });
 
     it('redirects to login when token is expired', async () => {
-        localStorage.setItem('accessToken', 'expired-token');
-        mockIsJwtExpired.mockReturnValue(true);
+        mockIsAuthenticated.mockReturnValue(false);
+        mockIsLoading.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/protected']}>

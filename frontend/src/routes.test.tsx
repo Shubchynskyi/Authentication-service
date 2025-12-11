@@ -162,7 +162,7 @@ describe('routes.tsx', () => {
             expect(screen.queryByText('Admin Page')).not.toBeInTheDocument();
         });
 
-        it('should show NotFoundPage when not authenticated', async () => {
+        it('should redirect to login when not authenticated', async () => {
             mockIsAuthenticated.mockReturnValue(false);
             mockIsLoading.mockReturnValue(false);
 
@@ -173,7 +173,7 @@ describe('routes.tsx', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Not Found Page')).toBeInTheDocument();
+                expect(screen.getByText('Login Page')).toBeInTheDocument();
             });
         });
 
@@ -270,7 +270,7 @@ describe('routes.tsx', () => {
             });
         });
 
-        it('should show NotFoundPage when authenticated', async () => {
+        it('should redirect to profile when authenticated', async () => {
             mockIsAuthenticated.mockReturnValue(true);
             mockIsLoading.mockReturnValue(false);
 
@@ -281,7 +281,7 @@ describe('routes.tsx', () => {
             );
 
             await waitFor(() => {
-                expect(screen.getByText('Not Found Page')).toBeInTheDocument();
+                expect(screen.getByText('Profile Page')).toBeInTheDocument();
             });
         });
 

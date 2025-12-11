@@ -1,35 +1,45 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
-import api from '../../api';
-import axios from 'axios';
+import { Box, CircularProgress } from '@mui/material';
+import { useAuth } from '../../context/AuthContext';
+import { checkAccess } from '../../api';
+import NotFoundPage from '../NotFoundPage';
 
 const AdminRoute: React.FC = () => {
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const { isAuthenticated, isLoading } = useAuth();
+  const [hasAccess, setHasAccess] = useState<boolean | null>(null);
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const run = async () => {
+      if (!isAuthenticated) {
+        setHasAccess(false);
+        return;
+      }
       try {
-        const response = await api.get('/api/protected/profile');
-        const roles = response.data.roles;
-        setIsAdmin(roles.includes('ROLE_ADMIN'));
-      } catch (error) {
-        setIsAdmin(false);
-        if (axios.isAxiosError(error) && error.response?.status === 401) {
-          localStorage.removeItem('accessToken');
-          localStorage.removeItem('refreshToken');
-        }
+        const canAccess = await checkAccess('admin-panel');
+        setHasAccess(canAccess);
+      } catch {
+        setHasAccess(false);
       }
     };
 
-    checkAdmin();
-  }, []);
+    run();
+  }, [isAuthenticated]);
   
-  if (isAdmin === null) {
-    return null;
+  if (isLoading || hasAccess === null) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
   }
   
-  if (!isAdmin) {
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!hasAccess) {
+    return <NotFoundPage />;
   }
   
   return <Outlet />;

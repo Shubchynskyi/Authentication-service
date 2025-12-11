@@ -1,7 +1,6 @@
 import { screen, fireEvent } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import Navbar from './Navbar';
-import { createMockAuthContext } from '../test-utils/mocks';
 import { renderWithRouter, setupTestCleanup, mockUser } from '../test-utils/test-helpers';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
@@ -37,7 +36,26 @@ vi.mock('../context/ProfileContext', () => ({
 
 // Mock AuthContext
 vi.mock('../context/AuthContext', () => ({
-    useAuth: () => createMockAuthContext({ logout: mockLogout }),
+    useAuth: () => ({
+        isAuthenticated: true,
+        login: vi.fn(),
+        logout: mockLogout,
+        setTokens: vi.fn(),
+        error: null,
+        isLoading: false,
+    }),
+}));
+
+// Mock NotificationContext (local, avoids hoist issues)
+const mockShowNotification = vi.fn();
+const mockRemoveNotification = vi.fn();
+vi.mock('../context/NotificationContext', () => ({
+    useNotification: () => ({
+        notifications: [],
+        showNotification: mockShowNotification,
+        removeNotification: mockRemoveNotification,
+    }),
+    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
 // Mock i18n

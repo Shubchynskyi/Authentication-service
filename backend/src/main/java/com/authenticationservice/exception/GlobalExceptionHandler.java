@@ -122,6 +122,12 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", "Validation Error", "message", errorMessage));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", BAD_REQUEST, "message", ex.getMessage()));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
         String message = ex.getMessage();
@@ -137,6 +143,8 @@ public class GlobalExceptionHandler {
                 message.contains("Invalid/expired refresh token") ||
                 message.contains("Invalid or expired reset token") ||
                 message.contains("Expired reset token") ||
+                message.contains("Current password is required") ||
+                message.contains("Incorrect current password") ||
                 message.contains("expired"))) {
             log.warn("Business logic error: {}", message);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)

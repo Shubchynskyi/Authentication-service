@@ -2,6 +2,9 @@ import React from 'react';
 import { vi } from 'vitest';
 import { getTranslation } from './translations';
 
+// Guard to avoid ReferenceError in hoisted mocks
+const modulePath = undefined;
+
 // Common mock for AuthContext
 export const createMockAuthContext = (overrides = {}) => ({
     isAuthenticated: false,
@@ -92,7 +95,7 @@ export const setupI18nMocks = (customTranslations?: Record<string, string>) => {
 };
 
 // Mock api instance
-export const createMockApiInstance = () => {
+export function createMockApiInstance() {
     const mockPost = vi.fn();
     const mockGet = vi.fn();
     const mockPut = vi.fn();
@@ -132,18 +135,10 @@ export const createMockApiInstance = () => {
         mockRequestUse,
         mockResponseUse,
     };
-};
+}
 
 // Setup api mocks
-export const setupApiMocks = () => {
-    const apiMocks = createMockApiInstance();
-
-    vi.mock('../api', () => ({
-        default: apiMocks.mockApiInstance,
-    }));
-
-    return apiMocks;
-};
+export const setupApiMocks = () => createMockApiInstance();
 
 // Mock axios
 export const setupAxiosMocks = () => {
@@ -195,33 +190,16 @@ export const setupTokenMocks = (modulePath = '../utils/token') => {
     };
 };
 
-// Mock NotificationContext with configurable module path
-export const setupNotificationMocks = (
-    modulePath = '../context/NotificationContext',
-    overrides: {
-        notifications?: Array<{ id: string; message: string; type: string }>;
-        showNotification?: ReturnType<typeof vi.fn>;
-        removeNotification?: ReturnType<typeof vi.fn>;
-    } = {}
-) => {
+// Data factory for NotificationContext mocks (no vi.mock inside to avoid hoist issues)
+export const createNotificationMocks = (overrides: {
+    notifications?: Array<{ id: string; message: string; type: string }>;
+    showNotification?: ReturnType<typeof vi.fn>;
+    removeNotification?: ReturnType<typeof vi.fn>;
+} = {}) => {
     const mockNotifications = overrides.notifications || [];
     const mockShowNotification = overrides.showNotification || vi.fn();
     const mockRemoveNotification = overrides.removeNotification || vi.fn();
-
-    vi.mock(modulePath, () => ({
-        NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-        useNotification: () => ({
-            notifications: mockNotifications,
-            showNotification: mockShowNotification,
-            removeNotification: mockRemoveNotification,
-        }),
-    }));
-
-    return {
-        mockNotifications,
-        mockShowNotification,
-        mockRemoveNotification,
-    };
+    return { mockNotifications, mockShowNotification, mockRemoveNotification };
 };
 
 // Setup mocks for contexts

@@ -4,24 +4,12 @@ import {
     Box,
     Typography,
     Container,
-    CircularProgress,
-    Paper
+    CircularProgress
 } from '@mui/material';
-import { styled } from '@mui/material/styles';
 import api from '../api';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    borderRadius: theme.spacing(1),
-    backgroundColor: theme.palette.background.paper,
-    width: '100%',
-    maxWidth: 480,
-}));
+import FormPaper from '../components/FormPaper';
 
 const VerifyPage = () => {
     const navigate = useNavigate();
@@ -70,7 +58,7 @@ const VerifyPage = () => {
                 flexDirection: 'column',
                 alignItems: 'center',
             }}>
-                <StyledPaper elevation={3}>
+                <FormPaper elevation={3}>
                     <Typography component="h1" variant="h5" gutterBottom>
                         {t('auth.verificationTitle')}
                     </Typography>
@@ -82,7 +70,7 @@ const VerifyPage = () => {
                             </Typography>
                         </>
                     )}
-                </StyledPaper>
+                </FormPaper>
             </Box>
         </Container>
     );

@@ -2,16 +2,37 @@ import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import VerificationPage from './VerificationPage';
-import axios from 'axios';
 import { TestMemoryRouter } from '../test-utils/router';
-import { setupNotificationMocks } from '../test-utils/mocks';
 import { setupTestCleanup } from '../test-utils/test-helpers';
 
-// Mock axios
-vi.mock('axios');
-const mockedAxios = axios as any;
+const mockShowNotification = vi.fn();
+const mockApiPost = vi.fn();
 
-const { mockShowNotification } = setupNotificationMocks();
+vi.mock('axios', () => ({
+    default: {
+        post: (...args: any[]) => mockApiPost(...args),
+        create: () => ({
+            post: (...args: any[]) => mockApiPost(...args),
+            get: vi.fn(),
+            defaults: { headers: { common: {} } },
+            interceptors: {
+                request: { use: vi.fn() },
+                response: { use: vi.fn() },
+            },
+        }),
+        isAxiosError: () => false,
+    },
+    isAxiosError: () => false,
+}));
+
+vi.mock('../context/NotificationContext', () => ({
+    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    useNotification: () => ({
+        notifications: [],
+        showNotification: mockShowNotification,
+        removeNotification: vi.fn(),
+    }),
+}));
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -53,6 +74,7 @@ describe('VerificationPage', () => {
         mockShowNotification.mockClear();
         mockNavigate.mockClear();
         localStorage.clear();
+        mockApiPost.mockClear();
     });
 
     afterEach(() => {
@@ -76,7 +98,7 @@ describe('VerificationPage', () => {
     });
 
     it('submits verification with valid data', async () => {
-        mockedAxios.post.mockResolvedValueOnce({
+        mockApiPost.mockResolvedValueOnce({
             data: 'Verification successful',
         });
 
@@ -89,7 +111,7 @@ describe('VerificationPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(mockedAxios.post).toHaveBeenCalledWith(
+            expect(mockApiPost).toHaveBeenCalledWith(
                 expect.stringContaining('/api/auth/verify'),
                 {
                     email: 'test@example.com',
@@ -108,7 +130,7 @@ describe('VerificationPage', () => {
     });
 
     it('handles verification error', async () => {
-        mockedAxios.post.mockRejectedValueOnce({
+        mockApiPost.mockRejectedValueOnce({
             response: { data: 'Invalid verification code' },
         });
 
@@ -133,7 +155,7 @@ describe('VerificationPage', () => {
     });
 
     it('resends verification code', async () => {
-        mockedAxios.post.mockResolvedValueOnce({
+        mockApiPost.mockResolvedValueOnce({
             data: 'Verification code resent',
         });
 
@@ -143,7 +165,7 @@ describe('VerificationPage', () => {
         fireEvent.click(resendButton);
 
         await waitFor(() => {
-            expect(mockedAxios.post).toHaveBeenCalledWith(
+            expect(mockApiPost).toHaveBeenCalledWith(
                 expect.stringContaining('/api/auth/resend-verification'),
                 {
                     email: 'test@example.com',
@@ -160,7 +182,7 @@ describe('VerificationPage', () => {
     });
 
     it('handles resend verification error', async () => {
-        mockedAxios.post.mockRejectedValueOnce({
+        mockApiPost.mockRejectedValueOnce({
             response: { data: 'Resend failed' },
         });
 
@@ -179,7 +201,7 @@ describe('VerificationPage', () => {
     });
 
     it('disables resend during cooldown when backend returns 429', async () => {
-        mockedAxios.post.mockRejectedValueOnce({
+        mockApiPost.mockRejectedValueOnce({
             response: {
                 status: 429,
                 data: { message: 'Too many resend attempts', retryAfterSeconds: 30 },
@@ -206,7 +228,7 @@ describe('VerificationPage', () => {
     });
 
     it('shows loading state during verification', async () => {
-        mockedAxios.post.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
+        mockApiPost.mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
 
         renderVerificationPage({ email: 'test@example.com' });
 

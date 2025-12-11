@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { isJwtExpired } from '../../utils/token';
+import { Box, CircularProgress } from '@mui/material';
+import { useAuth } from '../../context/AuthContext';
 
 interface PrivateRouteProps {
     children: React.ReactNode;
@@ -8,14 +9,20 @@ interface PrivateRouteProps {
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
     const location = useLocation();
-    
-    const token = localStorage.getItem('accessToken');
-    const isAuthenticated = !!token && !isJwtExpired(token);
-    
+    const { isAuthenticated, isLoading } = useAuth();
+
+    if (isLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
     if (!isAuthenticated) {
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
-    
+
     return <>{children}</>;
 };
 

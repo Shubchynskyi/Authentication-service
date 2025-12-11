@@ -1,21 +1,10 @@
 // ForgotPasswordPage.tsx
 import React, { useEffect, useMemo, useState } from 'react';
-import axios from 'axios';
-import { Box, TextField, Button, Typography, Paper, CircularProgress } from '@mui/material';
-import { styled } from '@mui/material/styles';
+import { Box, TextField, Button, Typography, CircularProgress } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-    padding: theme.spacing(4),
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    borderRadius: theme.spacing(1),
-    backgroundColor: theme.palette.background.paper,
-    width: '100%',
-    maxWidth: 480,
-}));
+import api from '../api';
+import FormPaper from '../components/FormPaper';
 
 const COOLDOWN_MINUTES = Number(import.meta.env.VITE_PASSWORD_RESET_COOLDOWN_MINUTES ?? 10);
 const COOLDOWN_MS = COOLDOWN_MINUTES * 60 * 1000;
@@ -50,7 +39,7 @@ const ForgotPasswordPage: React.FC = () => {
         e.preventDefault();
         setIsLoading(true);
         try {
-            await axios.post('http://localhost:8080/api/auth/forgot-password', { email });
+            await api.post('/api/auth/forgot-password', { email });
             showNotification(t('auth.forgotPasswordSuccessGeneric'), 'success');
             setCooldownMs(COOLDOWN_MS);
         } catch {
@@ -62,7 +51,7 @@ const ForgotPasswordPage: React.FC = () => {
 
     return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <StyledPaper elevation={3}>
+            <FormPaper elevation={3}>
                 <Typography component="h1" variant="h5" align="center" marginBottom={3}>
                     {t('auth.forgotPasswordTitle')}
                 </Typography>
@@ -100,7 +89,7 @@ const ForgotPasswordPage: React.FC = () => {
                         </Typography>
                     )}
                 </form>
-            </StyledPaper>
+            </FormPaper>
         </Box>
     );
 };
