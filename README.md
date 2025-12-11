@@ -4,70 +4,56 @@ This project is a full-stack authentication and user profile management solution
 
 ### Backend (Java / Spring Boot)
 
-- **Technology stack**: Spring Boot, Spring Security, JWT, JPA/Hibernate, REST API  
+- **Technology stack**: Spring Boot, Spring Security, JWT, OAuth2 (Google), JPA/Hibernate, REST API, Bucket4j rate limiting, SMTP Mail, Testcontainers + JUnit 5  
 - **Responsibilities**:
-  - User registration, login, logout
-  - Email-based verification and password reset flows
-  - Role-based access control (including admin functionality)
-  - Secure password storage and validation
+  - User registration, login, logout, refresh tokens (access 15m, refresh 7d)
+  - Email-based verification and password reset flows (1h token, cooldown between requests)
+  - Role-based access control (USER/ADMIN) and protected endpoints
+  - Whitelist/blacklist access control with switchable modes (OTP + password verification for mode changes)
+  - Secure password storage/validation and account protection (locks/blocks after failed attempts)
   - User profile management (view and update profile data)
 - **Configuration**:
-  - Application settings are managed via `application.yml`
-  - Sensitive data (e.g. database credentials, JWT secrets, email credentials) must be provided via environment variables or external configuration
+  - Settings are managed via `application.yml`
+  - Sensitive data (DB credentials, JWT secrets, mail, OAuth) must be provided via environment variables
+
 
 ### Frontend (React / TypeScript)
 
-- **Technology stack**: React, TypeScript, Vite, React Router, Context API  
+- **Technology stack**: React, TypeScript, Vite, React Router, Context API, MUI, Axios, i18next, Vitest + Testing Library  
 - **Responsibilities**:
-  - Authentication UI (login, registration, verification, password reset)
+  - Authentication UI (login, registration, email verification, password reset)
   - Protected routes for authenticated and admin-only pages
   - User profile pages and profile editing
-  - Internationalization (i18n) with multiple languages (EN, DE, RU, UA)
-  - Theming and notification system for user feedback
+  - Internationalization (EN, DE, RU, UA) and theming/notifications
+  - Resend/verification timers and password strength checks aligned with backend regex
+
 
 ### Running the Project
 
 - **Prerequisites**:
-  - Java and Maven for the backend
-  - Node.js and npm for the frontend
-  - Docker (optional) for containerized deployment
+  - Java 21 and Maven for the backend
+  - Node.js 18+ and npm for the frontend
+  - Docker (optional) for containerized workflow and Testcontainers
 - **Quick start**:
-  - Use the provided scripts `build-and-test.sh`, `deploy.sh`
+  - Scripts: `build-and-test.sh` (backend build/tests in Docker), `deploy.sh` (compose run: `./deploy.sh local` or `./deploy.sh server`)
+  - Manual: `cd backend && mvn spring-boot:run`; `cd frontend && npm install && npm run dev -- --host --port 5173`
 
-### Environment and Security
-
-- Use environment variables (see `env.example`) or secure secret management solutions for sensitive configuration.  
 
 ### Implemented Features
 
-- **Whitelist/Blacklist Access Control**: Configurable access mode that allows restricting user registration and login to whitelisted emails or blocking specific emails via blacklist. Access mode can be set via `ACCESS_MODE_DEFAULT` environment variable (values: `WHITELIST`, `BLACKLIST`).
+- **Whitelist/Blacklist Access Control**: Configurable mode via `ACCESS_MODE_DEFAULT` (`WHITELIST`, `BLACKLIST`); admin can switch modes with OTP + password verification and manage lists.
+- **OAuth2 Google Authentication**: Tokens returned via URL fragment to avoid server-side logging.
+- **Asynchronous Email Notifications**: Lock/block notifications sent asynchronously.
+- **Account Protection**: 5 failed logins → 5m lock with email; 10 failed → full block; blacklist always blocks login.
+- **Password Reset Flow**: 1h reset token, cooldown between requests; Google accounts receive an informational email instead of a reset link.
+- **Multi-language Support**: Full localization for 4 languages (EN, DE, RU, UA), including validation errors.
+- **Rate Limiting**: Bucket4j per-IP buckets (auth 120/min, admin 300/min by default) and a separate resend bucket; responses include `Retry-After` and `retryAfterSeconds`.
+- **Resend Code Cooldown**: Backend enforces 1/min per email with HTTP 429; frontend shows countdown and disables the button.
+- **Admin Initialization**: When `ADMIN_ENABLED=true`, an admin account is created on startup using `ADMIN_EMAIL` and receives a setup-password link via `FRONTEND_URL`.
 
-- **OAuth2 Google Authentication**: Users can authenticate using their Google accounts. Tokens are securely passed via URL fragments to prevent server-side logging.
+### Contact
 
-- **Asynchronous Email Notifications**: Lock and block notifications are sent asynchronously to prevent delays in API responses.
-
-- **Multi-language Support**: Full localization for 4 languages (EN, DE, RU, UA) including validation error messages.
-
-- **Resend Code Cooldown**: Backend rate limit (1/min per email) returns HTTP 429 with `Retry-After` and `retryAfterSeconds`; frontend shows countdown and disables the button until cooldown ends.
-
-### Roadmap (Future Improvements)
-
-1. **Authorization Code Flow for OAuth2**
-   - Current implementation passes tokens via URL fragment which, while secure from server logs, still appears in browser history
-   - Future improvement: implement one-time authorization code exchange where tokens are returned via secure API call instead of URL
-   - This provides better security as tokens never appear in URLs
-
-2. **Decoy Page Mode (Security Through Obscurity)**
-   - New environment variable `HIDE_LOGIN_PAGE` (boolean)
-   - When enabled, generates a decoy HTML page with multiple random links
-   - Only one specific link leads to the actual login page
-   - Provides additional protection against automated attacks and casual intruders
-   - The real login endpoint would be accessible via a secret path or specific link
-
-
-3. **Session Policy Hardening**
-   - Short-lived access tokens with bounded refresh tokens
-   - “Remember this device” option with device-bound long-lived refresh tokens
-   - Secure storage for device-bound refresh tokens
-
-
+For any questions or further information, please contact [d.shubchynskyi@gmail.com](mailto:d.shubchynskyi@gmail.com)
+```
+d.shubchynskyi@gmail.com
+```
