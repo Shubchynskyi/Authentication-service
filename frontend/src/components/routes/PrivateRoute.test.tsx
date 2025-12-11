@@ -1,34 +1,23 @@
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
-import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 import PrivateRoute from './PrivateRoute';
-import * as tokenUtils from '../../utils/token';
 import { TestMemoryRouter } from '../../test-utils/router';
+import { setupTestCleanup } from '../../test-utils/test-helpers';
+import { setupTokenMocks } from '../../test-utils/mocks';
 
-// Mock token utils
-vi.mock('../../utils/token', () => ({
-    isJwtExpired: vi.fn(),
-}));
+const { mockIsJwtExpired } = setupTokenMocks('../../utils/token');
 
 // Mock pages for navigation testing
 const MockLoginPage = () => <div>Login Page</div>;
 const MockProtectedPage = () => <div>Protected Content</div>;
 
 describe('PrivateRoute', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        localStorage.clear();
-    });
-
-    afterEach(() => {
-        vi.clearAllMocks();
-        localStorage.clear();
-        cleanup();
-    });
+    setupTestCleanup();
 
     it('renders children when user is authenticated', async () => {
         localStorage.setItem('accessToken', 'valid-token');
-        vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(false);
+        mockIsJwtExpired.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/protected']}>
@@ -52,7 +41,7 @@ describe('PrivateRoute', () => {
 
     it('redirects to login when user is not authenticated', async () => {
         localStorage.removeItem('accessToken');
-        vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(true);
+        mockIsJwtExpired.mockReturnValue(true);
 
         render(
             <TestMemoryRouter initialEntries={['/protected']}>
@@ -77,7 +66,7 @@ describe('PrivateRoute', () => {
 
     it('redirects to login when token is expired', async () => {
         localStorage.setItem('accessToken', 'expired-token');
-        vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(true);
+        mockIsJwtExpired.mockReturnValue(true);
 
         render(
             <TestMemoryRouter initialEntries={['/protected']}>

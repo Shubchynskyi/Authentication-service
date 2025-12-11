@@ -3,6 +3,7 @@ package com.authenticationservice.service;
 import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.UserRepository;
+import com.authenticationservice.util.LoggingSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,7 +32,7 @@ public class LoginAttemptService {
             dbUser = userRepository.findByEmail(user.getEmail()).orElse(null);
         }
         if (dbUser == null) {
-            log.error("User not found in LoginAttemptService for email: {}, ID: {}", user.getEmail(), user.getId());
+            log.error("User not found in LoginAttemptService for email: {}, ID: {}", maskEmail(user.getEmail()), user.getId());
             // If user not found, we can't increment attempts, but this shouldn't break the login flow
             // Just log the error and return - the InvalidCredentialsException will still be thrown
             return;
@@ -50,7 +51,7 @@ public class LoginAttemptService {
                     EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE,
                     5, frontendUrl, 5);
             emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_SUBJECT, emailContent);
-            log.info("Temporary lock email queued for {}", dbUser.getEmail());
+            log.info("Temporary lock email queued for {}", maskEmail(dbUser.getEmail()));
         } else if (currentAttempts > 5 && dbUser.getLockTime() == null) {
             // Set lock time if it wasn't set before
             dbUser.setLockTime(LocalDateTime.now().plusMinutes(5));
@@ -65,7 +66,11 @@ public class LoginAttemptService {
                     EmailConstants.ACCOUNT_BLOCKED_TEMPLATE,
                     frontendUrl);
             emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_BLOCKED_SUBJECT, emailContent);
-            log.info("Account blocked email queued for {}", dbUser.getEmail());
+            log.info("Account blocked email queued for {}", maskEmail(dbUser.getEmail()));
         }
+    }
+
+    private String maskEmail(String email) {
+        return LoggingSanitizer.maskEmail(email);
     }
 }

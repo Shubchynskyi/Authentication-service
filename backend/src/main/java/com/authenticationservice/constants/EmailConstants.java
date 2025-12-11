@@ -5,18 +5,101 @@ public final class EmailConstants {
     
     public static final String VERIFICATION_SUBJECT = "Email Verification - Authentication Service";
     public static final String RESET_PASSWORD_SUBJECT = "Password Reset Request";
+    public static final String ADMIN_INVITE_SUBJECT = "Welcome to Authentication Service";
+    public static final String GOOGLE_PASSWORD_RESET_SUBJECT = "Password reset unavailable for Google sign-in";
     
-    public static final String VERIFICATION_EMAIL_TEMPLATE = 
+    public static final String VERIFICATION_EMAIL_TEXT_TEMPLATE = 
             "Hello!\n\n" +
             "Thank you for registering with our Authentication Service. To complete your registration, please use the following verification code:\n\n" +
             "Verification Code: %s\n\n" +
+            "You can also verify using this link: %s\n\n" +
             "This code will expire in 15 minutes.\n\n" +
-            "Please enter this code on the verification page to activate your account.\n\n" +
+            "If you did not request this, you can safely ignore this email.\n\n" +
             "Best regards,\nAuthentication Service Team";
+    
+    public static final String VERIFICATION_EMAIL_HTML_TEMPLATE =
+            "<!DOCTYPE html>" +
+            "<html>" +
+            "<head>" +
+            "<meta charset=\"UTF-8\" />" +
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />" +
+            "<title>Email Verification</title>" +
+            "</head>" +
+            "<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:'Helvetica Neue',Arial,sans-serif;\">" +
+            "<table role=\"presentation\" width=\"100%%\" style=\"background-color:#f4f4f7;padding:24px 0;\">" +
+            "<tr><td align=\"center\">" +
+            "<table role=\"presentation\" width=\"600\" style=\"background-color:#ffffff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;\">" +
+            "<tr><td style=\"padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;\">Confirm your email</td></tr>" +
+            "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">Thanks for registering with Authentication Service. Use the code below to verify your email.</td></tr>" +
+            "<tr><td style=\"padding:0 24px 16px;\"><div style=\"background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:12px 16px;font-size:18px;font-weight:600;color:#111827;text-align:center;letter-spacing:0.08em;\">%s</div></td></tr>" +
+            "<tr><td style=\"padding:0 24px 24px;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 18px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Verify email</a></td></tr>" +
+            "<tr><td style=\"padding:0 24px 24px;font-size:12px;color:#9ca3af;\">If the button does not work, copy this link:<br><a href=\"%s\" style=\"color:#2563eb;word-break:break-all;\">%s</a></td></tr>" +
+            "</table>" +
+            "</td></tr>" +
+            "</table>" +
+            "</body>" +
+            "</html>";
             
-    public static final String RESET_PASSWORD_EMAIL_TEMPLATE = 
+    public static final String RESET_PASSWORD_TEXT_TEMPLATE = 
             "You have requested a password reset. Please click the link below to reset your password:\n\n%s\n\n" +
             "If you did not request a password reset, please ignore this email.";
+    
+    public static final String RESET_PASSWORD_HTML_TEMPLATE =
+            "<!DOCTYPE html>" +
+            "<html>" +
+            "<head>" +
+            "<meta charset=\"UTF-8\" />" +
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />" +
+            "<title>Password Reset</title>" +
+            "</head>" +
+            "<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:'Helvetica Neue',Arial,sans-serif;\">" +
+            "<table role=\"presentation\" width=\"100%%\" style=\"background-color:#f4f4f7;padding:24px 0;\">" +
+            "<tr><td align=\"center\">" +
+            "<table role=\"presentation\" width=\"600\" style=\"background-color:#ffffff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;\">" +
+            "<tr><td style=\"padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;\">Reset your password</td></tr>" +
+            "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">We received a request to reset your password. Click the button below to continue.</td></tr>" +
+            "<tr><td style=\"padding:0 24px 24px;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 18px;background-color:#16a34a;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Reset password</a></td></tr>" +
+            "<tr><td style=\"padding:0 24px 24px;font-size:12px;color:#9ca3af;\">If the button does not work, copy this link:<br><a href=\"%s\" style=\"color:#2563eb;word-break:break-all;\">%s</a></td></tr>" +
+            "</table>" +
+            "</td></tr>" +
+            "</table>" +
+            "</body>" +
+            "</html>";
+
+    public static final String ADMIN_INVITE_TEXT_TEMPLATE =
+            "Your account has been created by administrator.\n\n" +
+            "Your temporary password: %s\n" +
+            "Please verify your email by clicking this link: %s\n\n" +
+            "After verification, you can log in and change your password.\n" +
+            "For security reasons, please change your password after first login.";
+
+    public static final String ADMIN_INVITE_HTML_TEMPLATE =
+            "<!DOCTYPE html>" +
+            "<html>" +
+            "<head>" +
+            "<meta charset=\"UTF-8\" />" +
+            "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />" +
+            "<title>Welcome</title>" +
+            "</head>" +
+            "<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:'Helvetica Neue',Arial,sans-serif;\">" +
+            "<table role=\"presentation\" width=\"100%%\" style=\"background-color:#f4f4f7;padding:24px 0;\">" +
+            "<tr><td align=\"center\">" +
+            "<table role=\"presentation\" width=\"600\" style=\"background-color:#ffffff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;\">" +
+            "<tr><td style=\"padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;\">Welcome to Authentication Service</td></tr>" +
+            "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">Your account has been created by an administrator. Use the temporary password below and verify your email to get started.</td></tr>" +
+            "<tr><td style=\"padding:0 24px 16px;\"><div style=\"background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:12px 16px;font-size:16px;font-weight:600;color:#111827;text-align:center;word-break:break-all;\">Temporary password: %s</div></td></tr>" +
+            "<tr><td style=\"padding:0 24px 24px;\"><a href=\"%s\" style=\"display:inline-block;padding:12px 18px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;\">Verify email</a></td></tr>" +
+            "<tr><td style=\"padding:0 24px 24px;font-size:12px;color:#9ca3af;\">If the button does not work, copy this link:<br><a href=\"%s\" style=\"color:#2563eb;word-break:break-all;\">%s</a></td></tr>" +
+            "</table>" +
+            "</td></tr>" +
+            "</table>" +
+            "</body>" +
+            "</html>";
+    
+    public static final String GOOGLE_PASSWORD_RESET_TEXT_TEMPLATE =
+            "We noticed you requested a password reset, but your account is linked with Google.\n" +
+            "Please sign in using the 'Continue with Google' option.\n" +
+            "If you forgot your Google password, use Google's account recovery.";
     
     public static final String ACCOUNT_TEMPORARILY_LOCKED_SUBJECT = "Account Temporarily Locked";
     public static final String ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE = 

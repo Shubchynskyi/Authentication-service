@@ -2,7 +2,7 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import ResetPasswordPage from './ResetPasswordPage';
-import { createMockNotificationContext } from '../test-utils/mocks';
+import { setupNotificationMocks } from '../test-utils/mocks';
 import { renderWithMemoryRouter, setupTestCleanup } from '../test-utils/test-helpers';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
@@ -29,10 +29,7 @@ vi.mock('axios', () => ({
 }));
 
 // Mock NotificationContext
-vi.mock('../context/NotificationContext', () => ({
-    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useNotification: () => createMockNotificationContext({ showNotification: mockShowNotification }),
-}));
+setupNotificationMocks('../context/NotificationContext', { showNotification: mockShowNotification });
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {

@@ -11,6 +11,7 @@ import com.authenticationservice.dto.ProfileUpdateRequest;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.UserRepository;
+import com.authenticationservice.util.LoggingSanitizer;
 
 @Slf4j
 @Service
@@ -36,32 +37,36 @@ public class ProfileService {
 
     @Transactional
     public void updateProfile(String email, ProfileUpdateRequest request) {
-        log.debug("Updating profile for email: {}", email);
+        log.debug("Updating profile for email: {}", maskEmail(email));
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> {
-                    log.error("User not found for email: {}", email);
+                    log.error("User not found for email: {}", maskEmail(email));
                     return new RuntimeException("User not found");
                 });
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
-                log.error("Current password is missing for email: {}", email);
+                log.error("Current password is missing for email: {}", maskEmail(email));
                 throw new RuntimeException("Current password is required when updating password");
             }
             // Security: Never log password hashes or password validation details
             boolean passwordMatches = passwordEncoder.matches(request.getCurrentPassword(), user.getPassword());
             if (!passwordMatches) {
-                log.error("Incorrect current password for email: {}", email);
+                log.error("Incorrect current password for email: {}", maskEmail(email));
                 throw new RuntimeException("Incorrect current password");
             }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
         if (request.getName() != null && !request.getName().isBlank()) {
-            log.debug("Updating name for email: {}", email);
+            log.debug("Updating name for email: {}", maskEmail(email));
             user.setName(request.getName());
         }
         userRepository.save(user);
-        log.debug("Profile updated successfully for email: {}", email);
+        log.debug("Profile updated successfully for email: {}", maskEmail(email));
+    }
+
+    private String maskEmail(String email) {
+        return LoggingSanitizer.maskEmail(email);
     }
 }

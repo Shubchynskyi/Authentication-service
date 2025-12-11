@@ -25,6 +25,7 @@ public class TestConfig {
     public EmailService emailService() {
         EmailService mock = mock(EmailService.class);
         doNothing().when(mock).sendEmail(anyString(), anyString(), anyString());
+        doNothing().when(mock).sendEmail(anyString(), anyString(), anyString(), anyString());
         return mock;
     }
 

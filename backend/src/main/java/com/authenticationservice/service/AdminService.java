@@ -1,6 +1,8 @@
 // AdminService.java
 package com.authenticationservice.service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
@@ -23,6 +25,7 @@ import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.BlockedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
+import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.exception.AccessListDuplicateException;
 import com.authenticationservice.model.AccessListChangeLog;
@@ -40,7 +43,9 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.BlockedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
+import com.authenticationservice.util.EmailTemplateFactory;
 import com.authenticationservice.util.EmailUtils;
+import com.authenticationservice.util.LoggingSanitizer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,6 +80,14 @@ public class AdminService {
         return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
 
+    private String maskEmail(String email) {
+        return LoggingSanitizer.maskEmail(email);
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
+    }
+
     public void addToWhitelist(String email) {
         addToWhitelist(email, null);
     }
@@ -90,7 +103,7 @@ public class AdminService {
         String normalizedReason = reason != null ? reason.trim() : "";
         AllowedEmail allowedEmail = new AllowedEmail(normalizedEmail, normalizedReason.isEmpty() ? null : normalizedReason);
         allowedEmailRepository.save(allowedEmail);
-        log.info("Email added to whitelist: {}", normalizedEmail);
+        log.info("Email added to whitelist: {}", maskEmail(normalizedEmail));
         
         // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, normalizedEmail, 
@@ -106,7 +119,7 @@ public class AdminService {
         AllowedEmail existing = allowedEmailRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Email not found in whitelist"));
         allowedEmailRepository.delete(existing);
-        log.info("Email removed from whitelist: {}", normalizedEmail);
+        log.info("Email removed from whitelist: {}", maskEmail(normalizedEmail));
         
         // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, normalizedEmail, 
@@ -124,7 +137,7 @@ public class AdminService {
         String normalizedReason = reason != null ? reason.trim() : "";
         BlockedEmail blockedEmail = new BlockedEmail(normalizedEmail, normalizedReason.isEmpty() ? null : normalizedReason);
         blockedEmailRepository.save(blockedEmail);
-        log.info("Email added to blacklist: {}", normalizedEmail);
+        log.info("Email added to blacklist: {}", maskEmail(normalizedEmail));
         
         boolean userBlocked = false;
         if (userRepository.findByEmail(normalizedEmail).isPresent()) {
@@ -133,7 +146,7 @@ public class AdminService {
             existingUser.setBlockReason(normalizedReason.isEmpty() ? "Email is blacklisted" : normalizedReason);
             userRepository.save(existingUser);
             userBlocked = true;
-            log.info("Existing user {} marked as blocked due to blacklist", normalizedEmail);
+            log.info("Existing user {} marked as blocked due to blacklist", maskEmail(normalizedEmail));
         }
 
         // Log the change
@@ -151,7 +164,7 @@ public class AdminService {
         BlockedEmail existing = blockedEmailRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Email not found in blacklist"));
         blockedEmailRepository.delete(existing);
-        log.info("Email removed from blacklist: {}", normalizedEmail);
+        log.info("Email removed from blacklist: {}", maskEmail(normalizedEmail));
         
         // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, normalizedEmail, 
@@ -191,7 +204,7 @@ public class AdminService {
     public void createUser(AdminUpdateUserRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
         request.setEmail(normalizedEmail);
-        log.info("Starting user creation process for email: {}", normalizedEmail);
+        log.info("Starting user creation process for email: {}", maskEmail(normalizedEmail));
         
         if (userRepository.existsByEmail(normalizedEmail)) {
             throw new RuntimeException("User with this email already exists");
@@ -224,14 +237,14 @@ public class AdminService {
         try {
             // Save user first
             user = userRepository.save(user);
-            log.info("User saved to database: {}", user.getEmail());
+            log.info("User saved to database: {}", maskEmail(user.getEmail()));
 
             // Automatically add to whitelist and remove from blacklist if present
             String reason = MessageConstants.WHITELIST_REASON_ADMIN_CREATED;
             if (allowedEmailRepository.findByEmail(user.getEmail()).isEmpty()) {
                 AllowedEmail allowedEmail = new AllowedEmail(user.getEmail(), reason);
                 allowedEmailRepository.save(allowedEmail);
-                log.info("Email {} automatically added to whitelist", user.getEmail());
+                log.info("Email {} automatically added to whitelist", maskEmail(user.getEmail()));
                 logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, user.getEmail(),
                         AccessListChangeLog.AccessListAction.ADD, reason);
             }
@@ -239,39 +252,30 @@ public class AdminService {
             if (blockedEmailRepository.findByEmail(user.getEmail()).isPresent()) {
                 BlockedEmail blocked = blockedEmailRepository.findByEmail(user.getEmail()).orElseThrow();
                 blockedEmailRepository.delete(blocked);
-                log.info("Email {} automatically removed from blacklist", user.getEmail());
+                log.info("Email {} automatically removed from blacklist", maskEmail(user.getEmail()));
                 logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, user.getEmail(),
                         AccessListChangeLog.AccessListAction.REMOVE, reason);
             }
 
             // Send welcome email with temporary password and verification link
-            String emailContent = getContent(verificationToken, user, tempPassword);
+            String verificationLink = String.format("%s/verify/email?verificationToken=%s&email=%s",
+                frontendUrl, verificationToken, urlEncode(user.getEmail()));
+
+            String emailText = EmailTemplateFactory.buildAdminInviteText(tempPassword, verificationLink);
+            String emailHtml = EmailTemplateFactory.buildAdminInviteHtml(tempPassword, verificationLink);
 
             emailService.sendEmail(
-                user.getEmail(), 
-                "Welcome to Authentication Service", 
-                emailContent
+                user.getEmail(),
+                EmailConstants.ADMIN_INVITE_SUBJECT,
+                emailText,
+                emailHtml
             );
             
-            log.info("Welcome email sent to: {}", user.getEmail());
+            log.info("Welcome email sent to: {}", maskEmail(user.getEmail()));
         } catch (Exception e) {
             log.error("Error during user creation process: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to create user: " + e.getMessage());
         }
-    }
-
-    private String getContent(String verificationToken, User user, String tempPassword) {
-        String verificationLink = String.format("%s/verify/email?verificationToken=%s&email=%s",
-            frontendUrl, verificationToken, user.getEmail());
-
-        return String.format(
-            "Your account has been created by administrator.\n\n" +
-            "Your temporary password: %s\n" +
-            "Please verify your email by clicking this link: %s\n\n" +
-            "After verification, you can log in and change your password.\n" +
-            "For security reasons, please change your password after first login.",
-                tempPassword, verificationLink
-        );
     }
 
     @Transactional
@@ -304,11 +308,11 @@ public class AdminService {
             if (Boolean.TRUE.equals(request.getIsBlocked()) && !user.isBlocked()) {
                 user.setBlockedAt(LocalDateTime.now());
                 user.setBlockReason(request.getBlockReason());
-                log.info("User {} blocked. Reason: {}", user.getEmail(), request.getBlockReason());
+                log.info("User {} blocked. Reason: {}", maskEmail(user.getEmail()), request.getBlockReason());
             } else if (Boolean.FALSE.equals(request.getIsBlocked()) && user.isBlocked()) {
                 user.setUnblockedAt(LocalDateTime.now());
                 user.setBlockReason(null); // Clear block reason when unblocking
-                log.info("User {} unblocked", user.getEmail());
+                log.info("User {} unblocked", maskEmail(user.getEmail()));
             }
             user.setBlocked(request.getIsBlocked());
         }
@@ -327,7 +331,7 @@ public class AdminService {
     public void deleteUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-        log.warn("Deleting user: {}", user.getEmail());
+        log.warn("Deleting user: {}", maskEmail(user.getEmail()));
         userRepository.deleteById(id);
     }
 
@@ -446,7 +450,7 @@ public class AdminService {
         changeLog.setReason(reason);
         accessModeChangeLogRepository.save(changeLog);
 
-        log.info("Access mode changed from {} to {} by {} (reason: {})", oldMode, newMode, normalizedAdminEmail, reason);
+        log.info("Access mode changed from {} to {} by {} (reason: {})", oldMode, newMode, maskEmail(normalizedAdminEmail), reason);
     }
 
     /**
@@ -466,7 +470,7 @@ public class AdminService {
                 otp);
         
         emailService.sendEmail(normalizedAdminEmail, "Access Mode Change - OTP Code", emailContent);
-        log.info("OTP sent to admin email: {}", normalizedAdminEmail);
+        log.info("OTP sent to admin email: {}", maskEmail(normalizedAdminEmail));
     }
 
     /**

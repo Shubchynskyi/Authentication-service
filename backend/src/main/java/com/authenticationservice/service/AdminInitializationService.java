@@ -9,10 +9,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import com.authenticationservice.config.AdminConfig;
+import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.model.User;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.repository.RoleRepository;
+import com.authenticationservice.util.EmailTemplateFactory;
 
 import java.util.UUID;
 
@@ -76,16 +78,16 @@ public class AdminInitializationService {
             userRepository.save(newAdmin);
 
             String resetToken = authService.generatePasswordResetToken(adminEmail);
-            String resetLink = frontendUrl + "/reset-password?token=" + resetToken;
+            String resetLink = String.format("%s/reset-password?token=%s", frontendUrl, resetToken);
 
-            String emailContent = String.format(
-                    "Welcome to the system! To set your password, please follow the link: %s",
-                    resetLink);
+            String emailText = EmailTemplateFactory.buildResetPasswordText(resetLink);
+            String emailHtml = EmailTemplateFactory.buildResetPasswordHtml(resetLink);
 
             emailService.sendEmail(
                     adminEmail,
-                    "Setup password administrator",
-                    emailContent);
+                    EmailConstants.RESET_PASSWORD_SUBJECT,
+                    emailText,
+                    emailHtml);
 
             log.info("Created new admin user and sent setup email to: {}", adminEmail);
         }

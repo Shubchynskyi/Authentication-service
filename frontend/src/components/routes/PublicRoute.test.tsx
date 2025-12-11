@@ -1,43 +1,25 @@
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { Routes, Route } from 'react-router-dom';
-import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 import PublicRoute from './PublicRoute';
-import * as tokenUtils from '../../utils/token';
 import { TestMemoryRouter } from '../../test-utils/router';
+import { setupTestCleanup } from '../../test-utils/test-helpers';
+import { setupTokenMocks } from '../../test-utils/mocks';
 
-// Mock token utils
-vi.mock('../../utils/token', () => ({
-    isJwtExpired: vi.fn(),
-}));
+const { mockIsJwtExpired } = setupTokenMocks('../../utils/token');
 
 // Mock pages for navigation testing
 const MockProfilePage = () => <div>Profile Page</div>;
 const MockPublicPage = () => <div>Public Content</div>;
 
 describe('PublicRoute', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        // Clear localStorage to ensure clean state
-        localStorage.clear();
-        // Reset mock to ensure clean state between tests
-        vi.mocked(tokenUtils.isJwtExpired).mockReset();
-        vi.mocked(tokenUtils.isJwtExpired).mockClear();
-    });
-
-    afterEach(() => {
-        vi.clearAllMocks();
-        localStorage.clear();
-        // Reset mock after each test
-        vi.mocked(tokenUtils.isJwtExpired).mockReset();
-        vi.mocked(tokenUtils.isJwtExpired).mockClear();
-        cleanup();
-    });
+    setupTestCleanup();
 
     it('renders children when user is not authenticated', async () => {
         // Ensure no token in localStorage
         localStorage.removeItem('accessToken');
         // Mock isJwtExpired to return true (token expired or no token)
-        vi.mocked(tokenUtils.isJwtExpired).mockImplementation((token: string | null | undefined) => {
+        mockIsJwtExpired.mockImplementation((token: string | null | undefined) => {
             return token === null || token === undefined || token === '';
         });
 
@@ -63,7 +45,7 @@ describe('PublicRoute', () => {
 
     it('redirects to profile when user is authenticated', async () => {
         localStorage.setItem('accessToken', 'valid-token');
-        vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(false);
+        mockIsJwtExpired.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/login']}>
@@ -88,7 +70,7 @@ describe('PublicRoute', () => {
 
     it('redirects to profile when token is valid', async () => {
         localStorage.setItem('accessToken', 'valid-token');
-        vi.mocked(tokenUtils.isJwtExpired).mockReturnValue(false);
+        mockIsJwtExpired.mockReturnValue(false);
 
         render(
             <TestMemoryRouter initialEntries={['/register']}>

@@ -1,6 +1,7 @@
 package com.authenticationservice.service;
 
 import com.authenticationservice.constants.TestConstants;
+import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.UserDTO;
@@ -408,13 +409,17 @@ class AdminServiceTest {
                         return u;
                     });
             doNothing().when(emailService)
-                    .sendEmail(anyString(), anyString(), anyString());
+                    .sendEmail(anyString(), anyString(), anyString(), anyString());
 
             // Act & Assert
             assertDoesNotThrow(() -> adminService.createUser(request));
             verify(userRepository).save(any(User.class));
-            verify(emailService).sendEmail(eq("create@example.com"), anyString(), 
-                contains("Your temporary password:"));
+            verify(emailService).sendEmail(
+                eq("create@example.com"),
+                eq(EmailConstants.ADMIN_INVITE_SUBJECT),
+                contains("Your temporary password:"),
+                anyString()
+            );
         }
 
         @Test
@@ -466,7 +471,7 @@ class AdminServiceTest {
                         return u;
                     });
             doThrow(new RuntimeException("Mail send error"))
-                    .when(emailService).sendEmail(anyString(), anyString(), anyString());
+                    .when(emailService).sendEmail(anyString(), anyString(), anyString(), anyString());
 
             // Act & Assert
             RuntimeException ex = assertThrows(RuntimeException.class, 

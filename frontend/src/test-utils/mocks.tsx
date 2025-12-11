@@ -170,6 +170,60 @@ export const setupAxiosMocks = () => {
     };
 };
 
+// Mock token utilities with configurable module path
+export const setupTokenMocks = (modulePath = '../utils/token') => {
+    const mockIsJwtExpired = vi.fn();
+    const mockIsValidJwtFormat = vi.fn();
+    const mockGetAccessToken = vi.fn();
+    const mockGetRefreshToken = vi.fn();
+    const mockClearTokens = vi.fn();
+
+    vi.mock(modulePath, () => ({
+        isJwtExpired: mockIsJwtExpired,
+        isValidJwtFormat: mockIsValidJwtFormat,
+        getAccessToken: mockGetAccessToken,
+        getRefreshToken: mockGetRefreshToken,
+        clearTokens: mockClearTokens,
+    }));
+
+    return {
+        mockIsJwtExpired,
+        mockIsValidJwtFormat,
+        mockGetAccessToken,
+        mockGetRefreshToken,
+        mockClearTokens,
+    };
+};
+
+// Mock NotificationContext with configurable module path
+export const setupNotificationMocks = (
+    modulePath = '../context/NotificationContext',
+    overrides: {
+        notifications?: Array<{ id: string; message: string; type: string }>;
+        showNotification?: ReturnType<typeof vi.fn>;
+        removeNotification?: ReturnType<typeof vi.fn>;
+    } = {}
+) => {
+    const mockNotifications = overrides.notifications || [];
+    const mockShowNotification = overrides.showNotification || vi.fn();
+    const mockRemoveNotification = overrides.removeNotification || vi.fn();
+
+    vi.mock(modulePath, () => ({
+        NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+        useNotification: () => ({
+            notifications: mockNotifications,
+            showNotification: mockShowNotification,
+            removeNotification: mockRemoveNotification,
+        }),
+    }));
+
+    return {
+        mockNotifications,
+        mockShowNotification,
+        mockRemoveNotification,
+    };
+};
+
 // Setup mocks for contexts
 export const setupContextMocks = (config: {
     auth?: ReturnType<typeof createMockAuthContext>;

@@ -1,25 +1,17 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
-import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, beforeEach, describe, it, expect } from 'vitest';
 import ForgotPasswordPage from './ForgotPasswordPage';
 import axios from 'axios';
 import { TestBrowserRouter } from '../test-utils/router';
+import { setupNotificationMocks } from '../test-utils/mocks';
+import { setupTestCleanup } from '../test-utils/test-helpers';
 
 // Mock axios
 vi.mock('axios');
 const mockedAxios = axios as any;
 
-// Mock NotificationContext
-const mockShowNotification = vi.fn();
-const mockRemoveNotification = vi.fn();
-vi.mock('../context/NotificationContext', () => ({
-    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useNotification: () => ({
-        showNotification: mockShowNotification,
-        removeNotification: mockRemoveNotification,
-        notifications: [],
-    }),
-}));
+const { mockShowNotification } = setupNotificationMocks();
 
 const renderForgotPasswordPage = () => {
     return render(
@@ -30,17 +22,10 @@ const renderForgotPasswordPage = () => {
 };
 
 describe('ForgotPasswordPage', () => {
-    beforeEach(() => {
-        vi.clearAllMocks();
-        mockShowNotification.mockClear();
-        localStorage.clear();
-    });
+    setupTestCleanup();
 
-    afterEach(() => {
-        vi.clearAllMocks();
+    beforeEach(() => {
         mockShowNotification.mockClear();
-        localStorage.clear();
-        cleanup();
     });
 
     it('renders forgot password form', () => {

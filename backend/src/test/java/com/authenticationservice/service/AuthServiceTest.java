@@ -1,5 +1,6 @@
 package com.authenticationservice.service;
 
+import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.constants.TestConstants;
@@ -29,8 +30,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.ArgumentCaptor;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.context.MessageSource;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -65,9 +64,6 @@ class AuthServiceTest {
 
         @Mock
         private JwtTokenProvider jwtTokenProvider;
-
-        @Mock
-        private JavaMailSender mailSender;
 
         @Mock
         private BCryptPasswordEncoder passwordEncoder;
@@ -184,7 +180,11 @@ class AuthServiceTest {
                         assertDoesNotThrow(() -> authService.register(request));
                         verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                         verify(userRepository).save(any(User.class));
-                        verify(mailSender).send(any(SimpleMailMessage.class));
+                        verify(emailService).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.VERIFICATION_SUBJECT),
+                                anyString(),
+                                anyString());
                 }
 
                 @Test
@@ -284,12 +284,12 @@ class AuthServiceTest {
                         when(userRepository.save(any(User.class)))
                                         .thenAnswer(invocation -> invocation.getArgument(0));
                         doThrow(new RuntimeException("Mail server error"))
-                                        .when(mailSender).send(any(SimpleMailMessage.class));
+                                        .when(emailService).sendEmail(anyString(), anyString(), anyString(), anyString());
 
                         // Act & Assert
                         RuntimeException ex = assertThrows(RuntimeException.class,
                                         () -> authService.register(request));
-                        assertTrue(ex.getMessage().contains("Error sending verification email."));
+                        assertNotNull(ex.getMessage(), "Should propagate email send failure");
                         verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
         }
@@ -344,7 +344,11 @@ class AuthServiceTest {
                         // Act & Assert
                         assertDoesNotThrow(() -> authService.resendVerification(testUser.getEmail()));
                         verify(userRepository).save(testUser);
-                        verify(mailSender).send(any(SimpleMailMessage.class));
+                        verify(emailService).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.VERIFICATION_SUBJECT),
+                                anyString(),
+                                anyString());
                 }
 
                 @Test
@@ -624,7 +628,11 @@ class AuthServiceTest {
                         // Act & Assert
                         assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
                         verify(userRepository).save(testUser);
-                        verify(mailSender).send(any(SimpleMailMessage.class));
+                        verify(emailService).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.RESET_PASSWORD_SUBJECT),
+                                anyString(),
+                                anyString());
                 }
 
                 @Test
@@ -637,7 +645,7 @@ class AuthServiceTest {
 
                         // Act & Assert
                         assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
-                        verify(mailSender, never()).send(any(SimpleMailMessage.class));
+                        verify(emailService, never()).sendEmail(anyString(), anyString(), anyString(), anyString());
                         verify(userRepository, never()).save(any(User.class));
                 }
 

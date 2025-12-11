@@ -2,6 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import VerifyPage from './VerifyPage';
 import { TestMemoryRouter } from '../test-utils/router';
+import { setupNotificationMocks } from '../test-utils/mocks';
+import { setupTestCleanup } from '../test-utils/test-helpers';
 
 // Mock api
 const mockApiPost = vi.fn();
@@ -12,15 +14,7 @@ vi.mock('../api', () => ({
     },
 }));
 
-// Mock NotificationContext
-const mockShowNotification = vi.fn();
-vi.mock('../context/NotificationContext', () => ({
-    useNotification: () => ({
-        showNotification: mockShowNotification,
-        removeNotification: vi.fn(),
-        notifications: [],
-    }),
-}));
+const { mockShowNotification } = setupNotificationMocks();
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -48,6 +42,8 @@ const renderVerifyPage = (searchParams = '?verificationToken=token123&email=test
 };
 
 describe('VerifyPage', () => {
+    setupTestCleanup();
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockShowNotification.mockClear();

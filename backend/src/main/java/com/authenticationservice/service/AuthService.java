@@ -18,6 +18,7 @@ import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
+import com.authenticationservice.util.EmailTemplateFactory;
 import com.authenticationservice.util.EmailUtils;
 import com.authenticationservice.util.LoggingSanitizer;
 import io.github.bucket4j.Bucket;
@@ -27,12 +28,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.MessageSource;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,7 +49,6 @@ public class AuthService {
     private final AllowedEmailRepository allowedEmailRepository;
     private final RoleRepository roleRepository;
     private final JwtTokenProvider jwtTokenProvider;
-    private final JavaMailSender mailSender;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
@@ -110,17 +110,14 @@ public class AuthService {
     }
 
     private void sendVerificationEmail(String toEmail, String token) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(toEmail);
-        message.setSubject(EmailConstants.VERIFICATION_SUBJECT);
-        String emailText = String.format(EmailConstants.VERIFICATION_EMAIL_TEMPLATE, token);
-        message.setText(emailText);
-        try {
-            mailSender.send(message);
-        } catch (Exception e) {
-            log.error("Error sending verification email to {}", maskEmail(toEmail), e);
-            throw new RuntimeException("Error sending verification email.", e);
-        }
+        String verificationLink = String.format(
+                "%s/verify/email?verificationToken=%s&email=%s",
+                frontendUrl, token, urlEncode(toEmail));
+
+        String emailText = EmailTemplateFactory.buildVerificationText(token, verificationLink);
+        String emailHtml = EmailTemplateFactory.buildVerificationHtml(token, verificationLink);
+
+        emailService.sendEmail(toEmail, EmailConstants.VERIFICATION_SUBJECT, emailText, emailHtml);
     }
 
     public void verifyEmail(VerificationRequest request) {
@@ -188,10 +185,7 @@ public class AuthService {
             user.setVerificationToken(verificationToken);
             userRepository.save(user);
 
-            String emailContent = String.format(
-                    "To verify your email, use the code: %s",
-                    verificationToken);
-            emailService.sendEmail(user.getEmail(), "Email verification", emailContent);
+            sendVerificationEmail(user.getEmail(), verificationToken);
 
             throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
         }
@@ -281,11 +275,12 @@ public class AuthService {
         }
 
         if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            String emailContent = "We noticed you requested a password reset, but your account is linked with Google.\n"
-                    +
-                    "Please sign in using the 'Continue with Google' option.\n" +
-                    "If you forgot your Google password, use Google's account recovery.";
-            emailService.sendEmail(user.getEmail(), "Password reset unavailable for Google sign-in", emailContent);
+            String emailContent = EmailTemplateFactory.buildGoogleResetText();
+            emailService.sendEmail(
+                    user.getEmail(),
+                    EmailConstants.GOOGLE_PASSWORD_RESET_SUBJECT,
+                    emailContent
+            );
             return;
         }
 
@@ -306,18 +301,10 @@ public class AuthService {
     }
 
     private void sendPasswordResetEmail(String toEmail, String token) {
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setTo(toEmail);
-        message.setSubject(EmailConstants.RESET_PASSWORD_SUBJECT);
-        String resetLink = frontendUrl + "/reset-password?token=" + token;
-        String emailText = String.format(EmailConstants.RESET_PASSWORD_EMAIL_TEMPLATE, resetLink);
-        message.setText(emailText);
-        try {
-            mailSender.send(message);
-        } catch (Exception e) {
-            log.error("Error sending password reset email to {}", maskEmail(toEmail), e);
-            throw new RuntimeException("Error sending password reset email.", e);
-        }
+        String resetLink = String.format("%s/reset-password?token=%s", frontendUrl, urlEncode(token));
+        String emailText = EmailTemplateFactory.buildResetPasswordText(resetLink);
+        String emailHtml = EmailTemplateFactory.buildResetPasswordHtml(resetLink);
+        emailService.sendEmail(toEmail, EmailConstants.RESET_PASSWORD_SUBJECT, emailText, emailHtml);
     }
 
     public void resetPassword(String token, String newPassword) {
@@ -355,6 +342,10 @@ public class AuthService {
 
     public int getPasswordResetCooldownMinutes() {
         return passwordResetCooldownMinutes;
+    }
+
+    private String urlEncode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     @Transactional

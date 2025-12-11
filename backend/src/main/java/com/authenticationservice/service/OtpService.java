@@ -8,6 +8,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import com.authenticationservice.util.LoggingSanitizer;
 
 /**
  * Service for generating and validating OTP (One-Time Password) codes.
@@ -36,7 +37,7 @@ public class OtpService {
         LocalDateTime expiryTime = LocalDateTime.now().plusMinutes(OTP_EXPIRY_MINUTES);
         
         otpStorage.put(email, new OtpData(otp, expiryTime));
-        log.info("Generated OTP for email: {} (expires in {} minutes)", email, OTP_EXPIRY_MINUTES);
+        log.info("Generated OTP for email: {} (expires in {} minutes)", LoggingSanitizer.maskEmail(email), OTP_EXPIRY_MINUTES);
         
         return otp;
     }
@@ -52,12 +53,12 @@ public class OtpService {
         OtpData otpData = otpStorage.get(email);
         
         if (otpData == null) {
-            log.warn("No OTP found for email: {}", email);
+            log.warn("No OTP found for email: {}", LoggingSanitizer.maskEmail(email));
             return false;
         }
         
         if (LocalDateTime.now().isAfter(otpData.expiryTime)) {
-            log.warn("OTP expired for email: {}", email);
+            log.warn("OTP expired for email: {}", LoggingSanitizer.maskEmail(email));
             otpStorage.remove(email);
             return false;
         }
@@ -65,9 +66,9 @@ public class OtpService {
         boolean isValid = otpData.code.equals(otp);
         if (isValid) {
             otpStorage.remove(email);
-            log.info("OTP validated successfully for email: {}", email);
+            log.info("OTP validated successfully for email: {}", LoggingSanitizer.maskEmail(email));
         } else {
-            log.warn("Invalid OTP provided for email: {}", email);
+            log.warn("Invalid OTP provided for email: {}", LoggingSanitizer.maskEmail(email));
         }
         
         return isValid;

@@ -1,25 +1,17 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import VerificationPage from './VerificationPage';
 import axios from 'axios';
 import { TestMemoryRouter } from '../test-utils/router';
+import { setupNotificationMocks } from '../test-utils/mocks';
+import { setupTestCleanup } from '../test-utils/test-helpers';
 
 // Mock axios
 vi.mock('axios');
 const mockedAxios = axios as any;
 
-// Mock NotificationContext
-const mockShowNotification = vi.fn();
-const mockRemoveNotification = vi.fn();
-vi.mock('../context/NotificationContext', () => ({
-    NotificationProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
-    useNotification: () => ({
-        showNotification: mockShowNotification,
-        removeNotification: mockRemoveNotification,
-        notifications: [],
-    }),
-}));
+const { mockShowNotification } = setupNotificationMocks();
 
 // Mock useNavigate
 const mockNavigate = vi.fn();
@@ -54,6 +46,8 @@ const renderVerificationPage = (initialState?: { email?: string }) => {
 };
 
 describe('VerificationPage', () => {
+    setupTestCleanup();
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockShowNotification.mockClear();
@@ -62,11 +56,8 @@ describe('VerificationPage', () => {
     });
 
     afterEach(() => {
-        vi.clearAllMocks();
         mockShowNotification.mockClear();
         mockNavigate.mockClear();
-        localStorage.clear();
-        cleanup();
     });
 
     it('renders verification form', () => {
