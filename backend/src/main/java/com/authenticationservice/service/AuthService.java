@@ -19,6 +19,7 @@ import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
 import com.authenticationservice.util.EmailUtils;
+import com.authenticationservice.util.LoggingSanitizer;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import lombok.RequiredArgsConstructor;
@@ -65,17 +66,21 @@ public class AuthService {
         return EmailUtils.normalize(email);
     }
 
+    private String maskEmail(String email) {
+        return LoggingSanitizer.maskEmail(email);
+    }
+
     @Transactional
     public void register(RegistrationRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
         request.setEmail(normalizedEmail);
-        log.info("Starting registration process for email: {}", normalizedEmail);
+        log.info("Starting registration process for email: {}", maskEmail(normalizedEmail));
 
         // Check access control (whitelist/blacklist) - this must be the first check
         accessControlService.checkRegistrationAccess(normalizedEmail);
 
         if (userRepository.findByEmail(normalizedEmail).isPresent()) {
-            log.error("User with email {} already exists", normalizedEmail);
+            log.error("User with email {} already exists", maskEmail(normalizedEmail));
             throw new RuntimeException("User with this email already exists.");
         }
 
@@ -101,7 +106,7 @@ public class AuthService {
 
         // Security: Never log verification tokens
         sendVerificationEmail(normalizedEmail, verificationToken);
-        log.info("Verification email sent to {}", normalizedEmail);
+        log.info("Verification email sent to {}", maskEmail(normalizedEmail));
     }
 
     private void sendVerificationEmail(String toEmail, String token) {
@@ -113,7 +118,7 @@ public class AuthService {
         try {
             mailSender.send(message);
         } catch (Exception e) {
-            log.error("Error sending verification email to {}", toEmail, e);
+            log.error("Error sending verification email to {}", maskEmail(toEmail), e);
             throw new RuntimeException("Error sending verification email.", e);
         }
     }
@@ -137,13 +142,13 @@ public class AuthService {
     public Map<String, String> login(LoginRequest request) {
         String normalizedEmail = normalizeEmail(request.getEmail());
         request.setEmail(normalizedEmail);
-        log.debug("Login attempt for email: {}", normalizedEmail);
+        log.debug("Login attempt for email: {}", maskEmail(normalizedEmail));
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> {
-                    log.error("User not found for email: {}", normalizedEmail);
+                    log.error("User not found for email: {}", maskEmail(normalizedEmail));
                     return new InvalidCredentialsException();
                 });
-        log.debug("User found: {}", user.getEmail());
+        log.debug("User found: {}", maskEmail(user.getEmail()));
         log.debug("User enabled: {}", user.isEnabled());
         log.debug("User blocked: {}", user.isBlocked());
         log.debug("User verified: {}", user.isEmailVerified());
@@ -153,12 +158,12 @@ public class AuthService {
 
         // Check disabled account before any other validation
         if (!user.isEnabled()) {
-            log.error("Account is disabled for email: {}", normalizedEmail);
+            log.error("Account is disabled for email: {}", maskEmail(normalizedEmail));
             throw new RuntimeException("Account is disabled");
         }
 
         if (user.getLockTime() != null && user.getLockTime().isAfter(LocalDateTime.now())) {
-            log.error("Account is temporarily locked for email: {}", normalizedEmail);
+            log.error("Account is temporarily locked for email: {}", maskEmail(normalizedEmail));
             long seconds = java.time.Duration.between(LocalDateTime.now(), user.getLockTime()).getSeconds();
             throw new AccountLockedException(seconds);
         }
@@ -168,17 +173,17 @@ public class AuthService {
             // Use separate service with REQUIRES_NEW transaction to ensure counter is saved
             loginAttemptService.handleFailedLogin(user, frontendUrl);
 
-            log.error("Invalid password for email: {}", normalizedEmail);
+            log.error("Invalid password for email: {}", maskEmail(normalizedEmail));
             throw new InvalidCredentialsException();
         }
 
         if (user.isBlocked()) {
-            log.error("Account is blocked for email: {}", normalizedEmail);
+            log.error("Account is blocked for email: {}", maskEmail(normalizedEmail));
             throw new AccountBlockedException(user.getBlockReason());
         }
 
         if (!user.isEmailVerified()) {
-            log.error("Email not verified for email: {}", normalizedEmail);
+            log.error("Email not verified for email: {}", maskEmail(normalizedEmail));
             String verificationToken = UUID.randomUUID().toString();
             user.setVerificationToken(verificationToken);
             userRepository.save(user);
@@ -191,7 +196,7 @@ public class AuthService {
             throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
         }
 
-        log.debug("All validations passed for email: {}", normalizedEmail);
+        log.debug("All validations passed for email: {}", maskEmail(normalizedEmail));
         user.resetFailedLoginAttempts();
         user.setLockTime(null);
         userRepository.save(user);
@@ -205,7 +210,7 @@ public class AuthService {
             tokens.put("refreshToken", refreshToken);
             return tokens;
         } catch (Exception e) {
-            log.error("Error generating tokens for email: {}, error: {}", normalizedEmail, e.getMessage(), e);
+            log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(), e);
             throw new RuntimeException("Error generating tokens: "
                     + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
@@ -224,12 +229,12 @@ public class AuthService {
 
         // Security: Check if user account is still active
         if (!user.isEnabled()) {
-            log.error("Refresh token used for disabled account: {}", email);
+            log.error("Refresh token used for disabled account: {}", maskEmail(email));
             throw new RuntimeException("Account is disabled");
         }
         
         if (user.isBlocked()) {
-            log.error("Refresh token used for blocked account: {}", email);
+            log.error("Refresh token used for blocked account: {}", maskEmail(email));
             throw new AccountBlockedException(user.getBlockReason());
         }
 
@@ -287,7 +292,7 @@ public class AuthService {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime lastRequestedAt = user.getLastPasswordResetRequestedAt();
         if (lastRequestedAt != null && lastRequestedAt.plusMinutes(passwordResetCooldownMinutes).isAfter(now)) {
-            log.info("Password reset request ignored due to cooldown for user {}", normalizedEmail);
+            log.info("Password reset request ignored due to cooldown for user {}", maskEmail(normalizedEmail));
             return;
         }
 
@@ -310,7 +315,7 @@ public class AuthService {
         try {
             mailSender.send(message);
         } catch (Exception e) {
-            log.error("Error sending password reset email to {}", toEmail, e);
+            log.error("Error sending password reset email to {}", maskEmail(toEmail), e);
             throw new RuntimeException("Error sending password reset email.", e);
         }
     }
@@ -355,11 +360,11 @@ public class AuthService {
     @Transactional
     public Map<String, String> handleOAuth2Login(String email, String name) {
         String normalizedEmail = normalizeEmail(email);
-        log.debug("Handling OAuth2 login for email: {}, name: {}", normalizedEmail, name);
+        log.debug("Handling OAuth2 login for email: {}, name: {}", maskEmail(normalizedEmail), name);
 
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseGet(() -> {
-                    log.info("Creating new OAuth2 user: {}", normalizedEmail);
+                    log.info("Creating new OAuth2 user: {}", maskEmail(normalizedEmail));
                     
                     // Check access control (whitelist/blacklist) - this must be the first check for new users
                     accessControlService.checkRegistrationAccess(normalizedEmail);
@@ -386,8 +391,8 @@ public class AuthService {
         // If user registered locally but didn't verify email, and now logs in via Google,
         // we should mark email as verified and update auth provider to GOOGLE
         if (user.getAuthProvider() == AuthProvider.LOCAL && !user.isEmailVerified()) {
-            log.info("User {} with LOCAL provider and unverified email is logging in via Google. " +
-                    "Updating emailVerified to true and authProvider to GOOGLE.", normalizedEmail);
+                    log.info("User {} with LOCAL provider and unverified email is logging in via Google. " +
+                    "Updating emailVerified to true and authProvider to GOOGLE.", maskEmail(normalizedEmail));
             user.setEmailVerified(true);
             user.setAuthProvider(AuthProvider.GOOGLE);
             userRepository.save(user);
@@ -412,7 +417,7 @@ public class AuthService {
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 
-        log.debug("Generated tokens for OAuth2 user: {}", normalizedEmail);
+        log.debug("Generated tokens for OAuth2 user: {}", maskEmail(normalizedEmail));
         return Map.of(
                 "accessToken", accessToken,
                 "refreshToken", refreshToken);

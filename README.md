@@ -15,6 +15,7 @@ This project is a full-stack authentication and user profile management solution
 - **Configuration**:
   - Settings are managed via `application.yml`
   - Sensitive data (DB credentials, JWT secrets, mail, OAuth) must be provided via environment variables
+  - Logging: `logback-spring.xml` uses console + rolling file (2MB, indexed files). Configure via env: `LOG_LEVEL`, `SPRING_SECURITY_LOG_LEVEL`, `LOG_FILE_ENABLED`, `LOG_FILE_PATH`, `LOG_MAX_SIZE`, `LOG_MAX_HISTORY`, `LOG_JSON_ENABLED`. Correlation header `X-Request-Id` is returned for each request and read from inbound `X-Request-Id` / `X-Correlation-Id`. Mount `logs/` as a Docker volume for persistence.
 
 
 ### Frontend (React / TypeScript)

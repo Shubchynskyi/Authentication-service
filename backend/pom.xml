@@ -120,6 +120,17 @@
             <artifactId>spring-security-oauth2-jose</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>7.4</version>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+            <version>3.1.12</version>
+        </dependency>
+
         <!-- Test Dependencies -->
         <dependency>
             <groupId>org.mockito</groupId>

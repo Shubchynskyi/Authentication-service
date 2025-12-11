@@ -1,0 +1,149 @@
+<configuration scan="true" scanPeriod="30 seconds" debug="false">
+    <springProperty scope="context" name="LOG_LEVEL" source="LOG_LEVEL" defaultValue="INFO"/>
+    <springProperty scope="context" name="APP_LOG_LEVEL" source="LOG_LEVEL" defaultValue="INFO"/>
+    <springProperty scope="context" name="SPRING_SECURITY_LOG_LEVEL" source="SPRING_SECURITY_LOG_LEVEL" defaultValue="INFO"/>
+    <springProperty scope="context" name="LOG_FILE_PATH" source="LOG_FILE_PATH" defaultValue="logs/app.log"/>
+    <springProperty scope="context" name="LOG_MAX_HISTORY" source="LOG_MAX_HISTORY" defaultValue="10"/>
+    <springProperty scope="context" name="LOG_MAX_SIZE" source="LOG_MAX_SIZE" defaultValue="2MB"/>
+    <springProperty scope="context" name="LOG_FILE_ENABLED" source="LOG_FILE_ENABLED" defaultValue="true"/>
+    <springProperty scope="context" name="LOG_JSON_ENABLED" source="LOG_JSON_ENABLED" defaultValue="false"/>
+
+    <property name="LOGBACK_SKIP_JANSI" value="true"/>
+
+    <property name="LOG_PATTERN"
+              value="%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} [%level] [%thread] trace=%X{traceId:-none} user=%X{userEmail:-anon} %logger{36} - %msg%n"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+            <charset>UTF-8</charset>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+        <then>
+            <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${LOG_FILE_PATH}</file>
+                <append>true</append>
+                <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                    <charset>UTF-8</charset>
+                    <pattern>${LOG_PATTERN}</pattern>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>${LOG_FILE_PATH}.%i.gz</fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>${LOG_MAX_HISTORY}</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>${LOG_MAX_SIZE}</maxFileSize>
+                </triggeringPolicy>
+            </appender>
+        </then>
+    </if>
+
+    <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
+        <then>
+            <appender name="JSON_CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+                <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                    <providers>
+                        <timestamp/>
+                        <logLevel/>
+                        <threadName/>
+                        <loggerName/>
+                        <mdc/>
+                        <message/>
+                        <arguments/>
+                        <stackTrace/>
+                    </providers>
+                </encoder>
+            </appender>
+
+            <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+                <then>
+                    <appender name="JSON_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                        <file>${LOG_FILE_PATH}.json</file>
+                        <append>true</append>
+                        <encoder class="net.logstash.logback.encoder.LoggingEventCompositeJsonEncoder">
+                            <providers>
+                                <timestamp/>
+                                <logLevel/>
+                                <threadName/>
+                                <loggerName/>
+                                <mdc/>
+                                <message/>
+                                <arguments/>
+                                <stackTrace/>
+                            </providers>
+                        </encoder>
+                        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                            <fileNamePattern>${LOG_FILE_PATH}.json.%i.gz</fileNamePattern>
+                            <minIndex>1</minIndex>
+                            <maxIndex>${LOG_MAX_HISTORY}</maxIndex>
+                        </rollingPolicy>
+                        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                            <maxFileSize>${LOG_MAX_SIZE}</maxFileSize>
+                        </triggeringPolicy>
+                    </appender>
+                </then>
+            </if>
+        </then>
+    </if>
+
+    <logger name="org.springframework.security" level="${SPRING_SECURITY_LOG_LEVEL}" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="FILE"/>
+            </then>
+        </if>
+        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="JSON_CONSOLE"/>
+                <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+                    <then>
+                        <appender-ref ref="JSON_FILE"/>
+                    </then>
+                </if>
+            </then>
+        </if>
+    </logger>
+
+    <logger name="com.authenticationservice" level="${APP_LOG_LEVEL}" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="FILE"/>
+            </then>
+        </if>
+        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="JSON_CONSOLE"/>
+                <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+                    <then>
+                        <appender-ref ref="JSON_FILE"/>
+                    </then>
+                </if>
+            </then>
+        </if>
+    </logger>
+
+    <root level="${LOG_LEVEL}">
+        <appender-ref ref="CONSOLE"/>
+        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="FILE"/>
+            </then>
+        </if>
+        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="JSON_CONSOLE"/>
+                <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+                    <then>
+                        <appender-ref ref="JSON_FILE"/>
+                    </then>
+                </if>
+            </then>
+        </if>
+    </root>
+</configuration>
+

@@ -6,6 +6,7 @@ import com.authenticationservice.model.BlockedEmail;
 import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.BlockedEmailRepository;
 import com.authenticationservice.util.EmailUtils;
+import com.authenticationservice.util.LoggingSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,10 @@ public class AccessControlService {
         return EmailUtils.normalize(email);
     }
 
+    private String maskEmail(String email) {
+        return LoggingSanitizer.maskEmail(email);
+    }
+
     /**
      * Checks if email is allowed for registration (local or OAuth2).
      * 
@@ -40,7 +45,7 @@ public class AccessControlService {
      */
     public void checkRegistrationAccess(String email) {
         String normalizedEmail = normalizeEmail(email);
-        log.debug("Checking registration access for email: {}", normalizedEmail);
+        log.debug("Checking registration access for email: {}", maskEmail(normalizedEmail));
         
         AccessMode currentMode = accessModeService.getCurrentMode();
         
@@ -48,7 +53,7 @@ public class AccessControlService {
             // WHITELIST mode: email must be in whitelist
             Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(normalizedEmail);
             if (allowed.isEmpty()) {
-                log.error("Email {} is not in whitelist. Registration denied.", normalizedEmail);
+                log.error("Email {} is not in whitelist. Registration denied.", maskEmail(normalizedEmail));
                 throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
             }
             log.debug("Email {} is in whitelist, registration allowed", normalizedEmail);
@@ -56,10 +61,10 @@ public class AccessControlService {
             // BLACKLIST mode: email must not be in blacklist
             Optional<BlockedEmail> blocked = blockedEmailRepository.findByEmail(normalizedEmail);
             if (blocked.isPresent()) {
-                log.error("Email {} is in blacklist. Registration denied.", normalizedEmail);
+                log.error("Email {} is in blacklist. Registration denied.", maskEmail(normalizedEmail));
                 throw new RuntimeException("This email is in blacklist. Registration is forbidden.");
             }
-            log.debug("Email {} is not in blacklist, registration allowed", normalizedEmail);
+            log.debug("Email {} is not in blacklist, registration allowed", maskEmail(normalizedEmail));
         }
     }
 
@@ -74,16 +79,16 @@ public class AccessControlService {
      */
     public void checkLoginAccess(String email) {
         String normalizedEmail = normalizeEmail(email);
-        log.debug("Checking login access for email: {}", normalizedEmail);
+        log.debug("Checking login access for email: {}", maskEmail(normalizedEmail));
         
         // In both modes, blacklist blocks login
         Optional<BlockedEmail> blocked = blockedEmailRepository.findByEmail(normalizedEmail);
         if (blocked.isPresent()) {
-            log.error("Email {} is in blacklist. Login denied.", normalizedEmail);
+            log.error("Email {} is in blacklist. Login denied.", maskEmail(normalizedEmail));
             throw new RuntimeException("This email is in blacklist. Login is forbidden.");
         }
         
-        log.debug("Email {} is allowed for login", normalizedEmail);
+        log.debug("Email {} is allowed for login", maskEmail(normalizedEmail));
     }
 }
 
