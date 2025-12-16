@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { validatePassword } from '../utils/passwordValidation';
 import { validatePasswordFlow } from '../utils/passwordChecks';
+import axios from 'axios';
 import { extractErrorMessage } from '../utils/apiError';
 import PasswordHint from '../components/PasswordHint';
 import PasswordFields from '../components/PasswordFields';
@@ -96,7 +97,14 @@ const RegistrationPage: React.FC = () => {
         },
       });
       setMessage(message);
-      console.error('Registration error:', err);
+      // Log critical errors only (server errors, not validation errors)
+      if (axios.isAxiosError(err) && (!err.response || err.response.status >= 500)) {
+        import('../utils/logger').then(({ logError }) => {
+          logError('Registration request failed', err, {
+            status: err.response?.status,
+          });
+        });
+      }
     } finally {
       setIsLoading(false);
     }

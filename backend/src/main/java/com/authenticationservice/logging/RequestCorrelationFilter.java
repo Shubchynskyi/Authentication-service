@@ -34,6 +34,17 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
         String traceId = resolveTraceId(headerTraceId, correlationId);
         MDC.put(LoggingConstants.TRACE_ID_MDC_KEY, traceId);
 
+        MDC.put(LoggingConstants.CLIENT_IP_MDC_KEY, getClientIpAddress(request));
+        MDC.put(LoggingConstants.HTTP_METHOD_MDC_KEY, request.getMethod());
+        MDC.put(LoggingConstants.REQUEST_PATH_MDC_KEY, request.getRequestURI());
+        
+        String userAgent = request.getHeader("User-Agent");
+        if (userAgent != null && !userAgent.isBlank()) {
+            // Truncate user agent if too long to avoid excessive log size
+            MDC.put(LoggingConstants.USER_AGENT_MDC_KEY, 
+                    userAgent.length() > 200 ? userAgent.substring(0, 200) : userAgent);
+        }
+
         String userEmail = resolveUserEmail();
         if (userEmail != null) {
             MDC.put(LoggingConstants.USER_EMAIL_MDC_KEY, userEmail);
@@ -72,6 +83,26 @@ public class RequestCorrelationFilter extends OncePerRequestFilter {
         }
         String name = authentication.getName();
         return (name != null && !name.equalsIgnoreCase("anonymousUser")) ? name : null;
+    }
+
+    /**
+     * Extract client IP address from request, considering X-Forwarded-For header
+     * for requests behind proxies/load balancers.
+     */
+    private String getClientIpAddress(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isEmpty() && !"unknown".equalsIgnoreCase(xForwardedFor)) {
+            // X-Forwarded-For can contain multiple IPs, take the first one
+            String[] ips = xForwardedFor.split(",");
+            return ips[0].trim();
+        }
+        
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (xRealIp != null && !xRealIp.isEmpty() && !"unknown".equalsIgnoreCase(xRealIp)) {
+            return xRealIp.trim();
+        }
+        
+        return request.getRemoteAddr();
     }
 }
 

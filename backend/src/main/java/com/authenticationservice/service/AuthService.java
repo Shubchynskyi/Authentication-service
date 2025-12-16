@@ -20,6 +20,7 @@ import com.authenticationservice.security.JwtTokenProvider;
 import com.authenticationservice.util.EmailTemplateFactory;
 import com.authenticationservice.util.EmailUtils;
 import com.authenticationservice.util.LoggingSanitizer;
+import com.authenticationservice.util.StructuredLogger;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import lombok.RequiredArgsConstructor;
@@ -71,41 +72,48 @@ public class AuthService {
 
     @Transactional
     public void register(RegistrationRequest request) {
+        long startTime = System.currentTimeMillis();
         String normalizedEmail = normalizeEmail(request.getEmail());
         request.setEmail(normalizedEmail);
         log.info("Starting registration process for email: {}", maskEmail(normalizedEmail));
 
-        // Check access control (whitelist/blacklist) - this must be the first check
-        accessControlService.checkRegistrationAccess(normalizedEmail);
+        try {
+            // Check access control (whitelist/blacklist) - this must be the first check
+            accessControlService.checkRegistrationAccess(normalizedEmail);
 
-        if (userRepository.findByEmail(normalizedEmail).isPresent()) {
-            log.error("User with email {} already exists", maskEmail(normalizedEmail));
-            throw new RuntimeException("User with this email already exists.");
+            if (userRepository.findByEmail(normalizedEmail).isPresent()) {
+                log.error("User with email {} already exists", maskEmail(normalizedEmail));
+                throw new RuntimeException("User with this email already exists.");
+            }
+
+            String verificationToken = UUID.randomUUID().toString();
+
+            User user = new User();
+            user.setEmail(normalizedEmail);
+            user.setName(request.getName());
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setEmailVerified(false);
+            user.setVerificationToken(verificationToken);
+            user.setAuthProvider(AuthProvider.LOCAL);
+
+            Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
+                    .orElseThrow(() -> {
+                        log.error("Role ROLE_USER not found in database");
+                        return new RuntimeException("Role ROLE_USER not found in database.");
+                    });
+            user.setRoles(Set.of(userRole));
+
+            userRepository.save(user);
+            log.info("User saved to database");
+
+            // Security: Never log verification tokens
+            sendVerificationEmail(normalizedEmail, verificationToken);
+            log.info("Verification email sent to {}", maskEmail(normalizedEmail));
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            StructuredLogger.logPerformance(log, "register", duration, 
+                    "email", maskEmail(normalizedEmail));
         }
-
-        String verificationToken = UUID.randomUUID().toString();
-
-        User user = new User();
-        user.setEmail(normalizedEmail);
-        user.setName(request.getName());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmailVerified(false);
-        user.setVerificationToken(verificationToken);
-        user.setAuthProvider(AuthProvider.LOCAL);
-
-        Role userRole = roleRepository.findByName(SecurityConstants.ROLE_USER)
-                .orElseThrow(() -> {
-                    log.error("Role ROLE_USER not found in database");
-                    return new RuntimeException("Role ROLE_USER not found in database.");
-                });
-        user.setRoles(Set.of(userRole));
-
-        userRepository.save(user);
-        log.info("User saved to database");
-
-        // Security: Never log verification tokens
-        sendVerificationEmail(normalizedEmail, verificationToken);
-        log.info("Verification email sent to {}", maskEmail(normalizedEmail));
     }
 
     private void sendVerificationEmail(String toEmail, String token) {
@@ -136,74 +144,82 @@ public class AuthService {
 
     @Transactional
     public Map<String, String> login(LoginRequest request) {
+        long startTime = System.currentTimeMillis();
         String normalizedEmail = normalizeEmail(request.getEmail());
         request.setEmail(normalizedEmail);
         log.debug("Login attempt for email: {}", maskEmail(normalizedEmail));
-        User user = userRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> {
-                    log.error("User not found for email: {}", maskEmail(normalizedEmail));
-                    return new InvalidCredentialsException();
-                });
-        log.debug("User found: {}", maskEmail(user.getEmail()));
-        log.debug("User enabled: {}", user.isEnabled());
-        log.debug("User blocked: {}", user.isBlocked());
-        log.debug("User verified: {}", user.isEmailVerified());
+        
+        try {
+            User user = userRepository.findByEmail(normalizedEmail)
+                    .orElseThrow(() -> {
+                        log.error("User not found for email: {}", maskEmail(normalizedEmail));
+                        return new InvalidCredentialsException();
+                    });
+            log.debug("User found: {}", maskEmail(user.getEmail()));
+            log.debug("User enabled: {}", user.isEnabled());
+            log.debug("User blocked: {}", user.isBlocked());
+            log.debug("User verified: {}", user.isEmailVerified());
 
-        // Check access control (whitelist/blacklist) - this must be the first check
-        accessControlService.checkLoginAccess(normalizedEmail);
+            // Check access control (whitelist/blacklist) - this must be the first check
+            accessControlService.checkLoginAccess(normalizedEmail);
 
-        // Check disabled account before any other validation
-        if (!user.isEnabled()) {
-            log.error("Account is disabled for email: {}", maskEmail(normalizedEmail));
-            throw new RuntimeException("Account is disabled");
-        }
+            // Check disabled account before any other validation
+            if (!user.isEnabled()) {
+                log.error("Account is disabled for email: {}", maskEmail(normalizedEmail));
+                throw new RuntimeException("Account is disabled");
+            }
 
-        if (user.getLockTime() != null && user.getLockTime().isAfter(LocalDateTime.now())) {
-            log.error("Account is temporarily locked for email: {}", maskEmail(normalizedEmail));
-            long seconds = java.time.Duration.between(LocalDateTime.now(), user.getLockTime()).getSeconds();
-            throw new AccountLockedException(seconds);
-        }
+            if (user.getLockTime() != null && user.getLockTime().isAfter(LocalDateTime.now())) {
+                log.error("Account is temporarily locked for email: {}", maskEmail(normalizedEmail));
+                long seconds = java.time.Duration.between(LocalDateTime.now(), user.getLockTime()).getSeconds();
+                throw new AccountLockedException(seconds);
+            }
 
-        if (user.isBlocked()) {
-            log.error("Account is blocked for email: {}", maskEmail(normalizedEmail));
-            throw new AccountBlockedException(user.getBlockReason());
-        }
+            if (user.isBlocked()) {
+                log.error("Account is blocked for email: {}", maskEmail(normalizedEmail));
+                throw new AccountBlockedException(user.getBlockReason());
+            }
 
-        boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
-        if (!passwordMatches) {
-            // Use separate service with REQUIRES_NEW transaction to ensure counter is saved
-            loginAttemptService.handleFailedLogin(user, frontendUrl);
+            boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
+            if (!passwordMatches) {
+                // Use separate service with REQUIRES_NEW transaction to ensure counter is saved
+                loginAttemptService.handleFailedLogin(user, frontendUrl);
 
-            log.error("Invalid password for email: {}", maskEmail(normalizedEmail));
-            throw new InvalidCredentialsException();
-        }
+                log.error("Invalid password for email: {}", maskEmail(normalizedEmail));
+                throw new InvalidCredentialsException();
+            }
 
-        if (!user.isEmailVerified()) {
-            log.error("Email not verified for email: {}", maskEmail(normalizedEmail));
-            String verificationToken = UUID.randomUUID().toString();
-            user.setVerificationToken(verificationToken);
+            if (!user.isEmailVerified()) {
+                log.error("Email not verified for email: {}", maskEmail(normalizedEmail));
+                String verificationToken = UUID.randomUUID().toString();
+                user.setVerificationToken(verificationToken);
+                userRepository.save(user);
+
+                sendVerificationEmail(user.getEmail(), verificationToken);
+
+                throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
+            }
+
+            log.debug("All validations passed for email: {}", maskEmail(normalizedEmail));
+            user.resetFailedLoginAttempts();
+            user.setLockTime(null);
             userRepository.save(user);
 
-            sendVerificationEmail(user.getEmail(), verificationToken);
+            try {
+                String accessToken = jwtTokenProvider.generateAccessToken(user);
+                String refreshToken = jwtTokenProvider.generateRefreshToken(user);
 
-            throw new RuntimeException("EMAIL_NOT_VERIFIED:" + user.getEmail());
-        }
-
-        log.debug("All validations passed for email: {}", maskEmail(normalizedEmail));
-        user.resetFailedLoginAttempts();
-        user.setLockTime(null);
-        userRepository.save(user);
-
-        try {
-            String accessToken = jwtTokenProvider.generateAccessToken(user);
-            String refreshToken = jwtTokenProvider.generateRefreshToken(user);
-
-            return buildTokenResponse(accessToken, refreshToken);
-        } catch (Exception e) {
-            log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(),
-                    e);
-            throw new RuntimeException("Error generating tokens: "
-                    + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+                return buildTokenResponse(accessToken, refreshToken);
+            } catch (Exception e) {
+                log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(),
+                        e);
+                throw new RuntimeException("Error generating tokens: "
+                        + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
+            }
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            StructuredLogger.logPerformance(log, "login", duration, 
+                    "email", maskEmail(normalizedEmail));
         }
     }
 
@@ -215,7 +231,6 @@ public class AuthService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
-        // Check access control (whitelist/blacklist)
         accessControlService.checkLoginAccess(email);
 
         // Security: Check if user account is still active
@@ -383,7 +398,6 @@ public class AuthService {
             userRepository.save(user);
         }
 
-        // Update name if it changed (for existing users)
         if (name != null && !name.isEmpty() && !name.equals(user.getName())) {
             log.debug("Updating user name from {} to {}", user.getName(), name);
             user.setName(name);

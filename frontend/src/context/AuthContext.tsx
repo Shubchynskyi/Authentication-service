@@ -91,8 +91,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
             setIsAuthenticated(true);
         } catch (error) {
+            // Only log critical/unexpected errors, not authentication failures
             if (axios.isAxiosError(error)) {
-                console.log('Auth error:', error.response?.data);
                 const errorData = error.response?.data;
                 if (typeof errorData === 'string') {
                     setError(errorData);
@@ -101,7 +101,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 } else {
                     setError('Error while logging in');
                 }
+                
+                // Log only server errors or network failures (async import to avoid blocking)
+                if (!error.response || error.response.status >= 500) {
+                    import('../utils/logger').then(({ logError }) => {
+                        logError('Login request failed', error, {
+                            hasResponse: !!error.response,
+                            status: error.response?.status,
+                        });
+                    });
+                }
             } else {
+                import('../utils/logger').then(({ logError }) => {
+                    logError('Unexpected login error', error);
+                });
                 setError('Unexpected error');
             }
             throw error;

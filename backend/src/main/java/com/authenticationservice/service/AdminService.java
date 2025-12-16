@@ -1,4 +1,3 @@
-// AdminService.java
 package com.authenticationservice.service;
 
 import java.net.URLEncoder;
@@ -106,7 +105,6 @@ public class AdminService {
         allowedEmailRepository.save(allowedEmail);
         log.info("Email added to whitelist: {}", maskEmail(normalizedEmail));
 
-        // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, normalizedEmail,
                 AccessListChangeLog.AccessListAction.ADD, normalizedReason);
     }
@@ -122,7 +120,6 @@ public class AdminService {
         allowedEmailRepository.delete(existing);
         log.info("Email removed from whitelist: {}", maskEmail(normalizedEmail));
 
-        // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.WHITELIST, normalizedEmail,
                 AccessListChangeLog.AccessListAction.REMOVE, reason);
     }
@@ -151,7 +148,6 @@ public class AdminService {
             log.info("Existing user {} marked as blocked due to blacklist", maskEmail(normalizedEmail));
         }
 
-        // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, normalizedEmail,
                 AccessListChangeLog.AccessListAction.ADD, reason);
 
@@ -168,7 +164,6 @@ public class AdminService {
         blockedEmailRepository.delete(existing);
         log.info("Email removed from blacklist: {}", maskEmail(normalizedEmail));
 
-        // Log the change
         logAccessListChange(AccessListChangeLog.AccessListType.BLACKLIST, normalizedEmail,
                 AccessListChangeLog.AccessListAction.REMOVE, reason);
     }
@@ -217,14 +212,12 @@ public class AdminService {
         user.setEmail(normalizedEmail);
         user.setName(request.getUsername());
 
-        // Generate temporary password and verification token
         String tempPassword = UUID.randomUUID().toString().substring(0, 12);
         String verificationToken = UUID.randomUUID().toString();
 
         user.setPassword(passwordEncoder.encode(tempPassword));
         user.setVerificationToken(verificationToken);
 
-        // Set roles
         Set<Role> roles = new HashSet<>();
         for (String roleName : request.getRoles()) {
             Role role = roleRepository.findByName(roleName)
@@ -238,7 +231,6 @@ public class AdminService {
         user.setEmailVerified(false);
 
         try {
-            // Save user first
             user = userRepository.save(user);
             log.info("User saved to database: {}", maskEmail(user.getEmail()));
 
@@ -260,7 +252,6 @@ public class AdminService {
                         AccessListChangeLog.AccessListAction.REMOVE, reason);
             }
 
-            // Send welcome email with temporary password and verification link
             String verificationLink = String.format("%s/verify/email?verificationToken=%s&email=%s",
                     frontendUrl, verificationToken, urlEncode(user.getEmail()));
 
@@ -285,14 +276,14 @@ public class AdminService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Check if admin is trying to block themselves (use current persisted email)
+        // Prevent admin from blocking themselves
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth != null && auth.getName().equalsIgnoreCase(user.getEmail())
                 && Boolean.TRUE.equals(request.getIsBlocked())) {
             throw new RuntimeException("Admin cannot block themselves");
         }
 
-        // Update basic info (admin-only endpoint, but roles are handled separately)
+        // Roles are handled separately via dedicated endpoint
         if (request.getUsername() != null && !request.getUsername().isBlank()) {
             user.setName(request.getUsername());
         }
@@ -306,7 +297,6 @@ public class AdminService {
             user.setEmail(normalizedEmail);
         }
 
-        // Handle blocking/unblocking and timestamps
         if (request.getIsBlocked() != null) {
             if (Boolean.TRUE.equals(request.getIsBlocked()) && !user.isBlocked()) {
                 user.setBlockedAt(LocalDateTime.now());
@@ -351,7 +341,6 @@ public class AdminService {
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Check if user is admin
         boolean isAdmin = user.getRoles().stream()
                 .anyMatch(role -> role.getName().equals("ROLE_ADMIN"));
 
@@ -415,17 +404,14 @@ public class AdminService {
     public void changeAccessMode(AccessMode newMode, String adminEmail, String adminPassword,
             String otpCode, String reason) {
         String normalizedAdminEmail = normalizeEmail(adminEmail);
-        // Verify admin password
         if (!verifyAdminPassword(normalizedAdminEmail, adminPassword)) {
             throw new RuntimeException("Invalid admin password");
         }
 
-        // Verify OTP
         if (!otpService.validateOtp(normalizedAdminEmail, otpCode)) {
             throw new RuntimeException("Invalid or expired OTP code");
         }
 
-        // Get current settings
         Long settingsId = 1L;
         AccessModeSettings settings = accessModeSettingsRepository.findById(settingsId)
                 .orElseThrow(() -> new RuntimeException("Access mode settings not found"));
@@ -437,14 +423,12 @@ public class AdminService {
             throw new RuntimeException("Access mode is already " + newMode);
         }
 
-        // Update settings
         settings.setMode(newMode);
         settings.setUpdatedAt(LocalDateTime.now());
         settings.setUpdatedBy(normalizedAdminEmail);
         settings.setReason(reason);
         accessModeSettingsRepository.save(settings);
 
-        // Log the change
         AccessModeChangeLog changeLog = new AccessModeChangeLog();
         changeLog.setOldMode(oldMode);
         changeLog.setNewMode(newMode);

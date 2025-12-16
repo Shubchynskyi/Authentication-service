@@ -26,6 +26,7 @@ import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.security.JwtAuthenticationFilter;
 import com.authenticationservice.security.RateLimitingFilter;
 import com.authenticationservice.logging.RequestCorrelationFilter;
+import com.authenticationservice.logging.HttpRequestLoggingFilter;
 import com.authenticationservice.service.AuthService;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +45,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final RateLimitingFilter rateLimitingFilter;
     private final RequestCorrelationFilter requestCorrelationFilter;
+    private final HttpRequestLoggingFilter httpRequestLoggingFilter;
     private final AuthService authService;
 
     private static final RequestMatcher API_REQUEST_MATCHER = request -> {
@@ -82,6 +84,7 @@ public class SecurityConfig {
 
         http.addFilterBefore(requestCorrelationFilter,
                 org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(httpRequestLoggingFilter, RequestCorrelationFilter.class);
         http.addFilterBefore(rateLimitingFilter,
                 org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter.class);
         http.addFilterBefore(jwtAuthenticationFilter,

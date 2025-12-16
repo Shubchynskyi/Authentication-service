@@ -8,6 +8,8 @@ server:
   forward-headers-strategy: none
 
 spring:
+  application:
+    name: authorization-service
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -57,6 +59,9 @@ admin:
 frontend:
   url: ${FRONTEND_URL}
 
+app:
+  version: ${APP_VERSION:0.0.1-SNAPSHOT}
+
 rate-limit:
   admin-per-minute: ${RATE_LIMIT_ADMIN_PER_MINUTE:300} # TODO: tighten limits after testing
   auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:120}
@@ -70,6 +75,9 @@ logging:
   charset:
     console: UTF-8
     file: UTF-8
+
+# Custom logging configuration
+slow-request-threshold-ms: ${SLOW_REQUEST_THRESHOLD_MS:1000}
 
 jwt:
   access-secret: ${JWT_ACCESS_SECRET}

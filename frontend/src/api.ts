@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { API_URL } from './config';
 import { getAccessToken, getRefreshToken, isJwtExpired, clearTokens } from './utils/token';
+import { logError } from './utils/logger';
 import i18n from './i18n/i18n';
 
 const api = axios.create({
@@ -90,6 +91,10 @@ api.interceptors.response.use(
                 processQueue();
                 return api(originalRequest);
             } catch (refreshError) {
+                logError('Token refresh failed', refreshError, {
+                    url: originalRequest.url,
+                    method: originalRequest.method,
+                });
                 processQueue(refreshError);
                 clearAuthAndRedirect();
                 return Promise.reject(refreshError);
@@ -101,7 +106,27 @@ api.interceptors.response.use(
         // If this is a 401 error when trying to refresh the token
         if (error.response?.status === 401 && 
             originalRequest.url?.includes('/api/auth/refresh')) {
+            logError('Token refresh returned 401, clearing auth', undefined, {
+                url: originalRequest.url,
+            });
             clearAuthAndRedirect();
+        }
+
+        // Log critical server errors (5xx)
+        if (error.response?.status >= 500) {
+            logError('Server error', error, {
+                url: error.config?.url,
+                method: error.config?.method,
+                status: error.response.status,
+            });
+        }
+
+        // Log network errors
+        if (!error.response && error.request) {
+            logError('Network request failed', error, {
+                url: error.config?.url,
+                method: error.config?.method,
+            });
         }
 
         return Promise.reject(error);

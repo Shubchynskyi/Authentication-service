@@ -9,6 +9,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -17,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RateLimitingFilter extends OncePerRequestFilter {
@@ -60,6 +62,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } else {
             long waitForRefill = probe.getNanosToWaitForRefill() / 1_000_000_000;
+            log.warn("Rate limit exceeded - IP: {}, Path: {}, Method: {}, Wait time: {}s, Bucket key: {}", 
+                    ip, path, request.getMethod(), waitForRefill, bucketKey);
             response.setStatus(HttpStatus.TOO_MANY_REQUESTS.value());
             response.setContentType("application/json");
             response.addHeader("X-Rate-Limit-Retry-After-Seconds", String.valueOf(waitForRefill));

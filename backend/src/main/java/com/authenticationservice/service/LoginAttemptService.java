@@ -47,12 +47,10 @@ public class LoginAttemptService {
         dbUser.incrementFailedLoginAttempts();
         int currentAttempts = dbUser.getFailedLoginAttempts();
 
-        // Check if we just reached 5 attempts (temporary lock)
         if (currentAttempts == 5 && dbUser.getLockTime() == null) {
             dbUser.setLockTime(LocalDateTime.now().plusMinutes(5));
             userRepository.save(dbUser);
 
-            // Send email about temporary lock asynchronously (don't block the response)
             // Send email about temporary lock asynchronously (don't block the response)
             String emailText = EmailTemplateFactory.buildAccountLockedText(5, frontendUrl);
             String emailHtml = EmailTemplateFactory.buildAccountLockedHtml(5, frontendUrl);
@@ -60,15 +58,12 @@ public class LoginAttemptService {
                     emailHtml);
             log.info("Temporary lock email queued for {}", maskEmail(dbUser.getEmail()));
         } else if (currentAttempts > 5 && dbUser.getLockTime() == null) {
-            // Set lock time if it wasn't set before
             dbUser.setLockTime(LocalDateTime.now().plusMinutes(5));
         }
 
         userRepository.save(dbUser);
 
-        // Check if we just reached 10 attempts (full block)
         if (currentAttempts == 10 && dbUser.isBlocked()) {
-            // Send email about full block asynchronously (don't block the response)
             // Send email about full block asynchronously (don't block the response)
             String emailText = EmailTemplateFactory.buildAccountBlockedText(frontendUrl);
             String emailHtml = EmailTemplateFactory.buildAccountBlockedHtml(frontendUrl);

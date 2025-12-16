@@ -1,4 +1,3 @@
-// AdminController.java
 package com.authenticationservice.controller;
 
 import lombok.RequiredArgsConstructor;
@@ -23,12 +22,15 @@ import com.authenticationservice.model.AccessModeSettings;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.service.AdminService;
 import com.authenticationservice.repository.RoleRepository;
+import com.authenticationservice.util.LoggingSanitizer;
+import lombok.extern.slf4j.Slf4j;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.security.Principal;
 import org.springframework.http.HttpStatus;
 
+@Slf4j(topic = "com.authenticationservice.admin")
 @RestController
 @RequestMapping(ApiConstants.ADMIN_BASE_URL)
 @RequiredArgsConstructor
@@ -37,6 +39,10 @@ public class AdminController {
 
     private final AdminService adminService;
     private final RoleRepository roleRepository;
+
+    private String maskEmail(String email) {
+        return LoggingSanitizer.maskEmail(email);
+    }
 
     @GetMapping(ApiConstants.ROLES_URL)
     public ResponseEntity<List<String>> getAllRoles() {
@@ -65,9 +71,10 @@ public class AdminController {
 
     @PostMapping(ApiConstants.USERS_URL)
     public ResponseEntity<String> createUser(@Valid @RequestBody AdminUpdateUserRequest request) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin create user request received for email: {}", maskEmail(request.getEmail()));
         // Note: createUser automatically adds to whitelist and removes from blacklist
         adminService.createUser(request);
+        log.info("Admin created user successfully: {}", maskEmail(request.getEmail()));
         return ResponseEntity.ok(MessageConstants.USER_CREATED);
     }
 
@@ -82,22 +89,25 @@ public class AdminController {
 
     @PutMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<String> updateUser(@PathVariable Long id, @Valid @RequestBody AdminUpdateUserRequest request) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin update user request received for user ID: {}, email: {}", id, maskEmail(request.getEmail()));
         adminService.updateUser(id, request);
+        log.info("Admin updated user successfully: ID={}, email={}", id, maskEmail(request.getEmail()));
         return ResponseEntity.ok(MessageConstants.USER_UPDATED);
     }
 
     @DeleteMapping(ApiConstants.USER_ID_URL)
     public ResponseEntity<String> deleteUser(@PathVariable Long id) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin delete user request received for user ID: {}", id);
         adminService.deleteUser(id);
+        log.info("Admin deleted user successfully: ID={}", id);
         return ResponseEntity.ok(MessageConstants.USER_DELETED);
     }
 
     @PutMapping(ApiConstants.USERS_ID_ROLES_URL)
     public ResponseEntity<?> updateUserRoles(@PathVariable Long id, @RequestBody UpdateUserRolesRequest request) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin update user roles request received for user ID: {}, roles: {}", id, request.getRoles());
         UserDTO updated = adminService.updateUserRoles(id, request.getRoles());
+        log.info("Admin updated user roles successfully: ID={}, roles={}", id, request.getRoles());
         return ResponseEntity.ok(updated);
     }
 
@@ -110,8 +120,9 @@ public class AdminController {
     public ResponseEntity<String> addToWhitelist(
             @RequestParam String email,
             @RequestParam(required = false) String reason) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin add to whitelist request received for email: {}, reason: {}", maskEmail(email), reason);
         adminService.addToWhitelist(email, reason != null ? reason : "");
+        log.info("Admin added email to whitelist: {}", maskEmail(email));
         return ResponseEntity.ok(MessageConstants.EMAIL_ADDED_TO_WHITELIST);
     }
 
@@ -119,8 +130,9 @@ public class AdminController {
     public ResponseEntity<String> removeFromWhitelist(
             @RequestParam String email,
             @RequestParam(required = false) String reason) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin remove from whitelist request received for email: {}, reason: {}", maskEmail(email), reason);
         adminService.removeFromWhitelist(email, reason != null ? reason : "");
+        log.info("Admin removed email from whitelist: {}", maskEmail(email));
         return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_WHITELIST);
     }
 
@@ -133,8 +145,9 @@ public class AdminController {
     public ResponseEntity<AccessListUpdateResponse> addToBlacklist(
             @RequestParam String email,
             @RequestParam(required = false) String reason) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin add to blacklist request received for email: {}, reason: {}", maskEmail(email), reason);
         AccessListUpdateResponse response = adminService.addToBlacklist(email, reason != null ? reason : "");
+        log.info("Admin added email to blacklist: {}", maskEmail(email));
         return ResponseEntity.ok(response);
     }
 
@@ -142,8 +155,9 @@ public class AdminController {
     public ResponseEntity<String> removeFromBlacklist(
             @RequestParam String email,
             @RequestParam(required = false) String reason) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin remove from blacklist request received for email: {}, reason: {}", maskEmail(email), reason);
         adminService.removeFromBlacklist(email, reason != null ? reason : "");
+        log.info("Admin removed email from blacklist: {}", maskEmail(email));
         return ResponseEntity.ok(MessageConstants.EMAIL_REMOVED_FROM_BLACKLIST);
     }
 
@@ -154,7 +168,6 @@ public class AdminController {
 
     @PostMapping("/access-mode/request-otp")
     public ResponseEntity<String> requestModeChangeOtp(Principal principal) {
-        // Exception handling is done via GlobalExceptionHandler
         adminService.sendModeChangeOtp(principal.getName());
         return ResponseEntity.ok("OTP code sent to your email");
     }
@@ -163,7 +176,7 @@ public class AdminController {
     public ResponseEntity<String> changeAccessMode(
             @Valid @RequestBody ChangeAccessModeRequest request,
             Principal principal) {
-        // Exception handling is done via GlobalExceptionHandler
+        log.debug("Admin change access mode request received for mode: {}", request.getMode());
         AccessMode newMode;
         try {
             newMode = AccessMode.valueOf(request.getMode().toUpperCase());
@@ -172,6 +185,7 @@ public class AdminController {
         }
         adminService.changeAccessMode(newMode, principal.getName(), request.getPassword(), request.getOtpCode(),
                 request.getReason() != null ? request.getReason() : "");
+        log.info("Admin changed access mode successfully to: {}", newMode);
         return ResponseEntity.ok(MessageConstants.ACCESS_MODE_CHANGED);
     }
 
@@ -181,7 +195,6 @@ public class AdminController {
         if (password == null || password.isBlank()) {
             return ResponseEntity.badRequest().body(MessageConstants.PASSWORD_IS_REQUIRED);
         }
-        // Exception handling is done via GlobalExceptionHandler
         boolean verified = adminService.verifyAdminPassword(principal.getName(), password);
         if (!verified) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageConstants.INVALID_PASSWORD);

@@ -1,6 +1,7 @@
 package com.authenticationservice.service;
 
 import com.authenticationservice.util.LoggingSanitizer;
+import com.authenticationservice.util.StructuredLogger;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -30,6 +31,7 @@ public class EmailService {
      * Sends multipart email with plain text and optional HTML body.
      */
     public void sendEmail(String to, String subject, String text, String html) {
+        long startTime = System.currentTimeMillis();
         try {
             log.info("Attempting to send email to: {}", maskEmail(to));
 
@@ -54,6 +56,11 @@ public class EmailService {
         } catch (MailException e) {
             log.error("Failed to send email to {}: {}", maskEmail(to), e.getMessage(), e);
             throw new RuntimeException("Failed to send email: " + e.getMessage());
+        } finally {
+            long duration = System.currentTimeMillis() - startTime;
+            StructuredLogger.logPerformance(log, "sendEmail", duration, 
+                    "to", maskEmail(to),
+                    "subject", subject != null ? subject : "null");
         }
     }
 

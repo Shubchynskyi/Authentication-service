@@ -94,7 +94,6 @@ public class User {
         this.lastLoginAt = LocalDateTime.now();
     }
 
-    //todo check usage
     public boolean isAccountNonLocked() {
         return !blocked;
     }
