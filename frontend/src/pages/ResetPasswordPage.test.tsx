@@ -2,7 +2,6 @@ import React from 'react';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect } from 'vitest';
 import ResetPasswordPage from './ResetPasswordPage';
-import { createNotificationMocks } from '../test-utils/mocks';
 import { renderWithMemoryRouter, setupTestCleanup } from '../test-utils/test-helpers';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues

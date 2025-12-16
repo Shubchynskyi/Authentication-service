@@ -15,7 +15,7 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildVerificationHtml(String code, String link) {
-        return String.format(EmailConstants.VERIFICATION_EMAIL_HTML_TEMPLATE, code, link, link, link);
+        return String.format(EmailConstants.VERIFICATION_EMAIL_HTML_TEMPLATE, code, link);
     }
 
     public static String buildResetPasswordText(String link) {
@@ -31,11 +31,29 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildAdminInviteHtml(String tempPassword, String verificationLink) {
-        return String.format(EmailConstants.ADMIN_INVITE_HTML_TEMPLATE, tempPassword, verificationLink, verificationLink, verificationLink);
+        return String.format(EmailConstants.ADMIN_INVITE_HTML_TEMPLATE, tempPassword, verificationLink,
+                verificationLink, verificationLink);
     }
 
     public static String buildGoogleResetText() {
         return EmailConstants.GOOGLE_PASSWORD_RESET_TEXT_TEMPLATE;
     }
-}
 
+    public static String buildAccountLockedText(int lockTimeMinutes, String frontendUrl) {
+        return String.format(EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE, lockTimeMinutes, frontendUrl,
+                lockTimeMinutes);
+    }
+
+    public static String buildAccountLockedHtml(int lockTimeMinutes, String frontendUrl) {
+        return String.format(EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_HTML_TEMPLATE, lockTimeMinutes, frontendUrl,
+                lockTimeMinutes);
+    }
+
+    public static String buildAccountBlockedText(String frontendUrl) {
+        return String.format(EmailConstants.ACCOUNT_BLOCKED_TEMPLATE, frontendUrl);
+    }
+
+    public static String buildAccountBlockedHtml(String frontendUrl) {
+        return String.format(EmailConstants.ACCOUNT_BLOCKED_HTML_TEMPLATE, frontendUrl);
+    }
+}

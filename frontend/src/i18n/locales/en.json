@@ -150,7 +150,9 @@
       "changeModeTitle": "Change Access Mode",
       "changeModePrompt": "Enter your password and OTP code to change access mode:",
       "modeChanged": "Access mode changed successfully",
-      "invalidOtp": "Invalid or expired OTP code"
+      "invalidOtp": "Invalid or expired OTP code",
+      "currentModeInfo": "Current mode:",
+      "newModeInfo": "New mode will be:"
     },
     "reasonLabel": "Reason (optional)",
     "errors": {
@@ -207,4 +209,4 @@
     "description": "It looks like this page doesn't exist or has been moved.",
     "backHome": "Go to Home"
   }
-} 
+}

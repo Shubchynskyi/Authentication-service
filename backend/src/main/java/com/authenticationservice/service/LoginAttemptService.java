@@ -3,6 +3,7 @@ package com.authenticationservice.service;
 import com.authenticationservice.constants.EmailConstants;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.UserRepository;
+import com.authenticationservice.util.EmailTemplateFactory;
 import com.authenticationservice.util.LoggingSanitizer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,8 +23,10 @@ public class LoginAttemptService {
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleFailedLogin(User user, String frontendUrl) {
-        // Reload user from database to get current state and avoid detached entity issues
-        // Try to find by ID first, if not found (e.g., due to transaction isolation), try by email
+        // Reload user from database to get current state and avoid detached entity
+        // issues
+        // Try to find by ID first, if not found (e.g., due to transaction isolation),
+        // try by email
         User dbUser = null;
         if (user.getId() != null) {
             dbUser = userRepository.findById(user.getId()).orElse(null);
@@ -32,9 +35,12 @@ public class LoginAttemptService {
             dbUser = userRepository.findByEmail(user.getEmail()).orElse(null);
         }
         if (dbUser == null) {
-            log.error("User not found in LoginAttemptService for email: {}, ID: {}", maskEmail(user.getEmail()), user.getId());
-            // If user not found, we can't increment attempts, but this shouldn't break the login flow
-            // Just log the error and return - the InvalidCredentialsException will still be thrown
+            log.error("User not found in LoginAttemptService for email: {}, ID: {}", maskEmail(user.getEmail()),
+                    user.getId());
+            // If user not found, we can't increment attempts, but this shouldn't break the
+            // login flow
+            // Just log the error and return - the InvalidCredentialsException will still be
+            // thrown
             return;
         }
 
@@ -45,12 +51,13 @@ public class LoginAttemptService {
         if (currentAttempts == 5 && dbUser.getLockTime() == null) {
             dbUser.setLockTime(LocalDateTime.now().plusMinutes(5));
             userRepository.save(dbUser);
-            
+
             // Send email about temporary lock asynchronously (don't block the response)
-            String emailContent = String.format(
-                    EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE,
-                    5, frontendUrl, 5);
-            emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_SUBJECT, emailContent);
+            // Send email about temporary lock asynchronously (don't block the response)
+            String emailText = EmailTemplateFactory.buildAccountLockedText(5, frontendUrl);
+            String emailHtml = EmailTemplateFactory.buildAccountLockedHtml(5, frontendUrl);
+            emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_SUBJECT, emailText,
+                    emailHtml);
             log.info("Temporary lock email queued for {}", maskEmail(dbUser.getEmail()));
         } else if (currentAttempts > 5 && dbUser.getLockTime() == null) {
             // Set lock time if it wasn't set before
@@ -62,10 +69,11 @@ public class LoginAttemptService {
         // Check if we just reached 10 attempts (full block)
         if (currentAttempts == 10 && dbUser.isBlocked()) {
             // Send email about full block asynchronously (don't block the response)
-            String emailContent = String.format(
-                    EmailConstants.ACCOUNT_BLOCKED_TEMPLATE,
-                    frontendUrl);
-            emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_BLOCKED_SUBJECT, emailContent);
+            // Send email about full block asynchronously (don't block the response)
+            String emailText = EmailTemplateFactory.buildAccountBlockedText(frontendUrl);
+            String emailHtml = EmailTemplateFactory.buildAccountBlockedHtml(frontendUrl);
+            emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_BLOCKED_SUBJECT, emailText,
+                    emailHtml);
             log.info("Account blocked email queued for {}", maskEmail(dbUser.getEmail()));
         }
     }

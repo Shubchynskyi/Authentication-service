@@ -535,8 +535,6 @@ class AuthServiceTest {
                         // Arrange
                         testUser.setBlocked(true);
                         testUser.setBlockReason("Test block reason");
-                        when(passwordEncoder.matches(loginRequest.getPassword(), testUser.getPassword()))
-                                        .thenReturn(true);
                         when(userRepository.findByEmail(loginRequest.getEmail()))
                                         .thenReturn(Optional.of(testUser));
 

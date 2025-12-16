@@ -129,7 +129,7 @@ public class AuthService {
             throw new InvalidVerificationCodeException(
                     getMessage(MessageConstants.VERIFICATION_CODE_INVALID_OR_EXPIRED));
         }
-        
+
         user.setEmailVerified(true);
         userRepository.save(user);
     }
@@ -164,6 +164,11 @@ public class AuthService {
             throw new AccountLockedException(seconds);
         }
 
+        if (user.isBlocked()) {
+            log.error("Account is blocked for email: {}", maskEmail(normalizedEmail));
+            throw new AccountBlockedException(user.getBlockReason());
+        }
+
         boolean passwordMatches = passwordEncoder.matches(request.getPassword(), user.getPassword());
         if (!passwordMatches) {
             // Use separate service with REQUIRES_NEW transaction to ensure counter is saved
@@ -171,11 +176,6 @@ public class AuthService {
 
             log.error("Invalid password for email: {}", maskEmail(normalizedEmail));
             throw new InvalidCredentialsException();
-        }
-
-        if (user.isBlocked()) {
-            log.error("Account is blocked for email: {}", maskEmail(normalizedEmail));
-            throw new AccountBlockedException(user.getBlockReason());
         }
 
         if (!user.isEmailVerified()) {
@@ -200,7 +200,8 @@ public class AuthService {
 
             return buildTokenResponse(accessToken, refreshToken);
         } catch (Exception e) {
-            log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(), e);
+            log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(),
+                    e);
             throw new RuntimeException("Error generating tokens: "
                     + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
         }
@@ -222,7 +223,7 @@ public class AuthService {
             log.error("Refresh token used for disabled account: {}", maskEmail(email));
             throw new RuntimeException(MessageConstants.ACCOUNT_DISABLED);
         }
-        
+
         if (user.isBlocked()) {
             log.error("Refresh token used for blocked account: {}", maskEmail(email));
             throw new AccountBlockedException(user.getBlockReason());
@@ -271,8 +272,7 @@ public class AuthService {
             emailService.sendEmail(
                     user.getEmail(),
                     EmailConstants.GOOGLE_PASSWORD_RESET_SUBJECT,
-                    emailContent
-            );
+                    emailContent);
             return;
         }
 
@@ -303,8 +303,8 @@ public class AuthService {
         User user = userRepository.findByResetPasswordToken(token)
                 .orElseThrow(() -> new RuntimeException("Invalid or expired reset token."));
 
-        if (user.getResetPasswordTokenExpiry() == null || 
-            user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (user.getResetPasswordTokenExpiry() == null ||
+                user.getResetPasswordTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new RuntimeException("Expired reset token.");
         }
 
@@ -348,10 +348,11 @@ public class AuthService {
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseGet(() -> {
                     log.info("Creating new OAuth2 user: {}", maskEmail(normalizedEmail));
-                    
-                    // Check access control (whitelist/blacklist) - this must be the first check for new users
+
+                    // Check access control (whitelist/blacklist) - this must be the first check for
+                    // new users
                     accessControlService.checkRegistrationAccess(normalizedEmail);
-                    
+
                     User newUser = new User();
                     newUser.setEmail(normalizedEmail);
                     // Use email as fallback if name is null or empty
@@ -371,10 +372,11 @@ public class AuthService {
                 });
 
         // Handle existing user with LOCAL provider and unverified email
-        // If user registered locally but didn't verify email, and now logs in via Google,
+        // If user registered locally but didn't verify email, and now logs in via
+        // Google,
         // we should mark email as verified and update auth provider to GOOGLE
         if (user.getAuthProvider() == AuthProvider.LOCAL && !user.isEmailVerified()) {
-                    log.info("User {} with LOCAL provider and unverified email is logging in via Google. " +
+            log.info("User {} with LOCAL provider and unverified email is logging in via Google. " +
                     "Updating emailVerified to true and authProvider to GOOGLE.", maskEmail(normalizedEmail));
             user.setEmailVerified(true);
             user.setAuthProvider(AuthProvider.GOOGLE);

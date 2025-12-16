@@ -144,7 +144,9 @@
       "changeModeTitle": "Zugriffskontrollmodus ändern",
       "changeModePrompt": "Geben Sie Ihr Passwort und den OTP-Code ein, um den Zugriffskontrollmodus zu ändern:",
       "modeChanged": "Zugriffskontrollmodus erfolgreich geändert",
-      "invalidOtp": "Ungültiger oder abgelaufener OTP-Code"
+      "invalidOtp": "Ungültiger oder abgelaufener OTP-Code",
+      "currentModeInfo": "Aktueller Modus:",
+      "newModeInfo": "Neuer Modus wird sein:"
     },
     "reasonLabel": "Grund (optional)",
     "errors": {
@@ -201,4 +203,4 @@
     "description": "Diese Seite existiert nicht oder wurde verschoben.",
     "backHome": "Zur Startseite"
   }
-} 
+}

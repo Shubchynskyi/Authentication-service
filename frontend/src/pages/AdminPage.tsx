@@ -298,7 +298,7 @@ const AdminPage = () => {
             const url = selectedUser
                 ? `/api/admin/users/${selectedUser.id}`
                 : '/api/admin/users';
-            
+
             const requestData = {
                 username: formData.username,
                 email: formData.email,
@@ -306,7 +306,7 @@ const AdminPage = () => {
                 isBlocked: formData.blocked,
                 blockReason: formData.blocked ? formData.blockReason : null
             };
-            
+
             const method = selectedUser ? 'put' : 'post';
             const response = await api[method](url, requestData);
 
@@ -344,7 +344,7 @@ const AdminPage = () => {
     const handleConfirmAction = async () => {
         try {
             await api.post('/api/admin/verify-admin', { password: confirmActionPassword });
-            
+
             switch (pendingAction?.type) {
                 case 'DELETE_USER':
                     await api.delete(`/api/admin/users/${pendingAction.data}`);
@@ -354,7 +354,7 @@ const AdminPage = () => {
                 case 'ADD_WHITELIST':
                     try {
                         await api.post('/api/admin/whitelist/add', null, {
-                            params: { 
+                            params: {
                                 email: pendingAction.data,
                                 reason: pendingAction.reason ?? ''
                             }
@@ -382,7 +382,7 @@ const AdminPage = () => {
                     break;
                 case 'REMOVE_WHITELIST':
                     await api.delete('/api/admin/whitelist/remove', {
-                        params: { 
+                        params: {
                             email: pendingAction.data,
                             reason: pendingAction.reason ?? ''
                         }
@@ -395,7 +395,7 @@ const AdminPage = () => {
                 case 'ADD_BLACKLIST':
                     try {
                         const response = await api.post('/api/admin/blacklist/add', null, {
-                            params: { 
+                            params: {
                                 email: pendingAction.data,
                                 reason: pendingAction.reason || ''
                             }
@@ -431,7 +431,7 @@ const AdminPage = () => {
                     break;
                 case 'REMOVE_BLACKLIST':
                     await api.delete('/api/admin/blacklist/remove', {
-                        params: { 
+                        params: {
                             email: pendingAction.data,
                             reason: pendingAction.reason || ''
                         }
@@ -442,7 +442,7 @@ const AdminPage = () => {
                     showNotification(t('admin.blacklist.removed'), 'success');
                     break;
             }
-            
+
             setConfirmActionDialog(false);
             setConfirmActionPassword('');
             setPendingAction(null);
@@ -545,20 +545,22 @@ const AdminPage = () => {
 
     return (
         <Box sx={{ width: '100%' }}>
-            <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
-                <Chip
-                    label={`${t('admin.accessMode.currentMode')}: ${accessModeLabel}`}
-                    color={accessModeChipColor}
-                    sx={{ fontWeight: 600 }}
-                />
-            </Box>
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1 }}>
+
+
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <Tabs value={tabValue} onChange={handleTabChange}>
                     <Tab label={t('admin.users')} />
                     <Tab label={t('admin.whitelistTab')} />
                     <Tab label={t('admin.blacklistTab')} />
                     <Tab label={t('admin.accessControlTab')} />
                 </Tabs>
+                <Box sx={{ mr: 2 }}>
+                    <Chip
+                        label={`${t('admin.accessMode.currentMode')}: ${accessModeLabel}`}
+                        color={accessModeChipColor}
+                        sx={{ fontWeight: 600 }}
+                    />
+                </Box>
             </Box>
 
             <TabPanel value={tabValue} index={0}>
@@ -590,25 +592,25 @@ const AdminPage = () => {
                                 <TableRow key={user.id}>
                                     <TableCell>{user.id}</TableCell>
                                     <TableCell>{user.username} {user.roles.includes('ROLE_ADMIN') && (
-  <span
-    title="Administrator"
-    aria-label="Administrator"
-    style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      width: 18,
-      height: 18,
-      marginLeft: 6,
-      borderRadius: '50%',
-      backgroundColor: '#e53935',
-      color: '#ffffff',
-      fontWeight: 'bold',
-      fontSize: 12,
-      lineHeight: '18px'
-    }}
-  >A</span>
-)}</TableCell>
+                                        <span
+                                            title="Administrator"
+                                            aria-label="Administrator"
+                                            style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                width: 18,
+                                                height: 18,
+                                                marginLeft: 6,
+                                                borderRadius: '50%',
+                                                backgroundColor: '#e53935',
+                                                color: '#ffffff',
+                                                fontWeight: 'bold',
+                                                fontSize: 12,
+                                                lineHeight: '18px'
+                                            }}
+                                        >A</span>
+                                    )}</TableCell>
                                     <TableCell>{user.email}</TableCell>
                                     <TableCell>
                                         {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString(undefined, {
@@ -778,15 +780,10 @@ const AdminPage = () => {
                         <Typography variant="h6" gutterBottom>
                             {t('admin.accessMode.title')}
                         </Typography>
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
-                            <Chip
-                                label={`${t('admin.accessMode.currentMode')}: ${accessModeLabel}`}
-                                color={accessModeChipColor}
-                                sx={{ fontWeight: 600 }}
-                            />
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
                         </Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 2 }}>
-                            {accessMode === 'WHITELIST' 
+                            {accessMode === 'WHITELIST'
                                 ? t('admin.accessMode.whitelistDescription')
                                 : t('admin.accessMode.blacklistDescription')}
                         </Typography>
@@ -833,8 +830,8 @@ const AdminPage = () => {
                         control={
                             <Checkbox
                                 checked={formData.blocked}
-                                onChange={(e) => setFormData({ 
-                                    ...formData, 
+                                onChange={(e) => setFormData({
+                                    ...formData,
                                     blocked: e.target.checked,
                                     blockReason: e.target.checked ? formData.blockReason : ''
                                 })}
@@ -861,7 +858,7 @@ const AdminPage = () => {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseDialog}>{t('common.cancel')}</Button>
-                    <Button 
+                    <Button
                         onClick={handleSubmit}
                         disabled={formData.blocked && !formData.blockReason}
                     >
@@ -978,6 +975,24 @@ const AdminPage = () => {
                 <DialogTitle>{t('admin.accessMode.changeModeTitle')}</DialogTitle>
                 <DialogContent>
                     <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                        {/* Информационный блок: текущий режим */}
+                        <Box sx={{ p: 2, bgcolor: accessMode === 'WHITELIST' ? 'success.light' : 'warning.light', borderRadius: 2, opacity: 0.9 }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
+                                {t('admin.accessMode.currentModeInfo')} {accessMode === 'WHITELIST' ? t('admin.accessMode.whitelist') : t('admin.accessMode.blacklist')}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {accessMode === 'WHITELIST' ? t('admin.accessMode.whitelistDescription') : t('admin.accessMode.blacklistDescription')}
+                            </Typography>
+                        </Box>
+                        {/* Информационный блок: новый режим */}
+                        <Box sx={{ p: 2, bgcolor: accessMode === 'WHITELIST' ? 'warning.light' : 'success.light', borderRadius: 2, border: '2px dashed', borderColor: accessMode === 'WHITELIST' ? 'warning.main' : 'success.main' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 0.5, color: 'text.primary' }}>
+                                {t('admin.accessMode.newModeInfo')} {accessMode === 'WHITELIST' ? t('admin.accessMode.blacklist') : t('admin.accessMode.whitelist')}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {accessMode === 'WHITELIST' ? t('admin.accessMode.blacklistDescription') : t('admin.accessMode.whitelistDescription')}
+                            </Typography>
+                        </Box>
                         <Typography gutterBottom>
                             {t('admin.accessMode.changeModePrompt')}
                         </Typography>
@@ -1032,8 +1047,8 @@ const AdminPage = () => {
                         setModeChangeReason('');
                         setOtpRequested(false);
                     }}>{t('common.cancel')}</Button>
-                    <Button 
-                        onClick={handleChangeMode} 
+                    <Button
+                        onClick={handleChangeMode}
                         variant="contained"
                         disabled={!modeChangePassword || !modeChangeOtp || !modeChangeReason || !otpRequested}
                     >
@@ -1041,7 +1056,7 @@ const AdminPage = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-        </Box>
+        </Box >
     );
 };
 

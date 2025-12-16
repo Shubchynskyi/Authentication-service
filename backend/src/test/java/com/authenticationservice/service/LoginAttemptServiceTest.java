@@ -103,7 +103,7 @@ class LoginAttemptServiceTest {
             loginAttemptService.handleFailedLogin(testUser, FRONTEND_URL);
 
             // Assert
-            verify(emailService).sendEmailAsync(eq(testUser.getEmail()), anyString(), anyString());
+            verify(emailService).sendEmailAsync(eq(testUser.getEmail()), anyString(), anyString(), anyString());
         }
 
         @Test
@@ -142,7 +142,8 @@ class LoginAttemptServiceTest {
             loginAttemptService.handleFailedLogin(testUser, FRONTEND_URL);
 
             // Assert
-            verify(emailService, atLeastOnce()).sendEmailAsync(eq(testUser.getEmail()), anyString(), anyString());
+            verify(emailService, atLeastOnce()).sendEmailAsync(eq(testUser.getEmail()), anyString(), anyString(),
+                    anyString());
         }
 
         @Test

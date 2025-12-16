@@ -37,6 +37,7 @@ node_modules/
 # production
 /build
 /dist
+frontend/dist/
 *.jar
 
 # misc
@@ -79,7 +80,10 @@ docker-compose.override.yml
 .idea/
 
 # Logs
-logs/ 
+logs/
 
 # Scripts
 scripts/
+
+# Email preview templates
+email_preview_*.html

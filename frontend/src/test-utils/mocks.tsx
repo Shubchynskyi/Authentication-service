@@ -2,9 +2,6 @@ import React from 'react';
 import { vi } from 'vitest';
 import { getTranslation } from './translations';
 
-// Guard to avoid ReferenceError in hoisted mocks
-const modulePath = undefined;
-
 // Common mock for AuthContext
 export const createMockAuthContext = (overrides = {}) => ({
     isAuthenticated: false,
