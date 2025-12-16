@@ -39,6 +39,14 @@ public final class EmailTemplateFactory {
         return EmailConstants.GOOGLE_PASSWORD_RESET_TEXT_TEMPLATE;
     }
 
+    public static String buildOtpAccessModeText(String otp) {
+        return String.format(EmailConstants.OTP_ACCESS_MODE_TEXT_TEMPLATE, otp);
+    }
+
+    public static String buildOtpAccessModeHtml(String otp) {
+        return String.format(EmailConstants.OTP_ACCESS_MODE_HTML_TEMPLATE, otp);
+    }
+
     public static String buildAccountLockedText(int lockTimeMinutes, String frontendUrl) {
         return String.format(EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE, lockTimeMinutes, frontendUrl,
                 lockTimeMinutes);

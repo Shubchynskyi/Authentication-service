@@ -2,11 +2,18 @@
     <springProperty scope="context" name="LOG_LEVEL" source="LOG_LEVEL" defaultValue="INFO"/>
     <springProperty scope="context" name="APP_LOG_LEVEL" source="LOG_LEVEL" defaultValue="INFO"/>
     <springProperty scope="context" name="SPRING_SECURITY_LOG_LEVEL" source="SPRING_SECURITY_LOG_LEVEL" defaultValue="INFO"/>
-    <springProperty scope="context" name="LOG_FILE_PATH" source="LOG_FILE_PATH" defaultValue="logs/app.log"/>
-    <springProperty scope="context" name="LOG_MAX_HISTORY" source="LOG_MAX_HISTORY" defaultValue="10"/>
-    <springProperty scope="context" name="LOG_MAX_SIZE" source="LOG_MAX_SIZE" defaultValue="2MB"/>
+
     <springProperty scope="context" name="LOG_FILE_ENABLED" source="LOG_FILE_ENABLED" defaultValue="true"/>
     <springProperty scope="context" name="LOG_JSON_ENABLED" source="LOG_JSON_ENABLED" defaultValue="false"/>
+
+    <!-- File locations -->
+    <springProperty scope="context" name="LOG_FILE_PATH" source="LOG_FILE_PATH" defaultValue="logs/app.log"/>
+    <springProperty scope="context" name="LOG_ERROR_FILE_PATH" source="LOG_ERROR_FILE_PATH" defaultValue="logs/error.log"/>
+    <springProperty scope="context" name="LOG_ADMIN_FILE_PATH" source="LOG_ADMIN_FILE_PATH" defaultValue="logs/admin.log"/>
+
+    <!-- Rotation -->
+    <springProperty scope="context" name="LOG_MAX_HISTORY" source="LOG_MAX_HISTORY" defaultValue="10"/>
+    <springProperty scope="context" name="LOG_MAX_SIZE" source="LOG_MAX_SIZE" defaultValue="2MB"/>
 
     <property name="LOGBACK_SKIP_JANSI" value="true"/>
 
@@ -22,7 +29,8 @@
 
     <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
         <then>
-            <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+            <!-- General rolling file -->
+            <appender name="FILE_APP" class="ch.qos.logback.core.rolling.RollingFileAppender">
                 <file>${LOG_FILE_PATH}</file>
                 <append>true</append>
                 <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
@@ -31,6 +39,45 @@
                 </encoder>
                 <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
                     <fileNamePattern>${LOG_FILE_PATH}.%i.gz</fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>${LOG_MAX_HISTORY}</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>${LOG_MAX_SIZE}</maxFileSize>
+                </triggeringPolicy>
+            </appender>
+
+            <!-- Errors/Warns rolling file -->
+            <appender name="FILE_ERROR" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${LOG_ERROR_FILE_PATH}</file>
+                <append>true</append>
+                <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+                    <level>WARN</level>
+                </filter>
+                <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                    <charset>UTF-8</charset>
+                    <pattern>${LOG_PATTERN}</pattern>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>${LOG_ERROR_FILE_PATH}.%i.gz</fileNamePattern>
+                    <minIndex>1</minIndex>
+                    <maxIndex>${LOG_MAX_HISTORY}</maxIndex>
+                </rollingPolicy>
+                <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+                    <maxFileSize>${LOG_MAX_SIZE}</maxFileSize>
+                </triggeringPolicy>
+            </appender>
+
+            <!-- Admin actions rolling file -->
+            <appender name="FILE_ADMIN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                <file>${LOG_ADMIN_FILE_PATH}</file>
+                <append>true</append>
+                <encoder class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                    <charset>UTF-8</charset>
+                    <pattern>${LOG_PATTERN}</pattern>
+                </encoder>
+                <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+                    <fileNamePattern>${LOG_ADMIN_FILE_PATH}.%i.gz</fileNamePattern>
                     <minIndex>1</minIndex>
                     <maxIndex>${LOG_MAX_HISTORY}</maxIndex>
                 </rollingPolicy>
@@ -93,7 +140,7 @@
         <appender-ref ref="CONSOLE"/>
         <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
             <then>
-                <appender-ref ref="FILE"/>
+                <appender-ref ref="FILE_APP"/>
             </then>
         </if>
         <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
@@ -108,11 +155,27 @@
         </if>
     </logger>
 
+    <logger name="com.authenticationservice.admin" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="FILE_ADMIN"/>
+                <appender-ref ref="FILE_ERROR"/>
+            </then>
+        </if>
+        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
+            <then>
+                <appender-ref ref="JSON_CONSOLE"/>
+            </then>
+        </if>
+    </logger>
+
     <logger name="com.authenticationservice" level="${APP_LOG_LEVEL}" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
             <then>
-                <appender-ref ref="FILE"/>
+                <appender-ref ref="FILE_APP"/>
+                <appender-ref ref="FILE_ERROR"/>
             </then>
         </if>
         <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
@@ -131,7 +194,8 @@
         <appender-ref ref="CONSOLE"/>
         <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
             <then>
-                <appender-ref ref="FILE"/>
+                <appender-ref ref="FILE_APP"/>
+                <appender-ref ref="FILE_ERROR"/>
             </then>
         </if>
         <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>

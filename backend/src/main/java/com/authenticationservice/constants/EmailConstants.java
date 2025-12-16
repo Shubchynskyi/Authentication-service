@@ -125,6 +125,44 @@ public final class EmailConstants {
                         "Please sign in using the 'Continue with Google' option.\n" +
                         "If you forgot your Google password, use Google's account recovery.";
 
+        public static final String OTP_ACCESS_MODE_SUBJECT = "Access Mode Change - OTP Code";
+        public static final String OTP_ACCESS_MODE_TEXT_TEMPLATE = "You requested to change access mode.\n\n" +
+                        "Your OTP code: %s\n" +
+                        "This code will expire in 10 minutes.\n\n" +
+                        "If you did not request this change, please ignore this email.";
+
+        public static final String OTP_ACCESS_MODE_HTML_TEMPLATE = "<!DOCTYPE html>" +
+                        "<html>" +
+                        "<head>" +
+                        "<meta charset=\"UTF-8\" />" +
+                        "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />" +
+                        "<title>OTP Code</title>" +
+                        "</head>" +
+                        "<body style=\"margin:0;padding:0;background-color:#f4f4f7;font-family:'Helvetica Neue',Arial,sans-serif;\">"
+                        +
+                        "<table role=\"presentation\" width=\"100%%\" style=\"background-color:#f4f4f7;padding:24px 0;\">"
+                        +
+                        "<tr><td align=\"center\">" +
+                        "<table role=\"presentation\" width=\"600\" style=\"background-color:#ffffff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;\">"
+                        +
+                        "<tr><td style=\"padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;\">Access Mode Change - OTP Code</td></tr>"
+                        +
+                        "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">You requested to change access mode. Use the code below to confirm the change.</td></tr>"
+                        +
+                        "<tr><td style=\"padding:0 24px 16px;\"><div style=\"background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:16px;font-size:24px;font-weight:600;color:#111827;text-align:center;letter-spacing:0.15em;\">%s</div></td></tr>"
+                        +
+                        "<tr><td style=\"padding:0 24px 16px;font-size:12px;color:#6b7280;line-height:1.6;text-align:center;\">This code will expire in 10 minutes.</td></tr>"
+                        +
+                        "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;text-align:center;\">If you did not request this change, please ignore this email.</td></tr>"
+                        +
+                        "<tr><td style=\"padding:0 24px 24px;font-size:14px;color:#4b5563;\">Best regards,<br>Authentication Service Team</td></tr>"
+                        +
+                        "</table>" +
+                        "</td></tr>" +
+                        "</table>" +
+                        "</body>" +
+                        "</html>";
+
         public static final String ACCOUNT_TEMPORARILY_LOCKED_SUBJECT = "Account Temporarily Locked";
         public static final String ACCOUNT_TEMPORARILY_LOCKED_TEMPLATE = "Your account has been temporarily locked for %d minutes due to multiple failed login attempts.\n\n"
                         +

@@ -18,7 +18,7 @@ import com.authenticationservice.util.EmailTemplateFactory;
 
 import java.util.UUID;
 
-@Slf4j
+@Slf4j(topic = "com.authenticationservice.admin")
 @Service
 @RequiredArgsConstructor
 public class AdminInitializationService {
