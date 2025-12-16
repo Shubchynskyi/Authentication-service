@@ -15,7 +15,18 @@ This project is a full-stack authentication and user profile management solution
 - **Configuration**:
   - Settings are managed via `application.yml`
   - Sensitive data (DB credentials, JWT secrets, mail, OAuth) must be provided via environment variables
-  - Logging: `logback-spring.xml` uses console + rolling file (2MB, indexed files). Configure via env: `LOG_LEVEL`, `SPRING_SECURITY_LOG_LEVEL`, `LOG_FILE_ENABLED`, `LOG_FILE_PATH`, `LOG_MAX_SIZE`, `LOG_MAX_HISTORY`, `LOG_JSON_ENABLED`. Correlation header `X-Request-Id` is returned for each request and read from inbound `X-Request-Id` / `X-Correlation-Id`. Mount `logs/` as a Docker volume for persistence.
+  - **Logging**:
+    - **Backend**: SLF4J + Logback with structured logging, MDC context (trace ID, user email, IP, HTTP method, path), and request correlation
+    - **Configuration**: `logback-spring.xml` with console + rolling file appenders. Separate log files for application (`app.log`), errors (`error.log`), and admin actions (`admin.log`)
+    - **Environment variables**: `LOG_LEVEL`, `APP_LOG_LEVEL`, `SPRING_SECURITY_LOG_LEVEL`, `LOG_FILE_ENABLED`, `LOG_FILE_PATH`, `LOG_ERROR_FILE_PATH`, `LOG_ADMIN_FILE_PATH`, `LOG_MAX_HISTORY`, `LOG_MAX_SIZE`, `LOG_TOTAL_SIZE_CAP`, `LOG_JSON_ENABLED`, `SLOW_REQUEST_THRESHOLD_MS`
+    - **Features**:
+      - Time-based log rotation (daily) with size limit and total size cap
+      - HTTP request/response logging with performance metrics (slow requests logged as warnings)
+      - Automatic request correlation via `X-Request-Id` header (generated if not present)
+      - JSON structured logging support (when `LOG_JSON_ENABLED=true`)
+      - Performance metrics logging for critical operations
+      - Security event logging (rate limiting, authentication failures)
+    - Mount `logs/` as a Docker volume for persistence
 
 
 ### Frontend (React / TypeScript)
@@ -27,6 +38,7 @@ This project is a full-stack authentication and user profile management solution
   - User profile pages and profile editing
   - Internationalization (EN, DE, RU, UA) and theming/notifications
   - Resend/verification timers and password strength checks aligned with backend regex
+  - **Logging**: Structured error logging for critical failures (server errors, network failures, token refresh failures) with minimal production overhead
 
 
 ### Running the Project
@@ -48,13 +60,16 @@ This project is a full-stack authentication and user profile management solution
 - **Account Protection**: 5 failed logins → 5m lock with email; 10 failed → full block; blacklist always blocks login.
 - **Password Reset Flow**: 1h reset token, cooldown between requests; Google accounts receive an informational email instead of a reset link.
 - **Multi-language Support**: Full localization for 4 languages (EN, DE, RU, UA), including validation errors.
-- **Rate Limiting**: Bucket4j per-IP buckets (auth 120/min, admin 300/min by default) and a separate resend bucket; responses include `Retry-After` and `retryAfterSeconds`.
+- **Rate Limiting**: Bucket4j per-IP buckets (auth 120/min, admin 300/min by default) and a separate resend bucket; responses include `Retry-After` and `retryAfterSeconds`. Rate limit events are logged for security monitoring.
 - **Resend Code Cooldown**: Backend enforces 1/min per email with HTTP 429; frontend shows countdown and disables the button.
 - **Admin Initialization**: When `ADMIN_ENABLED=true`, an admin account is created on startup using `ADMIN_EMAIL` and receives a setup-password link via `FRONTEND_URL`.
+- **Comprehensive Logging**: 
+  - Request correlation with trace IDs across all logs
+  - Performance metrics for critical operations (login, registration, email sending)
+  - Security event logging (rate limiting, authentication failures)
+  - Structured logging support for log aggregation systems
+  - Admin action audit trail in separate log file
 
 ### Contact
 
 For any questions or further information, please contact [d.shubchynskyi@gmail.com](mailto:d.shubchynskyi@gmail.com)
-```
-d.shubchynskyi@gmail.com
-```
