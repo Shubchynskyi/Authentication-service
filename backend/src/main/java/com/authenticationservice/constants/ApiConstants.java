@@ -29,6 +29,7 @@ public final class ApiConstants {
     public static final String USERS_ID_ROLES_URL = "/users/{id}/roles";
     public static final String ROLES_URL = "/roles";
     public static final String VERIFY_ADMIN_URL = "/verify-admin";
+    public static final String MASKED_LOGIN_SETTINGS_URL = "/masked-login/settings";
     
     // Frontend URLs
     public static final String FRONTEND_RESET_PASSWORD_URL = "http://localhost:5173/reset-password?token=";

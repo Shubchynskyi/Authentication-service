@@ -15,7 +15,7 @@ const { mockApiPost, mockApiDefaults, mockGetAccessToken, mockGetRefreshToken, m
     const mockGetRefreshToken = vi.fn();
     const mockIsJwtExpired = vi.fn();
     const mockClearTokens = vi.fn();
-    
+
     return { mockApiPost, mockApiDefaults, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens };
 });
 
@@ -36,6 +36,13 @@ vi.mock('../utils/token', () => ({
     clearTokens: () => mockClearTokens(),
 }));
 
+// Mock logger
+vi.mock('../utils/logger', () => ({
+    logError: vi.fn(),
+    logWarn: vi.fn(),
+    logInfo: vi.fn(),
+}));
+
 // Mock axios
 vi.mock('axios', () => ({
     default: {
@@ -47,7 +54,7 @@ vi.mock('axios', () => ({
 // Test component that uses AuthContext
 const TestComponent: React.FC = () => {
     const { isAuthenticated, login, logout, error, isLoading, setTokens } = useAuth();
-    
+
     const handleLogin = async () => {
         try {
             await login('test@example.com', 'password');
@@ -55,7 +62,7 @@ const TestComponent: React.FC = () => {
             // Error is handled by AuthContext, just catch to prevent unhandled rejection
         }
     };
-    
+
     return (
         <div>
             <div data-testid="isAuthenticated">{isAuthenticated ? 'true' : 'false'}</div>
@@ -86,7 +93,7 @@ describe('AuthContext', () => {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
         });
-        
+
         // Mock window.location.href
         delete (window as any).location;
         (window as any).location = { href: '' };
@@ -233,7 +240,7 @@ describe('AuthContext', () => {
             });
 
             const loginButton = screen.getByTestId('login-btn');
-            
+
             // Click and wait for error to be handled
             loginButton.click();
 
@@ -267,7 +274,7 @@ describe('AuthContext', () => {
             });
 
             const loginButton = screen.getByTestId('login-btn');
-            
+
             // Click and wait for error to be handled
             loginButton.click();
 
@@ -299,7 +306,7 @@ describe('AuthContext', () => {
             });
 
             const loginButton = screen.getByTestId('login-btn');
-            
+
             // The error is thrown but not caught as axios error, so it becomes "Unexpected error"
             loginButton.click();
 
@@ -326,7 +333,7 @@ describe('AuthContext', () => {
             });
 
             const loginButton = screen.getByTestId('login-btn');
-            
+
             // Click and wait for error to be handled
             loginButton.click();
 
@@ -488,7 +495,7 @@ describe('AuthContext', () => {
     describe('useAuth hook', () => {
         it('should throw error when used outside AuthProvider', () => {
             // Suppress console.error for this test
-            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
 
             expect(() => {
                 render(<TestComponent />);

@@ -62,6 +62,19 @@ vi.mock('./i18n/i18n', () => ({
   },
 }));
 
+// Mock masked login service to avoid network calls and spinner in tests
+vi.mock('./services/maskedLoginService', () => ({
+  getMaskedLoginSettingsPublic: vi.fn().mockResolvedValue({ enabled: false, templateId: 1 }),
+  getMaskedLoginSettingsAdmin: vi.fn().mockResolvedValue({
+    enabled: false,
+    templateId: 1,
+    updatedAt: '2025-01-01T00:00:00Z',
+    updatedBy: 'admin@example.com',
+  }),
+  getTemplate: vi.fn().mockResolvedValue('<div></div>'),
+  updateMaskedLoginSettings: vi.fn(),
+}));
+
 // Common mock for react-i18next with translations from centralized file
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

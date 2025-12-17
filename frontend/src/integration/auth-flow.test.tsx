@@ -65,6 +65,12 @@ vi.mock('../context/NotificationContext', () => ({
     }),
 }));
 
+// Mock masked login service for public settings
+vi.mock('../services/maskedLoginService', () => ({
+    getMaskedLoginSettingsPublic: vi.fn().mockResolvedValue({ enabled: false, templateId: 1 }),
+    getTemplate: vi.fn().mockResolvedValue('<div></div>'),
+}));
+
 // Mock useTranslation
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
@@ -115,7 +121,7 @@ describe('Authentication Flow Integration', () => {
             </TestBrowserRouter>
         );
 
-        const loginLink = screen.getByRole('link', { name: /Login/i });
+        const loginLink = await screen.findByRole('link', { name: /Login/i });
         expect(loginLink).toHaveAttribute('href', '/login');
     });
 
@@ -128,7 +134,7 @@ describe('Authentication Flow Integration', () => {
             </TestBrowserRouter>
         );
 
-        const registerLink = screen.getByRole('link', { name: /Register/i });
+        const registerLink = await screen.findByRole('link', { name: /Register/i });
         expect(registerLink).toHaveAttribute('href', '/register');
     });
 

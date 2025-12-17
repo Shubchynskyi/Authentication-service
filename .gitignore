@@ -92,7 +92,7 @@ scripts/
 # ============================================
 # Templates & Previews
 # ============================================
-email_preview_*.html
+# email_preview_*.html
 masked_login_templates/
 
 # ============================================

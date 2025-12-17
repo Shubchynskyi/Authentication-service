@@ -31,6 +31,7 @@ import com.authenticationservice.model.AccessListChangeLog;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeChangeLog;
 import com.authenticationservice.model.AccessModeSettings;
+import com.authenticationservice.model.MaskedLoginSettings;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.BlockedEmail;
 import com.authenticationservice.model.Role;
@@ -45,6 +46,7 @@ import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.util.EmailTemplateFactory;
 import com.authenticationservice.util.EmailUtils;
 import com.authenticationservice.util.LoggingSanitizer;
+import com.authenticationservice.service.MaskedLoginService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,6 +64,7 @@ public class AdminService {
     private final AccessModeSettingsRepository accessModeSettingsRepository;
     private final AccessModeChangeLogRepository accessModeChangeLogRepository;
     private final AccessModeService accessModeService;
+    private final MaskedLoginService maskedLoginService;
     private final OtpService otpService;
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
@@ -474,5 +477,20 @@ public class AdminService {
         logEntry.setReason(reason);
 
         accessListChangeLogRepository.save(logEntry);
+    }
+
+    @Transactional(readOnly = true)
+    public MaskedLoginSettings getMaskedLoginSettings() {
+        return maskedLoginService.getSettings();
+    }
+
+    @Transactional
+    public void updateMaskedLoginSettings(Boolean enabled, Integer templateId, String adminEmail, String adminPassword) {
+        if (!verifyAdminPassword(adminEmail, adminPassword)) {
+            throw new RuntimeException(MessageConstants.INVALID_PASSWORD);
+        }
+        maskedLoginService.updateSettings(enabled, templateId, adminEmail);
+        log.info("Masked login settings updated: enabled={}, templateId={}, updatedBy={}",
+                enabled, templateId, maskEmail(adminEmail));
     }
 }

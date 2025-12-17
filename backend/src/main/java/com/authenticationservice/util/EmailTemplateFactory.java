@@ -10,12 +10,12 @@ public final class EmailTemplateFactory {
     private EmailTemplateFactory() {
     }
 
-    public static String buildVerificationText(String code, String link) {
-        return String.format(EmailConstants.VERIFICATION_EMAIL_TEXT_TEMPLATE, code, link);
+    public static String buildVerificationText(String link) {
+        return String.format(EmailConstants.VERIFICATION_EMAIL_TEXT_TEMPLATE, link);
     }
 
-    public static String buildVerificationHtml(String code, String link) {
-        return String.format(EmailConstants.VERIFICATION_EMAIL_HTML_TEMPLATE, code, link);
+    public static String buildVerificationHtml(String link) {
+        return String.format(EmailConstants.VERIFICATION_EMAIL_HTML_TEMPLATE, link);
     }
 
     public static String buildResetPasswordText(String link) {

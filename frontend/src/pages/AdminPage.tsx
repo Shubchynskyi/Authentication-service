@@ -37,6 +37,7 @@ import { useNotification } from '../context/NotificationContext';
 import AddIcon from '@mui/icons-material/Add';
 import GoogleIcon from '@mui/icons-material/Google';
 import PersonIcon from '@mui/icons-material/Person';
+import { getMaskedLoginSettingsAdmin, updateMaskedLoginSettings, MaskedLoginAdminSettings } from '../services/maskedLoginService';
 
 interface User {
     id: number;
@@ -92,6 +93,14 @@ const AdminPage = () => {
     const [whitelist, setWhitelist] = useState<WhitelistEntry[]>([]);
     const [blacklist, setBlacklist] = useState<BlacklistEntry[]>([]);
     const [accessMode, setAccessMode] = useState<'WHITELIST' | 'BLACKLIST'>('WHITELIST');
+    const [maskedLoginSettings, setMaskedLoginSettings] = useState<MaskedLoginAdminSettings | null>(null);
+    const [maskedLoginDraft, setMaskedLoginDraft] = useState<{ enabled: boolean; templateId: number }>({
+        enabled: false,
+        templateId: 1,
+    });
+    const [maskedLoginPasswordDialog, setMaskedLoginPasswordDialog] = useState(false);
+    const [maskedLoginPassword, setMaskedLoginPassword] = useState('');
+    const [maskedLoginSaving, setMaskedLoginSaving] = useState(false);
     const [totalElements, setTotalElements] = useState(0);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -172,6 +181,51 @@ const AdminPage = () => {
         }
     };
 
+    const fetchMaskedLoginSettings = async () => {
+        try {
+            const settings = await getMaskedLoginSettingsAdmin();
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: 'debug-session',
+                    runId: 'pre-fix',
+                    hypothesisId: 'H1',
+                    location: 'AdminPage:fetchMaskedLoginSettings',
+                    message: 'admin_fetch',
+                    data: settings ? { enabled: settings.enabled, templateId: settings.templateId, updatedAt: settings.updatedAt } : null,
+                    timestamp: Date.now(),
+                }),
+            }).catch(() => {});
+            // #endregion
+            setMaskedLoginSettings(settings);
+            if (settings) {
+                setMaskedLoginDraft({
+                    enabled: settings.enabled,
+                    templateId: settings.templateId,
+                });
+            }
+        } catch (error) {
+            console.error('Error fetching masked login settings:', error);
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    sessionId: 'debug-session',
+                    runId: 'pre-fix',
+                    hypothesisId: 'H1',
+                    location: 'AdminPage:fetchMaskedLoginSettings',
+                    message: 'error',
+                    data: { error: (error as any)?.message || 'unknown' },
+                    timestamp: Date.now(),
+                }),
+            }).catch(() => {});
+            // #endregion
+        }
+    };
+
     const fetchUsers = useCallback(async () => {
         try {
             const response = await api.get('/api/admin/users', {
@@ -200,6 +254,7 @@ const AdminPage = () => {
 
     useEffect(() => {
         fetchUsers();
+        fetchMaskedLoginSettings();
     }, [page, rowsPerPage, fetchUsers]);
 
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
@@ -553,6 +608,7 @@ const AdminPage = () => {
                     <Tab label={t('admin.whitelistTab')} />
                     <Tab label={t('admin.blacklistTab')} />
                     <Tab label={t('admin.accessControlTab')} />
+                    <Tab label={t('admin.maskedLoginTab')} />
                 </Tabs>
                 <Box sx={{ mr: 2 }}>
                     <Chip
@@ -797,6 +853,177 @@ const AdminPage = () => {
                     </Paper>
                 </Box>
             </TabPanel>
+
+            <TabPanel value={tabValue} index={4}>
+                <Box sx={{ maxWidth: 800, mx: 'auto' }}>
+                    <Paper sx={{ p: 3 }}>
+                        <Typography variant="h6" gutterBottom>
+                            {t('admin.maskedLogin.title')}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 3 }}>
+                            {t('admin.maskedLogin.description')}
+                        </Typography>
+
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={maskedLoginDraft.enabled}
+                                    onChange={(e) => {
+                                        setMaskedLoginDraft((prev) => ({
+                                            ...prev,
+                                            enabled: e.target.checked,
+                                        }));
+                                    }}
+                                />
+                            }
+                            label={t('admin.maskedLogin.enable')}
+                            sx={{ mb: 3 }}
+                        />
+
+                        {maskedLoginDraft.enabled && (
+                            <Box sx={{ mt: 2 }}>
+                                <Typography variant="subtitle1" gutterBottom>
+                                    {t('admin.maskedLogin.selectTemplate')}
+                                </Typography>
+                                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((templateId) => (
+                                        <Button
+                                            key={templateId}
+                                            variant={maskedLoginDraft.templateId === templateId ? 'contained' : 'outlined'}
+                                            onClick={() => {
+                                                setMaskedLoginDraft((prev) => ({
+                                                    ...prev,
+                                                    templateId,
+                                                    enabled: true,
+                                                }));
+                                            }}
+                                        >
+                                            {t('admin.maskedLogin.template')} {templateId}
+                                        </Button>
+                                    ))}
+                                </Box>
+                            </Box>
+                        )}
+
+                        <Box sx={{ mt: 3, display: 'flex', gap: 1 }}>
+                            <Button
+                                variant="contained"
+                                disabled={
+                                    maskedLoginSaving ||
+                                    !maskedLoginSettings ||
+                                    (maskedLoginSettings?.enabled === maskedLoginDraft.enabled &&
+                                        maskedLoginSettings?.templateId === maskedLoginDraft.templateId)
+                                }
+                                onClick={() => setMaskedLoginPasswordDialog(true)}
+                            >
+                                {t('common.save')}
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                disabled={maskedLoginSaving || !maskedLoginSettings}
+                                onClick={() => {
+                                    if (maskedLoginSettings) {
+                                        setMaskedLoginDraft({
+                                            enabled: maskedLoginSettings.enabled,
+                                            templateId: maskedLoginSettings.templateId,
+                                        });
+                                    }
+                                }}
+                            >
+                                {t('common.cancel')}
+                            </Button>
+                        </Box>
+
+                        {maskedLoginSettings && (
+                            <Box sx={{ mt: 3, p: 2, bgcolor: 'background.default', borderRadius: 1 }}>
+                                <Typography variant="caption" color="text.secondary">
+                                    {t('admin.maskedLogin.lastUpdated')}:{' '}
+                                    {maskedLoginSettings.updatedAt
+                                        ? new Date(maskedLoginSettings.updatedAt).toLocaleString()
+                                        : t('common.never')}
+                                    {maskedLoginSettings.updatedBy && ` ${t('common.by')} ${maskedLoginSettings.updatedBy}`}
+                                </Typography>
+                            </Box>
+                        )}
+                    </Paper>
+                </Box>
+            </TabPanel>
+
+            <Dialog open={maskedLoginPasswordDialog} onClose={() => setMaskedLoginPasswordDialog(false)}>
+                <DialogTitle>{t('admin.maskedLogin.title')}</DialogTitle>
+                <DialogContent>
+                    <TextField
+                        margin="normal"
+                        fullWidth
+                        type="password"
+                        label={t('admin.adminPasswordLabel') || 'Admin password'}
+                        value={maskedLoginPassword}
+                        onChange={(e) => setMaskedLoginPassword(e.target.value)}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setMaskedLoginPasswordDialog(false)}>{t('common.cancel')}</Button>
+                    <Button
+                        variant="contained"
+                        disabled={maskedLoginSaving || !maskedLoginPassword}
+                        onClick={async () => {
+                            try {
+                                setMaskedLoginSaving(true);
+                                await updateMaskedLoginSettings({
+                                    enabled: maskedLoginDraft.enabled,
+                                    templateId: maskedLoginDraft.templateId,
+                                    password: maskedLoginPassword,
+                                });
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        sessionId: 'debug-session',
+                                        runId: 'pre-fix',
+                                        hypothesisId: 'H2',
+                                        location: 'AdminPage:maskedLoginSave',
+                                        message: 'save_success',
+                                        data: { enabled: maskedLoginDraft.enabled, templateId: maskedLoginDraft.templateId },
+                                        timestamp: Date.now(),
+                                    }),
+                                }).catch(() => {});
+                                // #endregion
+                                await fetchMaskedLoginSettings();
+                                setMaskedLoginPassword('');
+                                setMaskedLoginPasswordDialog(false);
+                                showNotification(t('admin.maskedLogin.settingsUpdated'), 'success');
+                            } catch (error: any) {
+                                const status = error?.response?.status;
+                                // #region agent log
+                                fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        sessionId: 'debug-session',
+                                        runId: 'pre-fix',
+                                        hypothesisId: 'H2',
+                                        location: 'AdminPage:maskedLoginSave',
+                                        message: 'save_error',
+                                        data: { status: status ?? null, error: (error as any)?.message || 'unknown' },
+                                        timestamp: Date.now(),
+                                    }),
+                                }).catch(() => {});
+                                // #endregion
+                                if (status === 401) {
+                                    showNotification(t('admin.errors.invalidAdminPassword'), 'error');
+                                } else {
+                                    showNotification(t('common.error'), 'error');
+                                }
+                            } finally {
+                                setMaskedLoginSaving(false);
+                            }
+                        }}
+                    >
+                        {t('common.confirm')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Dialog open={openDialog} onClose={handleCloseDialog}>
                 <DialogTitle>

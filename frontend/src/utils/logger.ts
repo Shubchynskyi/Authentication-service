@@ -3,8 +3,6 @@
  * Only logs errors that are important for debugging production issues.
  */
 
-type LogLevel = 'error' | 'warn' | 'info';
-
 interface LogContext {
   [key: string]: string | number | boolean | null | undefined;
 }
@@ -31,11 +29,15 @@ export const logError = (message: string, error?: unknown, context?: LogContext)
   }
 
   // Log to console in development, could be extended to send to server in production
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.error('[ERROR]', logData);
   } else {
     // In production, only log critical errors
-    console.error(`[ERROR] ${message}`, context);
+    if (error) {
+      console.error(`[ERROR] ${message}`, error, context);
+    } else {
+      console.error(`[ERROR] ${message}`, context);
+    }
   }
 };
 
@@ -43,7 +45,7 @@ export const logError = (message: string, error?: unknown, context?: LogContext)
  * Logs warnings for important events
  */
 export const logWarn = (message: string, context?: LogContext): void => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.warn('[WARN]', { message, timestamp: new Date().toISOString(), ...context });
   }
 };
@@ -52,7 +54,7 @@ export const logWarn = (message: string, context?: LogContext): void => {
  * Logs info messages (only in development)
  */
 export const logInfo = (message: string, context?: LogContext): void => {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env.DEV) {
     console.log('[INFO]', { message, timestamp: new Date().toISOString(), ...context });
   }
 };

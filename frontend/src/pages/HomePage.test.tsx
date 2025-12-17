@@ -2,6 +2,7 @@ import { render, screen, waitFor, cleanup } from '@testing-library/react';
 import { vi, afterEach, beforeEach, describe, it, expect } from 'vitest';
 import HomePage from './HomePage';
 import { TestBrowserRouter } from '../test-utils/router';
+import React from 'react';
 
 // Mock i18n with hoisted translations
 const { mockTranslations, mockI18n } = vi.hoisted(() => {
@@ -32,6 +33,19 @@ vi.mock('react-i18next', () => ({
         type: '3rdParty',
         init: vi.fn(),
     },
+}));
+
+// Mock AuthContext to avoid provider errors and skip real auth logic
+vi.mock('../context/AuthContext', () => ({
+    AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    useAuth: () => ({
+        isAuthenticated: false,
+        isLoading: false,
+        login: vi.fn(),
+        logout: vi.fn(),
+        setTokens: vi.fn(),
+        error: null,
+    }),
 }));
 
 describe('HomePage', () => {

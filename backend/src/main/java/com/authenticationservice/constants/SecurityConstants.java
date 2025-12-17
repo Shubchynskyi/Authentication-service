@@ -11,6 +11,7 @@ public final class SecurityConstants {
     public static final String API_AUTH_PREFIX = "/api/auth/**";
     public static final String API_ADMIN_PREFIX = "/api/admin/**";
     public static final String API_PROTECTED_PREFIX = "/api/protected/**";
+    public static final String API_PUBLIC_PREFIX = "/api/public/**";
 
     public static final String USER_NOT_FOUND_ERROR = "User not found";
     public static final String INVALID_CREDENTIALS_ERROR = "Invalid email or password";

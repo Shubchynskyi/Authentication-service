@@ -34,6 +34,12 @@ vi.mock('../api', () => ({
     },
 }));
 
+// Mock masked login service to avoid network calls and spinner
+vi.mock('../services/maskedLoginService', () => ({
+    getMaskedLoginSettingsPublic: vi.fn().mockResolvedValue({ enabled: false, templateId: 1 }),
+    getTemplate: vi.fn().mockResolvedValue('<div></div>'),
+}));
+
 // Mock AuthContext
 vi.mock('../context/AuthContext', () => ({
     AuthProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
@@ -68,24 +74,29 @@ vi.mock('react-router-dom', async () => {
     };
 });
 
-const renderLoginPage = () => {
-    return renderWithRouter(<LoginPage />);
+const renderLoginPage = async () => {
+    const view = renderWithRouter(<LoginPage />);
+    // Wait until loading spinner disappears
+    await waitFor(() => {
+        expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+    return view;
 };
 
 describe('LoginPage', () => {
     setupTestCleanup();
 
-    it('renders login form', () => {
-        renderLoginPage();
+    it('renders login form', async () => {
+        await renderLoginPage();
 
-        expect(screen.getByRole('heading', { name: /Login/i })).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: /Login/i })).toBeInTheDocument();
         expect(screen.getByLabelText(/Email/i)).toBeInTheDocument();
         expect(screen.getByLabelText(/Password/i)).toBeInTheDocument();
         expect(screen.getByRole('button', { name: /Sign In/i })).toBeInTheDocument();
     });
 
     it('shows validation error when email is empty', async () => {
-        renderLoginPage();
+        await renderLoginPage();
 
         const submitButton = screen.getByRole('button', { name: /Sign In/i });
         fireEvent.click(submitButton);
@@ -96,7 +107,7 @@ describe('LoginPage', () => {
     });
 
     it('shows validation error when password is empty', async () => {
-        renderLoginPage();
+        await renderLoginPage();
 
         const emailInput = screen.getByLabelText(/Email/i);
         fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
@@ -112,7 +123,7 @@ describe('LoginPage', () => {
     it('submits form with valid data', async () => {
         mockLogin.mockResolvedValueOnce(undefined);
 
-        renderLoginPage();
+        await renderLoginPage();
 
         const emailInput = screen.getByLabelText(/Email/i);
         const passwordInput = screen.getByLabelText(/Password/i);
@@ -132,7 +143,7 @@ describe('LoginPage', () => {
     it('handles login error', async () => {
         mockLogin.mockRejectedValueOnce(new Error('Login failed'));
 
-        renderLoginPage();
+        await renderLoginPage();
 
         const emailInput = screen.getByLabelText(/Email/i);
         const passwordInput = screen.getByLabelText(/Password/i);
@@ -151,27 +162,27 @@ describe('LoginPage', () => {
         }, { timeout: 5000 });
     });
 
-    it('displays OAuth login button', () => {
-        renderLoginPage();
+    it('displays OAuth login button', async () => {
+        await renderLoginPage();
         const oauthButton = screen.getByRole('button', { name: /Login with Google/i });
         expect(oauthButton).toBeInTheDocument();
     });
 
-    it('has link to forgot password page', () => {
-        renderLoginPage();
+    it('has link to forgot password page', async () => {
+        await renderLoginPage();
         const forgotPasswordLink = screen.getByRole('link', { name: /Forgot Password/i });
         expect(forgotPasswordLink).toHaveAttribute('href', '/forgot-password');
     });
 
-    it('has link to registration page', () => {
-        renderLoginPage();
+    it('has link to registration page', async () => {
+        await renderLoginPage();
         const registerLink = screen.getByRole('link', { name: /Register/i });
         expect(registerLink).toHaveAttribute('href', '/register');
     });
 
-    it('shows error notification from location state', () => {
+    it('shows error notification from location state', async () => {
         mockLocation.state = { error: 'Test error message' };
-        renderLoginPage();
+        await renderLoginPage();
 
         expect(mockShowNotification).toHaveBeenCalledWith('Test error message', 'error');
         mockLocation.state = null;
@@ -187,7 +198,7 @@ describe('LoginPage', () => {
         };
         mockLogin.mockRejectedValueOnce(axiosError);
 
-        renderLoginPage();
+        await renderLoginPage();
 
         const emailInput = screen.getByLabelText(/Email/i);
         const passwordInput = screen.getByLabelText(/Password/i);
@@ -219,7 +230,7 @@ describe('LoginPage', () => {
         };
         mockLogin.mockRejectedValueOnce(axiosError);
 
-        renderLoginPage();
+        await renderLoginPage();
 
         const emailInput = screen.getByLabelText(/Email/i);
         const passwordInput = screen.getByLabelText(/Password/i);

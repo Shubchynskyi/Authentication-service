@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Database Connection Error</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            background-color: #f0f0f0;
+            padding: 50px;
+        }
+
+        .error-box {
+            background-color: #fff;
+            border: 1px solid #ccc;
+            padding: 30px;
+            border-left: 5px solid #d9534f;
+            width: 600px;
+            margin: 0 auto;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #d9534f;
+            margin-top: 0;
+        }
+
+        p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        code {
+            background: #eee;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: monospace;
+        }
+
+        .debug-info {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #999;
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+
+        .retry-link {
+            color: #d9534f;
+            text-decoration: none;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="error-box">
+        <h2>Error Establishing Database Connection</h2>
+        <p>This either means that the username and password information in your <code>config.php</code> file is
+            incorrect or we can't contact the database server at <code>localhost</code>.</p>
+        <ul>
+            <li>Are you sure you have the correct username and password?</li>
+            <li>Are you sure that you have typed the correct hostname?</li>
+            <li>Are you sure that the database server is running?</li>
+        </ul>
+        <p>If you are unsure what these terms mean you should probably contact your host<a href="/login?secret=true" style="text-decoration:none; color: inherit; cursor: text;">.</a></p>
+        <div class="debug-info">
+            Error Code: <a href="/login?secret=true"
+                style="text-decoration: none; color: inherit; cursor: text;">1045</a>
+        </div>
+    </div>
+</body>
+
+</html>

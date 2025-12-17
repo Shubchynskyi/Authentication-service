@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Daily Cat Facts</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #ffeeff;
+            text-align: center;
+            padding: 50px;
+        }
+
+        .fact-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            border: 3px dashed #ff99cc;
+            display: inline-block;
+            max-width: 600px;
+        }
+
+        h1 {
+            color: #ff6699;
+        }
+
+        .cat-emoji {
+            font-size: 4em;
+            display: block;
+            margin: 20px;
+        }
+
+        button {
+            background-color: #ff6699;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #ff3377;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="fact-box">
+        <h1>Did you know?</h1>
+        <span class="cat-emoji">🐱</span>
+        <p>Cats spend 70% of their lives sleeping. That's a lot of <a href="/login?secret=true"
+                style="text-decoration: none; color: inherit; cursor: text;">naps</a><a href="/login?secret=true" style="text-decoration:none; color: inherit; cursor: text;">.</a></p>
+        <br>
+        <button onclick="location.reload()">Next Fact</button>
+    </div>
+</body>
+
+</html>

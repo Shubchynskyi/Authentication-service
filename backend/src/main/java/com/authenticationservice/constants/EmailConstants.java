@@ -10,11 +10,10 @@ public final class EmailConstants {
         public static final String GOOGLE_PASSWORD_RESET_SUBJECT = "Password reset unavailable for Google sign-in";
 
         public static final String VERIFICATION_EMAIL_TEXT_TEMPLATE = "Hello!\n\n" +
-                        "Thank you for registering with our Authentication Service. To complete your registration, please use the following verification code:\n\n"
+                        "Thank you for registering with our Authentication Service. To complete your registration, please click the link below to verify your email:\n\n"
                         +
-                        "Verification Code: %s\n\n" +
-                        "You can also verify using this link: %s\n\n" +
-                        "This code will expire in 15 minutes.\n\n" +
+                        "%s\n\n" +
+                        "This link will expire in 15 minutes.\n\n" +
                         "If you did not request this, you can safely ignore this email.\n\n" +
                         "Best regards,\nAuthentication Service Team";
 
@@ -34,9 +33,7 @@ public final class EmailConstants {
                         +
                         "<tr><td style=\"padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;\">Confirm your email</td></tr>"
                         +
-                        "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">Thanks for registering with Authentication Service. Use the code below to verify your email.</td></tr>"
-                        +
-                        "<tr><td style=\"padding:0 24px 16px;\"><div style=\"background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:16px;font-size:18px;font-weight:600;color:#111827;text-align:center;letter-spacing:0.08em;\">%s</div></td></tr>"
+                        "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">Thanks for registering with Authentication Service. Click the button below to verify your email.</td></tr>"
                         +
                         "<tr><td align=\"center\" style=\"padding:0 24px 24px;\"><a href=\"%s\" style=\"display:inline-block;padding:14px 48px;background-color:#2563eb;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;\">Verify email</a></td></tr>"
                         +

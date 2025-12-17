@@ -29,7 +29,9 @@
     "id": "ID",
     "of": "of",
     "rowsPerPage": "Rows per page",
-    "home": "Home"
+    "home": "Home",
+    "never": "Never",
+    "by": "by"
   },
   "auth": {
     "loginTitle": "Sign In",
@@ -153,6 +155,17 @@
       "invalidOtp": "Invalid or expired OTP code",
       "currentModeInfo": "Current mode:",
       "newModeInfo": "New mode will be:"
+    },
+    "maskedLoginTab": "Masked Login",
+    "maskedLogin": {
+      "title": "Masked Login Settings",
+      "description": "Enable to mask login pages with fake content. Users will see a fake page instead of the login form. The actual login form is accessible via a secret link.",
+      "enable": "Enable masked login",
+      "selectTemplate": "Select template",
+      "template": "Template",
+      "settingsUpdated": "Masked login settings updated",
+      "templateChanged": "Template changed",
+      "lastUpdated": "Last updated"
     },
     "reasonLabel": "Reason (optional)",
     "errors": {

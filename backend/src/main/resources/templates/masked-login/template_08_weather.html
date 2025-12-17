@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Weather</title>
+    <style>
+        body {
+            background: linear-gradient(to bottom, #87CEEB, #E0F6FF);
+            height: 100vh;
+            font-family: sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+
+        .widget {
+            background: rgba(255, 255, 255, 0.3);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            width: 300px;
+        }
+
+        .temp {
+            font-size: 64px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .city {
+            font-size: 24px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .icon {
+            font-size: 48px;
+        }
+
+        .cloud-link {
+            text-decoration: none;
+            color: inherit;
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="widget">
+        <div class="city">New York</div>
+        <div class="icon"><a href="/login?secret=true" class="cloud-link">☁️</a></div>
+        <div class="temp">72&deg;</div>
+        <div class="desc">Partly Cloudy<a href="/login?secret=true" style="text-decoration:none; color: inherit; cursor: text;">.</a></div>
+    </div>
+</body>
+
+</html>

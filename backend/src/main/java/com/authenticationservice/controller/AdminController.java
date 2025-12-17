@@ -13,12 +13,14 @@ import com.authenticationservice.dto.AdminUpdateUserRequest;
 import com.authenticationservice.dto.AllowedEmailDTO;
 import com.authenticationservice.dto.BlockedEmailDTO;
 import com.authenticationservice.dto.ChangeAccessModeRequest;
+import com.authenticationservice.dto.MaskedLoginSettingsDTO;
 import com.authenticationservice.dto.PagedResponse;
 import com.authenticationservice.dto.UserDTO;
 import com.authenticationservice.dto.UpdateUserRolesRequest;
 import com.authenticationservice.dto.VerifyAdminRequest;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeSettings;
+import com.authenticationservice.model.MaskedLoginSettings;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.service.AdminService;
 import com.authenticationservice.repository.RoleRepository;
@@ -201,5 +203,31 @@ public class AdminController {
         }
         
         return ResponseEntity.ok(MessageConstants.PASSWORD_VERIFIED);
+    }
+
+    @GetMapping(ApiConstants.MASKED_LOGIN_SETTINGS_URL)
+    public ResponseEntity<MaskedLoginSettings> getMaskedLoginSettings() {
+        MaskedLoginSettings settings = adminService.getMaskedLoginSettings();
+        if (settings == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(settings);
+    }
+
+    @PutMapping(ApiConstants.MASKED_LOGIN_SETTINGS_URL)
+    public ResponseEntity<String> updateMaskedLoginSettings(
+            @Valid @RequestBody MaskedLoginSettingsDTO request,
+            Principal principal) {
+        log.debug("Admin update masked login settings request received: enabled={}, templateId={}", 
+                request.getEnabled(), request.getTemplateId());
+        try {
+            adminService.updateMaskedLoginSettings(request.getEnabled(), request.getTemplateId(),
+                    principal.getName(), request.getPassword());
+            log.info("Admin updated masked login settings successfully: enabled={}, templateId={}",
+                    request.getEnabled(), request.getTemplateId());
+            return ResponseEntity.ok("Masked login settings updated successfully");
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(MessageConstants.INVALID_PASSWORD);
+        }
     }
 }

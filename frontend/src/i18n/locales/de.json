@@ -29,7 +29,9 @@
     "id": "ID",
     "of": "von",
     "rowsPerPage": "Zeilen pro Seite",
-    "home": "Startseite"
+    "home": "Startseite",
+    "never": "Nie",
+    "by": "von"
   },
   "auth": {
     "loginTitle": "Anmelden",
@@ -147,6 +149,17 @@
       "invalidOtp": "Ungültiger oder abgelaufener OTP-Code",
       "currentModeInfo": "Aktueller Modus:",
       "newModeInfo": "Neuer Modus wird sein:"
+    },
+    "maskedLoginTab": "Maskierte Anmeldung",
+    "maskedLogin": {
+      "title": "Einstellungen für maskierte Anmeldung",
+      "description": "Aktivieren Sie, um Anmeldeseiten mit gefälschtem Inhalt zu maskieren. Benutzer sehen eine gefälschte Seite anstelle des Anmeldeformulars. Das eigentliche Anmeldeformular ist über einen geheimen Link erreichbar.",
+      "enable": "Maskierte Anmeldung aktivieren",
+      "selectTemplate": "Vorlage auswählen",
+      "template": "Vorlage",
+      "settingsUpdated": "Einstellungen für maskierte Anmeldung aktualisiert",
+      "templateChanged": "Vorlage geändert",
+      "lastUpdated": "Zuletzt aktualisiert"
     },
     "reasonLabel": "Grund (optional)",
     "errors": {

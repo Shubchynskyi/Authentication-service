@@ -9,6 +9,7 @@ import com.authenticationservice.model.Role;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.service.AdminInitializationService;
 import com.authenticationservice.service.AccessModeInitializer;
+import com.authenticationservice.service.MaskedLoginInitializer;
 
 import java.util.Optional;
 
@@ -18,11 +19,13 @@ public class DatabaseInitializer {
     private final RoleRepository roleRepository;
     private final AdminInitializationService adminInitializationService;
     private final AccessModeInitializer accessModeInitializer;
+    private final MaskedLoginInitializer maskedLoginInitializer;
 
-    public DatabaseInitializer(RoleRepository roleRepository, AdminInitializationService adminInitializationService, AccessModeInitializer accessModeInitializer) {
+    public DatabaseInitializer(RoleRepository roleRepository, AdminInitializationService adminInitializationService, AccessModeInitializer accessModeInitializer, MaskedLoginInitializer maskedLoginInitializer) {
         this.roleRepository = roleRepository;
         this.adminInitializationService = adminInitializationService;
         this.accessModeInitializer = accessModeInitializer;
+        this.maskedLoginInitializer = maskedLoginInitializer;
     }
 
     @Bean
@@ -41,6 +44,14 @@ public class DatabaseInitializer {
 
     @Bean
     @Order(3)
+    CommandLineRunner initMaskedLogin() {
+        return args -> {
+            maskedLoginInitializer.initialize();
+        };
+    }
+
+    @Bean
+    @Order(4)
     CommandLineRunner initAdmin() {
         return args -> {
             ensureRolesExist();

@@ -141,76 +141,18 @@
 
     <logger name="org.springframework.security" level="${SPRING_SECURITY_LOG_LEVEL}" additivity="false">
         <appender-ref ref="CONSOLE"/>
-        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="FILE_APP"/>
-            </then>
-        </if>
-        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="JSON_CONSOLE"/>
-                <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-                    <then>
-                        <appender-ref ref="JSON_FILE"/>
-                    </then>
-                </if>
-            </then>
-        </if>
     </logger>
 
     <logger name="com.authenticationservice.admin" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
-        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="FILE_ADMIN"/>
-                <appender-ref ref="FILE_ERROR"/>
-            </then>
-        </if>
-        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="JSON_CONSOLE"/>
-            </then>
-        </if>
     </logger>
 
     <logger name="com.authenticationservice" level="${APP_LOG_LEVEL}" additivity="false">
         <appender-ref ref="CONSOLE"/>
-        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="FILE_APP"/>
-                <appender-ref ref="FILE_ERROR"/>
-            </then>
-        </if>
-        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="JSON_CONSOLE"/>
-                <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-                    <then>
-                        <appender-ref ref="JSON_FILE"/>
-                    </then>
-                </if>
-            </then>
-        </if>
     </logger>
 
     <root level="${LOG_LEVEL}">
         <appender-ref ref="CONSOLE"/>
-        <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="FILE_APP"/>
-                <appender-ref ref="FILE_ERROR"/>
-            </then>
-        </if>
-        <if condition='property("LOG_JSON_ENABLED").equalsIgnoreCase("true")'>
-            <then>
-                <appender-ref ref="JSON_CONSOLE"/>
-                <if condition='property("LOG_FILE_ENABLED").equalsIgnoreCase("true")'>
-                    <then>
-                        <appender-ref ref="JSON_FILE"/>
-                    </then>
-                </if>
-            </then>
-        </if>
     </root>
 </configuration>
 

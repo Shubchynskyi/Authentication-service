@@ -33,7 +33,7 @@ const { mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearToke
         get: vi.fn(),
         post: vi.fn(),
     }));
-    
+
     return { mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens, mockI18n, mockAxiosPost, mockAxiosCreate };
 });
 
@@ -43,6 +43,13 @@ vi.mock('./utils/token', () => ({
     getRefreshToken: () => mockGetRefreshToken(),
     isJwtExpired: (token: string) => mockIsJwtExpired(token),
     clearTokens: () => mockClearTokens(),
+}));
+
+// Mock logger
+vi.mock('./utils/logger', () => ({
+    logError: vi.fn(),
+    logWarn: vi.fn(),
+    logInfo: vi.fn(),
 }));
 
 // Mock i18n
@@ -70,7 +77,7 @@ describe('api', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         localStorage.clear();
-        
+
         // Reset mocks
         mockGetAccessToken.mockReturnValue(null);
         mockGetRefreshToken.mockReturnValue(null);
@@ -85,7 +92,7 @@ describe('api', () => {
         mockPost = vi.fn();
         mockRequestUse = vi.fn();
         mockResponseUse = vi.fn();
-        
+
         mockApiInstance = {
             interceptors: {
                 request: {
@@ -127,7 +134,7 @@ describe('api', () => {
         it('should add Authorization header when valid token exists', async () => {
             // Re-import to get fresh instance
             await import('./api');
-            
+
             const validToken = 'valid.token.here';
             mockGetAccessToken.mockReturnValue(validToken);
             mockIsJwtExpired.mockReturnValue(false);
@@ -150,7 +157,7 @@ describe('api', () => {
 
         it('should not add Authorization header when token is expired', async () => {
             await import('./api');
-            
+
             const expiredToken = 'expired.token.here';
             mockGetAccessToken.mockReturnValue(expiredToken);
             mockIsJwtExpired.mockReturnValue(true);
@@ -168,7 +175,7 @@ describe('api', () => {
 
         it('should not add Authorization header when no token exists', async () => {
             await import('./api');
-            
+
             mockGetAccessToken.mockReturnValue(null);
 
             const config = {
@@ -184,7 +191,7 @@ describe('api', () => {
 
         it('should add Accept-Language header based on i18n language', async () => {
             await import('./api');
-            
+
             mockI18n.language = 'ru';
             mockGetAccessToken.mockReturnValue(null);
 
@@ -201,7 +208,7 @@ describe('api', () => {
 
         it('should handle language with locale (e.g., en-US -> en)', async () => {
             await import('./api');
-            
+
             mockI18n.language = 'en-US';
             mockGetAccessToken.mockReturnValue(null);
 
@@ -379,7 +386,7 @@ describe('api', () => {
 
             expect(getSpy).toHaveBeenCalledWith('/api/auth/check-access/admin-panel');
             expect(result).toBe(true);
-            
+
             getSpy.mockRestore();
         });
 
@@ -390,7 +397,7 @@ describe('api', () => {
             const result = await checkAccess('admin-panel');
 
             expect(result).toBe(false);
-            
+
             getSpy.mockRestore();
         });
     });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import {
     Box,
     TextField,
@@ -7,13 +7,16 @@ import {
     Typography,
     Container,
     Grid,
-    Link as MuiLink
+    Link as MuiLink,
+    CircularProgress
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import { useAuth } from '../context/AuthContext';
 import { API_URL } from '../config';
 import FormPaper from '../components/FormPaper';
+import { getMaskedLoginSettingsPublic, getTemplate } from '../services/maskedLoginService';
+import MaskedLoginTemplate from '../components/MaskedLoginTemplate';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -21,14 +24,56 @@ const LoginPage = () => {
     const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { showNotification } = useNotification();
-    const { login } = useAuth();
+    const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+    const [maskedContent, setMaskedContent] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    const secretParam = searchParams.get('secret');
 
     useEffect(() => {
         if (location.state?.error) {
             showNotification(location.state.error, 'error');
         }
     }, [location, showNotification]);
+
+    useEffect(() => {
+        // If secret=true parameter is present, show login form
+        if (secretParam === 'true') {
+            setLoading(false);
+            return;
+        }
+
+        // If user is authenticated, redirect to profile
+        if (!authLoading && isAuthenticated) {
+            navigate('/profile', { replace: true });
+            return;
+        }
+
+        // Check if masked login is enabled
+        const checkMaskedLogin = async () => {
+            try {
+                const settings = await getMaskedLoginSettingsPublic();
+                if (settings?.enabled && !isAuthenticated) {
+                    // Load and display the template
+                    const template = await getTemplate(settings.templateId);
+                    setMaskedContent(template);
+                } else {
+                    setMaskedContent(null);
+                }
+            } catch (error) {
+                console.error('Failed to load masked login settings:', error);
+                setMaskedContent(null);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (!authLoading) {
+            checkMaskedLogin();
+        }
+    }, [authLoading, isAuthenticated, secretParam, navigate]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,6 +98,20 @@ const LoginPage = () => {
             showNotification(t('errors.loginFailed'), 'error');
         }
     };
+
+    // Show loading state
+    if (loading || authLoading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+    // Show masked template if enabled
+    if (maskedContent && !secretParam) {
+        return <MaskedLoginTemplate htmlContent={maskedContent} />;
+    }
 
     return (
         <Container component="main" maxWidth="xs">

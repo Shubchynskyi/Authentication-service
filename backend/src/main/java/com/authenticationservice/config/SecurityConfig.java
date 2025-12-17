@@ -76,6 +76,7 @@ public class SecurityConfig {
                         ))
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(SecurityConstants.API_AUTH_PREFIX).permitAll();
+                    auth.requestMatchers(SecurityConstants.API_PUBLIC_PREFIX).permitAll();
                     auth.requestMatchers(SecurityConstants.API_ADMIN_PREFIX).hasRole("ADMIN");
                     auth.requestMatchers(SecurityConstants.API_PROTECTED_PREFIX).authenticated();
                     auth.anyRequest().authenticated();

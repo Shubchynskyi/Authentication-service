@@ -111,7 +111,7 @@ public class AuthService {
             log.info("Verification email sent to {}", maskEmail(normalizedEmail));
         } finally {
             long duration = System.currentTimeMillis() - startTime;
-            StructuredLogger.logPerformance(log, "register", duration, 
+            StructuredLogger.logPerformance(log, "register", duration,
                     "email", maskEmail(normalizedEmail));
         }
     }
@@ -121,8 +121,8 @@ public class AuthService {
                 "%s/verify/email?verificationToken=%s&email=%s",
                 frontendUrl, token, urlEncode(toEmail));
 
-        String emailText = EmailTemplateFactory.buildVerificationText(token, verificationLink);
-        String emailHtml = EmailTemplateFactory.buildVerificationHtml(token, verificationLink);
+        String emailText = EmailTemplateFactory.buildVerificationText(verificationLink);
+        String emailHtml = EmailTemplateFactory.buildVerificationHtml(verificationLink);
 
         emailService.sendEmail(toEmail, EmailConstants.VERIFICATION_SUBJECT, emailText, emailHtml);
     }
@@ -148,7 +148,7 @@ public class AuthService {
         String normalizedEmail = normalizeEmail(request.getEmail());
         request.setEmail(normalizedEmail);
         log.debug("Login attempt for email: {}", maskEmail(normalizedEmail));
-        
+
         try {
             User user = userRepository.findByEmail(normalizedEmail)
                     .orElseThrow(() -> {
@@ -211,14 +211,15 @@ public class AuthService {
 
                 return buildTokenResponse(accessToken, refreshToken);
             } catch (Exception e) {
-                log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail), e.getMessage(),
+                log.error("Error generating tokens for email: {}, error: {}", maskEmail(normalizedEmail),
+                        e.getMessage(),
                         e);
                 throw new RuntimeException("Error generating tokens: "
                         + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()));
             }
         } finally {
             long duration = System.currentTimeMillis() - startTime;
-            StructuredLogger.logPerformance(log, "login", duration, 
+            StructuredLogger.logPerformance(log, "login", duration,
                     "email", maskEmail(normalizedEmail));
         }
     }
