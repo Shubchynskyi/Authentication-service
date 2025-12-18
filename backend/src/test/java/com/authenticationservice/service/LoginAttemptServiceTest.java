@@ -29,6 +29,9 @@ class LoginAttemptServiceTest {
     @Mock
     private EmailService emailService;
 
+    @Mock
+    private com.authenticationservice.util.EmailTemplateFactory emailTemplateFactory;
+
     @InjectMocks
     private LoginAttemptService loginAttemptService;
 
@@ -38,6 +41,12 @@ class LoginAttemptServiceTest {
     @BeforeEach
     void setUp() {
         testUser = createTestUser();
+        
+        // Mock EmailTemplateFactory methods
+        lenient().when(emailTemplateFactory.buildAccountLockedText(anyInt(), anyString())).thenReturn("Account locked text");
+        lenient().when(emailTemplateFactory.buildAccountLockedHtml(anyInt(), anyString())).thenReturn("Account locked html");
+        lenient().when(emailTemplateFactory.buildAccountBlockedText(anyString())).thenReturn("Account blocked text");
+        lenient().when(emailTemplateFactory.buildAccountBlockedHtml(anyString())).thenReturn("Account blocked html");
     }
 
     private User createTestUser() {

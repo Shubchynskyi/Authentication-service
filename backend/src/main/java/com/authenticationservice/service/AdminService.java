@@ -70,6 +70,7 @@ public class AdminService {
     private final RoleRepository roleRepository;
     private final EmailService emailService;
     private final MessageSource messageSource;
+    private final EmailTemplateFactory emailTemplateFactory;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -258,8 +259,8 @@ public class AdminService {
             String verificationLink = String.format("%s/verify/email?verificationToken=%s&email=%s",
                     frontendUrl, verificationToken, urlEncode(user.getEmail()));
 
-            String emailText = EmailTemplateFactory.buildAdminInviteText(tempPassword, verificationLink);
-            String emailHtml = EmailTemplateFactory.buildAdminInviteHtml(tempPassword, verificationLink);
+            String emailText = emailTemplateFactory.buildAdminInviteText(tempPassword, verificationLink);
+            String emailHtml = emailTemplateFactory.buildAdminInviteHtml(tempPassword, verificationLink);
 
             emailService.sendEmail(
                     user.getEmail(),
@@ -453,8 +454,8 @@ public class AdminService {
         String normalizedAdminEmail = normalizeEmail(adminEmail);
         String otp = otpService.generateOtp(normalizedAdminEmail);
 
-        String emailText = EmailTemplateFactory.buildOtpAccessModeText(otp);
-        String emailHtml = EmailTemplateFactory.buildOtpAccessModeHtml(otp);
+        String emailText = emailTemplateFactory.buildOtpAccessModeText(otp);
+        String emailHtml = emailTemplateFactory.buildOtpAccessModeHtml(otp);
 
         emailService.sendEmail(normalizedAdminEmail, EmailConstants.OTP_ACCESS_MODE_SUBJECT, emailText, emailHtml);
         log.info("OTP sent to admin email: {}", maskEmail(normalizedAdminEmail));

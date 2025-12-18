@@ -20,8 +20,8 @@
             </tr>
             <tr>
               <td style="padding:0 24px 16px;">
-                <div style="background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:16px;font-size:18px;font-weight:600;color:#111827;text-align:center;word-break:break-all;">
-                  {{tempPassword}}
+                <div id="passwordBlock" onclick="copyToClipboard()" title="Click to copy" style="background:#f3f4f6;border:1px dashed #d1d5db;border-radius:8px;padding:16px;font-size:18px;font-weight:600;color:#111827;text-align:center;word-break:break-all;cursor:pointer;transition:background-color 0.2s;">
+                  <span id="passwordText">{{tempPassword}}</span>
                 </div>
               </td>
             </tr>
@@ -33,12 +33,26 @@
               </td>
             </tr>
             <tr>
-              <td style="padding:0 24px 24px;font-size:14px;color:#4b5563;">Best regards,<br />Authentication Service Team</td>
+              <td style="padding:0 24px 24px;font-size:14px;color:#4b5563;">Best regards,<br />{{emailSignature}}</td>
             </tr>
           </table>
         </td>
       </tr>
     </table>
+    <script>
+      function copyToClipboard() {
+        const password = document.getElementById('passwordText').innerText;
+        navigator.clipboard.writeText(password).then(() => {
+          const block = document.getElementById('passwordBlock');
+          block.style.backgroundColor = '#d1fae5';
+          block.innerHTML = '<span style="color:#059669;">✓ Copied!</span>';
+          setTimeout(() => {
+            block.style.backgroundColor = '#f3f4f6';
+            block.innerHTML = '<span id="passwordText">' + password + '</span>';
+          }, 1500);
+        });
+      }
+    </script>
   </body>
 </html>
 

@@ -45,6 +45,9 @@ class AdminInitializationServiceTest {
         @Mock
         private BCryptPasswordEncoder passwordEncoder;
 
+        @Mock
+        private com.authenticationservice.util.EmailTemplateFactory emailTemplateFactory;
+
         @InjectMocks
         private AdminInitializationService adminInitializationService;
 
@@ -56,6 +59,10 @@ class AdminInitializationServiceTest {
                 // Create admin user and role for testing
                 existingUser = createAdminUser();
                 adminRole = createAdminRole();
+                
+                // Mock EmailTemplateFactory methods
+                lenient().when(emailTemplateFactory.buildResetPasswordText(anyString())).thenReturn("Reset password text");
+                lenient().when(emailTemplateFactory.buildResetPasswordHtml(anyString())).thenReturn("Reset password html");
         }
         
         /**

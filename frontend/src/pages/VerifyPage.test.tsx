@@ -41,6 +41,12 @@ vi.mock('react-i18next', () => ({
     }),
 }));
 
+// Mock maskedLoginService
+const mockGetMaskedLoginSettingsPublic = vi.fn();
+vi.mock('../services/maskedLoginService', () => ({
+    getMaskedLoginSettingsPublic: (...args: any[]) => mockGetMaskedLoginSettingsPublic(...args),
+}));
+
 const renderVerifyPage = (searchParams = '?verificationToken=token123&email=test@example.com') => {
     return render(
         <TestMemoryRouter initialEntries={[`/verify/email${searchParams}`]}>
@@ -57,6 +63,9 @@ describe('VerifyPage', () => {
         mockShowNotification.mockClear();
         mockNavigate.mockClear();
         mockApiPost.mockClear();
+        mockGetMaskedLoginSettingsPublic.mockClear();
+        // Default: masked login disabled
+        mockGetMaskedLoginSettingsPublic.mockResolvedValue({ enabled: false, templateId: 1 });
     });
 
     afterEach(() => {
@@ -71,8 +80,9 @@ describe('VerifyPage', () => {
         expect(screen.getByText(/auth.verification.verifying/i)).toBeInTheDocument();
     });
 
-    it('verifies email successfully', async () => {
+    it('verifies email successfully and redirects to /login when masked login is disabled', async () => {
         mockApiPost.mockResolvedValueOnce({ data: 'Success' });
+        mockGetMaskedLoginSettingsPublic.mockResolvedValueOnce({ enabled: false, templateId: 1 });
 
         renderVerifyPage();
 
@@ -93,6 +103,32 @@ describe('VerifyPage', () => {
         // Wait for setTimeout to complete (1500ms)
         await waitFor(() => {
             expect(mockNavigate).toHaveBeenCalledWith('/login', expect.any(Object));
+        }, { timeout: 3000 });
+    });
+
+    it('verifies email successfully and redirects to /login?secret=true when masked login is enabled', async () => {
+        mockApiPost.mockResolvedValueOnce({ data: 'Success' });
+        mockGetMaskedLoginSettingsPublic.mockResolvedValueOnce({ enabled: true, templateId: 1 });
+
+        renderVerifyPage();
+
+        await waitFor(() => {
+            expect(mockApiPost).toHaveBeenCalledWith('/api/auth/verify', {
+                email: 'test@example.com',
+                code: 'token123',
+            });
+        }, { timeout: 5000 });
+
+        await waitFor(() => {
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                expect.stringContaining('successRedirect'),
+                'success'
+            );
+        }, { timeout: 5000 });
+
+        // Wait for setTimeout to complete (1500ms)
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/login?secret=true', expect.any(Object));
         }, { timeout: 3000 });
     });
 

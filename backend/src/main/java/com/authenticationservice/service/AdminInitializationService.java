@@ -29,6 +29,7 @@ public class AdminInitializationService {
     private final EmailService emailService;
     private final AuthService authService;
     private final PasswordEncoder passwordEncoder;
+    private final EmailTemplateFactory emailTemplateFactory;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -80,8 +81,8 @@ public class AdminInitializationService {
             String resetToken = authService.generatePasswordResetToken(adminEmail);
             String resetLink = String.format("%s/reset-password?token=%s", frontendUrl, resetToken);
 
-            String emailText = EmailTemplateFactory.buildResetPasswordText(resetLink);
-            String emailHtml = EmailTemplateFactory.buildResetPasswordHtml(resetLink);
+            String emailText = emailTemplateFactory.buildResetPasswordText(resetLink);
+            String emailHtml = emailTemplateFactory.buildResetPasswordHtml(resetLink);
 
             emailService.sendEmail(
                     adminEmail,

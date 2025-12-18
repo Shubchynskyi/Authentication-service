@@ -23,7 +23,7 @@ public final class EmailConstants {
                         "%s\n\n" +
                         "This link will expire in 15 minutes.\n\n" +
                         "If you did not request this, you can safely ignore this email.\n\n" +
-                        "Best regards,\nAuthentication Service Team";
+                        "Best regards,\n%s";
 
         public static final String VERIFICATION_EMAIL_HTML_TEMPLATE = "<!DOCTYPE html>" +
                         "<html>" +
@@ -55,7 +55,8 @@ public final class EmailConstants {
 
         public static final String RESET_PASSWORD_TEXT_TEMPLATE = "You have requested a password reset. Please click the link below to reset your password:\n\n%s\n\n"
                         +
-                        "If you did not request a password reset, please ignore this email.";
+                        "If you did not request a password reset, please ignore this email.\n\n" +
+                        "Best regards,\n%s";
 
         public static final String RESET_PASSWORD_HTML_TEMPLATE = "<!DOCTYPE html>" +
                         "<html>" +
@@ -89,7 +90,8 @@ public final class EmailConstants {
                         "Your temporary password: %s\n" +
                         "Please verify your email by clicking this link: %s\n\n" +
                         "After verification, you can log in and change your password.\n" +
-                        "For security reasons, please change your password after first login.";
+                        "For security reasons, please change your password after first login.\n\n" +
+                        "Best regards,\n%s";
 
         public static final String ADMIN_INVITE_HTML_TEMPLATE = "<!DOCTYPE html>" +
                         "<html>" +
@@ -134,7 +136,8 @@ public final class EmailConstants {
         public static final String OTP_ACCESS_MODE_TEXT_TEMPLATE = "You requested to change access mode.\n\n" +
                         "Your OTP code: %s\n" +
                         "This code will expire in 10 minutes.\n\n" +
-                        "If you did not request this change, please ignore this email.";
+                        "If you did not request this change, please ignore this email.\n\n" +
+                        "Best regards,\n%s";
 
         public static final String OTP_ACCESS_MODE_HTML_TEMPLATE = "<!DOCTYPE html>" +
                         "<html>" +
@@ -174,7 +177,7 @@ public final class EmailConstants {
                         "If this was not you, please secure your account immediately by resetting your password: %s/reset-password\n\n"
                         +
                         "The account will be automatically unlocked after %d minutes.\n\n" +
-                        "Best regards,\nAuthentication Service Team";
+                        "Best regards,\n%s";
 
         public static final String ACCOUNT_TEMPORARILY_LOCKED_HTML_TEMPLATE = "<!DOCTYPE html>" +
                         "<html>" +
@@ -214,7 +217,7 @@ public final class EmailConstants {
                         "If this was not you, please secure your account immediately.\n\n" +
                         "To unlock your account, you need to reset your password.\n" +
                         "Follow the link to reset your password: %s/reset-password\n\n" +
-                        "Best regards,\nAuthentication Service Team";
+                        "Best regards,\n%s";
 
         public static final String ACCOUNT_BLOCKED_HTML_TEMPLATE = "<!DOCTYPE html>" +
                         "<html>" +

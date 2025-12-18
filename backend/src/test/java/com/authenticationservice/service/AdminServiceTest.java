@@ -83,6 +83,9 @@ class AdminServiceTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private com.authenticationservice.util.EmailTemplateFactory emailTemplateFactory;
+
     @InjectMocks
     private AdminService adminService;
 
@@ -109,6 +112,13 @@ class AdminServiceTest {
         
         // Mock accessListChangeLogRepository to avoid NullPointerException (lenient because not all tests use it)
         lenient().when(accessListChangeLogRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        // Mock EmailTemplateFactory methods
+        lenient().when(emailTemplateFactory.buildAdminInviteText(anyString(), anyString()))
+                .thenAnswer(invocation -> "Your temporary password: " + invocation.getArgument(0) + "\nVerification link: " + invocation.getArgument(1));
+        lenient().when(emailTemplateFactory.buildAdminInviteHtml(anyString(), anyString())).thenReturn("Admin invite html");
+        lenient().when(emailTemplateFactory.buildOtpAccessModeText(anyString())).thenReturn("OTP text");
+        lenient().when(emailTemplateFactory.buildOtpAccessModeHtml(anyString())).thenReturn("OTP html");
     }
 
     @Nested

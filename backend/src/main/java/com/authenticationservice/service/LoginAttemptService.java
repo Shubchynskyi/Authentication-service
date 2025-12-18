@@ -20,6 +20,7 @@ public class LoginAttemptService {
 
     private final UserRepository userRepository;
     private final EmailService emailService;
+    private final EmailTemplateFactory emailTemplateFactory;
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void handleFailedLogin(User user, String frontendUrl) {
@@ -52,8 +53,8 @@ public class LoginAttemptService {
             userRepository.save(dbUser);
 
             // Send email about temporary lock asynchronously (don't block the response)
-            String emailText = EmailTemplateFactory.buildAccountLockedText(5, frontendUrl);
-            String emailHtml = EmailTemplateFactory.buildAccountLockedHtml(5, frontendUrl);
+            String emailText = emailTemplateFactory.buildAccountLockedText(5, frontendUrl);
+            String emailHtml = emailTemplateFactory.buildAccountLockedHtml(5, frontendUrl);
             emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_SUBJECT, emailText,
                     emailHtml);
             log.info("Temporary lock email queued for {}", maskEmail(dbUser.getEmail()));
@@ -65,8 +66,8 @@ public class LoginAttemptService {
 
         if (currentAttempts == 10 && dbUser.isBlocked()) {
             // Send email about full block asynchronously (don't block the response)
-            String emailText = EmailTemplateFactory.buildAccountBlockedText(frontendUrl);
-            String emailHtml = EmailTemplateFactory.buildAccountBlockedHtml(frontendUrl);
+            String emailText = emailTemplateFactory.buildAccountBlockedText(frontendUrl);
+            String emailHtml = emailTemplateFactory.buildAccountBlockedHtml(frontendUrl);
             emailService.sendEmailAsync(dbUser.getEmail(), EmailConstants.ACCOUNT_BLOCKED_SUBJECT, emailText,
                     emailHtml);
             log.info("Account blocked email queued for {}", maskEmail(dbUser.getEmail()));

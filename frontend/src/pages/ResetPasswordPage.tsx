@@ -11,6 +11,7 @@ import { getQueryParam } from '../utils/queryParams';
 import PasswordHint from '../components/PasswordHint';
 import PasswordFields from '../components/PasswordFields';
 import FormPaper from '../components/FormPaper';
+import { getMaskedLoginSettingsPublic } from '../services/maskedLoginService';
 
 const ResetPasswordPage: React.FC = () => {
     const navigate = useNavigate();
@@ -65,7 +66,9 @@ const ResetPasswordPage: React.FC = () => {
                 confirmPassword,
             });
             showNotification(t('auth.passwordResetSuccess'), 'success');
-            navigate('/login', { replace: true });
+            const settings = await getMaskedLoginSettingsPublic();
+            const loginPath = settings?.enabled ? '/login?secret=true' : '/login';
+            navigate(loginPath, { replace: true });
         } catch (error) {
             const message = extractErrorMessage(error, { fallbackMessage: t('common.error') });
             showNotification(message, 'error');

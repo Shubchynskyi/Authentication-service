@@ -85,6 +85,9 @@ jwt:
   access-expiration: 900000 # 15 minutes
   refresh-expiration: 604800000 # 7 days
 
+email:
+  signature: ${EMAIL_SIGNATURE:Authentication Service Team}
+
 password:
   reset:
     cooldown-minutes: ${PASSWORD_RESET_COOLDOWN_MINUTES:10}

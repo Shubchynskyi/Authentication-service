@@ -10,6 +10,7 @@ import api from '../api';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
 import FormPaper from '../components/FormPaper';
+import { getMaskedLoginSettingsPublic } from '../services/maskedLoginService';
 
 const VerifyPage = () => {
     const navigate = useNavigate();
@@ -37,8 +38,10 @@ const VerifyPage = () => {
 
                 setStatus('success');
                 showNotification(t('auth.verification.successRedirect'), 'success');
-                setTimeout(() => {
-                    navigate('/login', {
+                setTimeout(async () => {
+                    const settings = await getMaskedLoginSettingsPublic();
+                    const loginPath = settings?.enabled ? '/login?secret=true' : '/login';
+                    navigate(loginPath, {
                         state: { message: t('auth.verificationSuccess') }
                     });
                 }, 1500);

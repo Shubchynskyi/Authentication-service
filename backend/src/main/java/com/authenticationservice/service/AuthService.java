@@ -55,6 +55,7 @@ public class AuthService {
     private final AccessControlService accessControlService;
     private final MessageSource messageSource;
     private final RateLimitingService rateLimitingService;
+    private final EmailTemplateFactory emailTemplateFactory;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -121,8 +122,8 @@ public class AuthService {
                 "%s/verify/email?verificationToken=%s&email=%s",
                 frontendUrl, token, urlEncode(toEmail));
 
-        String emailText = EmailTemplateFactory.buildVerificationText(verificationLink);
-        String emailHtml = EmailTemplateFactory.buildVerificationHtml(verificationLink);
+        String emailText = emailTemplateFactory.buildVerificationText(verificationLink);
+        String emailHtml = emailTemplateFactory.buildVerificationHtml(verificationLink);
 
         emailService.sendEmail(toEmail, EmailConstants.VERIFICATION_SUBJECT, emailText, emailHtml);
     }
@@ -301,21 +302,23 @@ public class AuthService {
             return;
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime lastRequestedAt = user.getLastPasswordResetRequestedAt();
+        if (lastRequestedAt != null && lastRequestedAt.plusMinutes(passwordResetCooldownMinutes).isAfter(now)) {
+            log.info("Password reset request ignored due to cooldown for user {}", maskEmail(normalizedEmail));
+            return;
+        }
+
         if (user.getAuthProvider() == AuthProvider.GOOGLE) {
-            String emailContent = EmailTemplateFactory.buildGoogleResetText();
-            String emailHtml = EmailTemplateFactory.buildGoogleResetHtml();
+            user.setLastPasswordResetRequestedAt(now);
+            userRepository.save(user);
+            String emailContent = emailTemplateFactory.buildGoogleResetText();
+            String emailHtml = emailTemplateFactory.buildGoogleResetHtml();
             emailService.sendEmail(
                     user.getEmail(),
                     EmailConstants.GOOGLE_PASSWORD_RESET_SUBJECT,
                     emailContent,
                     emailHtml);
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime lastRequestedAt = user.getLastPasswordResetRequestedAt();
-        if (lastRequestedAt != null && lastRequestedAt.plusMinutes(passwordResetCooldownMinutes).isAfter(now)) {
-            log.info("Password reset request ignored due to cooldown for user {}", maskEmail(normalizedEmail));
             return;
         }
 
@@ -330,8 +333,8 @@ public class AuthService {
 
     private void sendPasswordResetEmail(String toEmail, String token) {
         String resetLink = String.format("%s/reset-password?token=%s", frontendUrl, urlEncode(token));
-        String emailText = EmailTemplateFactory.buildResetPasswordText(resetLink);
-        String emailHtml = EmailTemplateFactory.buildResetPasswordHtml(resetLink);
+        String emailText = emailTemplateFactory.buildResetPasswordText(resetLink);
+        String emailHtml = emailTemplateFactory.buildResetPasswordHtml(resetLink);
         emailService.sendEmail(toEmail, EmailConstants.RESET_PASSWORD_SUBJECT, emailText, emailHtml);
     }
 

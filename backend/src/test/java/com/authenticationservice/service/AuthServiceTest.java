@@ -9,6 +9,7 @@ import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.exception.TooManyRequestsException;
 import com.authenticationservice.model.AllowedEmail;
+import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AllowedEmailRepository;
@@ -80,6 +81,9 @@ class AuthServiceTest {
         @Mock
         private MessageSource messageSource;
 
+        @Mock
+        private com.authenticationservice.util.EmailTemplateFactory emailTemplateFactory;
+
         @InjectMocks
         private AuthService authService;
 
@@ -114,6 +118,14 @@ class AuthServiceTest {
                                 any(),
                                 any()))
                                 .thenReturn(TestConstants.ErrorMessages.INVALID_VERIFICATION_CODE);
+
+                // Mock EmailTemplateFactory methods
+                lenient().when(emailTemplateFactory.buildVerificationText(anyString())).thenReturn("Verification text");
+                lenient().when(emailTemplateFactory.buildVerificationHtml(anyString())).thenReturn("Verification html");
+                lenient().when(emailTemplateFactory.buildResetPasswordText(anyString())).thenReturn("Reset password text");
+                lenient().when(emailTemplateFactory.buildResetPasswordHtml(anyString())).thenReturn("Reset password html");
+                lenient().when(emailTemplateFactory.buildGoogleResetText()).thenReturn("Google reset text");
+                lenient().when(emailTemplateFactory.buildGoogleResetHtml()).thenReturn("Google reset html");
         }
 
         /**
@@ -639,6 +651,21 @@ class AuthServiceTest {
                 @DisplayName("Should skip sending reset email when cooldown not expired")
                 void initiatePasswordReset_shouldSkip_whenCooldownActive() {
                         // Arrange
+                        testUser.setLastPasswordResetRequestedAt(LocalDateTime.now().minusMinutes(5));
+                        when(userRepository.findByEmail(testUser.getEmail()))
+                                        .thenReturn(Optional.of(testUser));
+
+                        // Act & Assert
+                        assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
+                        verify(emailService, never()).sendEmail(anyString(), anyString(), anyString(), anyString());
+                        verify(userRepository, never()).save(any(User.class));
+                }
+
+                @Test
+                @DisplayName("Should skip sending reset email for Google user when cooldown not expired")
+                void initiatePasswordReset_shouldSkip_whenCooldownActiveForGoogleUser() {
+                        // Arrange
+                        testUser.setAuthProvider(AuthProvider.GOOGLE);
                         testUser.setLastPasswordResetRequestedAt(LocalDateTime.now().minusMinutes(5));
                         when(userRepository.findByEmail(testUser.getEmail()))
                                         .thenReturn(Optional.of(testUser));

@@ -45,6 +45,12 @@ vi.mock('react-router-dom', async () => {
     };
 });
 
+// Mock maskedLoginService
+const mockGetMaskedLoginSettingsPublic = vi.fn();
+vi.mock('../services/maskedLoginService', () => ({
+    getMaskedLoginSettingsPublic: (...args: any[]) => mockGetMaskedLoginSettingsPublic(...args),
+}));
+
 const renderResetPasswordPage = (searchParams = '?token=test-token') => {
     return renderWithMemoryRouter(
         <ResetPasswordPage />,
@@ -54,6 +60,13 @@ const renderResetPasswordPage = (searchParams = '?token=test-token') => {
 
 describe('ResetPasswordPage', () => {
     setupTestCleanup();
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockGetMaskedLoginSettingsPublic.mockClear();
+        // Default: masked login disabled
+        mockGetMaskedLoginSettingsPublic.mockResolvedValue({ enabled: false, templateId: 1 });
+    });
 
     it('renders reset password form', async () => {
         renderResetPasswordPage();
@@ -147,8 +160,9 @@ describe('ResetPasswordPage', () => {
         }, { timeout: 5000 });
     });
 
-    it('submits form with valid data', async () => {
+    it('submits form with valid data and redirects to /login when masked login is disabled', async () => {
         mockApiPost.mockResolvedValueOnce({ data: 'Success' });
+        mockGetMaskedLoginSettingsPublic.mockResolvedValueOnce({ enabled: false, templateId: 1 });
 
         renderResetPasswordPage();
 
@@ -185,6 +199,48 @@ describe('ResetPasswordPage', () => {
                 'success'
             );
             expect(mockNavigate).toHaveBeenCalledWith('/login', { replace: true });
+        }, { timeout: 5000 });
+    });
+
+    it('submits form with valid data and redirects to /login?secret=true when masked login is enabled', async () => {
+        mockApiPost.mockResolvedValueOnce({ data: 'Success' });
+        mockGetMaskedLoginSettingsPublic.mockResolvedValueOnce({ enabled: true, templateId: 1 });
+
+        renderResetPasswordPage();
+
+        const newPasswordLabel = screen.getByText('New Password', { selector: 'label' });
+        const confirmPasswordLabel = screen.getByText('Confirm Password', { selector: 'label' });
+        const newPasswordInput = document.getElementById(newPasswordLabel.getAttribute('for') || '') as HTMLInputElement;
+        const confirmPasswordInput = document.getElementById(confirmPasswordLabel.getAttribute('for') || '') as HTMLInputElement;
+
+        fireEvent.change(newPasswordInput, { target: { value: 'Password123@' } });
+        fireEvent.change(confirmPasswordInput, { target: { value: 'Password123@' } });
+
+        const submitButton = screen.getByRole('button', { name: 'Reset Password' });
+        const form = submitButton.closest('form');
+        if (form) {
+            fireEvent.submit(form);
+        } else {
+            fireEvent.click(submitButton);
+        }
+
+        await waitFor(() => {
+            expect(mockApiPost).toHaveBeenCalledWith(
+                '/api/auth/reset-password',
+                {
+                    token: 'test-token',
+                    newPassword: 'Password123@',
+                    confirmPassword: 'Password123@',
+                }
+            );
+        }, { timeout: 5000 });
+
+        await waitFor(() => {
+            expect(mockShowNotification).toHaveBeenCalledWith(
+                expect.any(String),
+                'success'
+            );
+            expect(mockNavigate).toHaveBeenCalledWith('/login?secret=true', { replace: true });
         }, { timeout: 5000 });
     });
 
