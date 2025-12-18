@@ -35,6 +35,9 @@
   },
   "auth": {
     "loginTitle": "Sign In",
+    "rememberDevice": "Remember this device",
+    "rememberDays": "Remember for",
+    "rememberDaysOption": "{{days}} days",
     "registerTitle": "Sign Up",
     "verificationTitle": "Email Verification",
     "forgotPasswordTitle": "Password Recovery",
@@ -74,6 +77,9 @@
       "codeResent": "Verification code resent",
       "resendError": "Failed to resend verification code"
     }
+  },
+  "maskedLogin": {
+    "noticeGuestsMasked": "Masked mode is enabled for unauthenticated users."
   },
   "profile": {
     "title": "User Profile",

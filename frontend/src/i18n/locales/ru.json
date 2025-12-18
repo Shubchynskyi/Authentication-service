@@ -35,6 +35,9 @@
   },
   "auth": {
     "loginTitle": "Вход в систему",
+    "rememberDevice": "Запомнить это устройство",
+    "rememberDays": "Запомнить на",
+    "rememberDaysOption": "{{days}} дней",
     "registerTitle": "Регистрация",
     "verificationTitle": "Подтверждение email",
     "forgotPasswordTitle": "Восстановление пароля",
@@ -74,6 +77,9 @@
       "codeResent": "Код подтверждения отправлен повторно",
       "resendError": "Не удалось отправить код повторно"
     }
+  },
+  "maskedLogin": {
+    "noticeGuestsMasked": "Маскировка включена для неавторизованных пользователей."
   },
   "profile": {
     "title": "Профиль пользователя",

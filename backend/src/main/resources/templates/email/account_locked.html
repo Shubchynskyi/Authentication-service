@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Temporarily Locked</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:'Helvetica Neue',Arial,sans-serif;">
+    <table role="presentation" width="100%" style="background-color:#f4f4f7;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="600" style="background-color:#ffffff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;">
+            <tr>
+              <td style="padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;">Account Locked</td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+                Your account has been temporarily locked for <strong>{{lockTimeMinutes}} minutes</strong> due to multiple failed login attempts.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+                If this was not you, please secure your account immediately by resetting your password.
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:0 24px 24px;">
+                <a href="{{frontendUrl}}/reset-password" style="display:inline-block;padding:14px 32px;background-color:#dc2626;color:#ffffff;text-decoration:none;border-radius:8px;font-weight:600;font-size:16px;">
+                  Reset Password
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 24px;font-size:12px;color:#6b7280;line-height:1.6;">
+                The account will be automatically unlocked after {{lockTimeMinutes}} minutes.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 24px;font-size:14px;color:#4b5563;">Best regards,<br />Authentication Service Team</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+

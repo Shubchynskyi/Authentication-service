@@ -1,11 +1,16 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import api from '../api';
 import axios from 'axios';
-import { isJwtExpired, clearTokens, getAccessToken, getRefreshToken } from '../utils/token';
+import { API_URL } from '../config';
+import { isJwtExpired, clearTokens, getAccessToken, getRefreshToken, setTokens as persistTokens, getTokenStorageMode } from '../utils/token';
 
 interface AuthContextType {
     isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (
+        email: string,
+        password: string,
+        options?: { rememberDevice?: boolean; rememberDays?: number }
+    ) => Promise<void>;
     logout: () => void;
     error: string | null;
     isLoading: boolean;
@@ -21,27 +26,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Check tokens on initialization
     useEffect(() => {
-        const accessToken = getAccessToken();
-        const refreshToken = getRefreshToken();
+        let isMounted = true;
 
-        if (accessToken && !isJwtExpired(accessToken)) {
-            // Valid access token exists
-            api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
-            setIsAuthenticated(true);
-        } else if (refreshToken) {
-            // Access token expired/missing but refresh token exists
-            // Token will be refreshed automatically on first API call via interceptor
-            // For now, we don't set authenticated to avoid race conditions
-            // The interceptor will handle token refresh and update state
-            setIsAuthenticated(false);
-        } else {
+        const initAuth = async () => {
+            const accessToken = getAccessToken();
+            const refreshToken = getRefreshToken();
+
+            if (accessToken && !isJwtExpired(accessToken)) {
+                // Valid access token exists
+                api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
+                if (isMounted) {
+                    setIsAuthenticated(true);
+                    setIsLoading(false);
+                }
+                return;
+            }
+
+            if (refreshToken) {
+                // Access token expired/missing but refresh token exists: refresh on init to avoid false logout.
+                try {
+                    const response = await axios.post(`${API_URL}/api/auth/refresh`, {
+                        refreshToken,
+                    });
+
+                    const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data || {};
+                    if (typeof newAccessToken === 'string' && newAccessToken.length > 0) {
+                        persistTokens(newAccessToken, typeof newRefreshToken === 'string' && newRefreshToken.length > 0 ? newRefreshToken : refreshToken, getTokenStorageMode());
+                        api.defaults.headers.common['Authorization'] = `Bearer ${newAccessToken}`;
+                        if (isMounted) {
+                            setIsAuthenticated(true);
+                        }
+                    } else {
+                        clearTokens();
+                        delete api.defaults.headers.common['Authorization'];
+                        if (isMounted) {
+                            setIsAuthenticated(false);
+                        }
+                    }
+                } catch {
+                    clearTokens();
+                    delete api.defaults.headers.common['Authorization'];
+                    if (isMounted) {
+                        setIsAuthenticated(false);
+                    }
+                } finally {
+                    if (isMounted) {
+                        setIsLoading(false);
+                    }
+                }
+
+                return;
+            }
+
             // No valid tokens
             clearTokens();
             delete api.defaults.headers.common['Authorization'];
-            setIsAuthenticated(false);
-        }
+            if (isMounted) {
+                setIsAuthenticated(false);
+                setIsLoading(false);
+            }
+        };
 
-        setIsLoading(false);
+        initAuth();
 
         // Sync auth state across tabs
         const onStorage = (e: StorageEvent) => {
@@ -64,16 +110,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         };
         window.addEventListener('storage', onStorage);
-        return () => window.removeEventListener('storage', onStorage);
+        return () => {
+            isMounted = false;
+            window.removeEventListener('storage', onStorage);
+        };
     }, []);
 
-    const login = useCallback(async (email: string, password: string) => {
+    const login = useCallback(async (
+        email: string,
+        password: string,
+        options?: { rememberDevice?: boolean; rememberDays?: number }
+    ) => {
         setIsLoading(true);
         setError(null);
         try {
             const response = await api.post<{ accessToken: string; refreshToken: string }>(
                 '/api/auth/login',
-                { email, password }
+                {
+                    email,
+                    password,
+                    rememberDevice: options?.rememberDevice ?? false,
+                    rememberDays: options?.rememberDays,
+                }
             );
             
             // Validate response data
@@ -83,9 +141,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             const { accessToken, refreshToken } = response.data;
             
-            // Set tokens atomically to avoid race conditions
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
+            // Persist tokens using the currently selected storage mode.
+            persistTokens(accessToken, refreshToken, getTokenStorageMode());
             
             // Update API headers and auth state
             api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
@@ -138,9 +195,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const setTokens = useCallback((accessToken: string, refreshToken: string) => {
-        // Set new tokens (overwrites any existing values)
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', refreshToken);
+        // Set new tokens (overwrites any existing values) using the currently selected storage mode.
+        persistTokens(accessToken, refreshToken, getTokenStorageMode());
         
         // Update API headers and auth state
         api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;

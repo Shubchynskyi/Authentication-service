@@ -35,6 +35,9 @@
   },
   "auth": {
     "loginTitle": "Вхід у систему",
+    "rememberDevice": "Запам’ятати цей пристрій",
+    "rememberDays": "Запам’ятати на",
+    "rememberDaysOption": "{{days}} днів",
     "registerTitle": "Реєстрація",
     "verificationTitle": "Підтвердження email",
     "forgotPasswordTitle": "Відновлення паролю",
@@ -68,6 +71,9 @@
     "verificationCode": "Код підтвердження",
     "verify": "Підтвердити",
     "resendCode": "Надіслати код повторно"
+  },
+  "maskedLogin": {
+    "noticeGuestsMasked": "Маскування увімкнено для неавторизованих користувачів."
   },
   "profile": {
     "title": "Профіль користувача",

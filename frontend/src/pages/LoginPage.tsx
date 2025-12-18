@@ -8,7 +8,13 @@ import {
     Container,
     Grid,
     Link as MuiLink,
-    CircularProgress
+    CircularProgress,
+    FormControlLabel,
+    Checkbox,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { useNotification } from '../context/NotificationContext';
@@ -17,10 +23,13 @@ import { API_URL } from '../config';
 import FormPaper from '../components/FormPaper';
 import { getMaskedLoginSettingsPublic, getTemplate } from '../services/maskedLoginService';
 import MaskedLoginTemplate from '../components/MaskedLoginTemplate';
+import { setTokenStorageMode, type TokenStorageMode } from '../utils/token';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [rememberDevice, setRememberDevice] = useState(false);
+    const [rememberDays, setRememberDays] = useState<number>(15);
     const { t } = useTranslation();
     const location = useLocation();
     const navigate = useNavigate();
@@ -45,9 +54,9 @@ const LoginPage = () => {
             return;
         }
 
-        // If user is authenticated, redirect to profile
+        // If user is authenticated, redirect to real home page
         if (!authLoading && isAuthenticated) {
-            navigate('/profile', { replace: true });
+            navigate('/', { replace: true });
             return;
         }
 
@@ -88,7 +97,9 @@ const LoginPage = () => {
         }
 
         try {
-            await login(email, password);
+            const mode: TokenStorageMode = rememberDevice ? 'local' : 'session';
+            setTokenStorageMode(mode);
+            await login(email, password, { rememberDevice, rememberDays });
             const redirectTo =
                 (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname || '/';
             navigate(redirectTo, { replace: true });
@@ -109,7 +120,7 @@ const LoginPage = () => {
     }
 
     // Show masked template if enabled
-    if (maskedContent && !secretParam) {
+    if (!isAuthenticated && maskedContent && secretParam !== 'true') {
         return <MaskedLoginTemplate htmlContent={maskedContent} />;
     }
 
@@ -158,6 +169,35 @@ const LoginPage = () => {
                         >
                             {t('common.login')}
                         </Button>
+
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={rememberDevice}
+                                    onChange={(e) => setRememberDevice(e.target.checked)}
+                                />
+                            }
+                            label={t('auth.rememberDevice')}
+                            sx={{ mb: 1 }}
+                        />
+
+                        {rememberDevice && (
+                            <FormControl fullWidth sx={{ mb: 2 }}>
+                                <InputLabel id="remember-days-label">{t('auth.rememberDays')}</InputLabel>
+                                <Select
+                                    labelId="remember-days-label"
+                                    value={rememberDays}
+                                    label={t('auth.rememberDays')}
+                                    onChange={(e) => setRememberDays(Number(e.target.value))}
+                                >
+                                    {[15, 30, 60, 90].map((days) => (
+                                        <MenuItem key={days} value={days}>
+                                            {t('auth.rememberDaysOption', { days })}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        )}
 
                         <Button
                             fullWidth

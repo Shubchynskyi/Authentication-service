@@ -135,7 +135,10 @@ describe('LoginPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'Password123@');
+            expect(mockLogin).toHaveBeenCalledWith('test@example.com', 'Password123@', {
+                rememberDevice: false,
+                rememberDays: 15,
+            });
             expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
         }, { timeout: 5000 });
     });

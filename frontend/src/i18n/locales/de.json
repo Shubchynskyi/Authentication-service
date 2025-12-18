@@ -35,6 +35,9 @@
   },
   "auth": {
     "loginTitle": "Anmelden",
+    "rememberDevice": "Dieses Gerät merken",
+    "rememberDays": "Merken für",
+    "rememberDaysOption": "{{days}} Tage",
     "registerTitle": "Registrieren",
     "verificationTitle": "E-Mail-Verifizierung",
     "forgotPasswordTitle": "Passwort vergessen",
@@ -68,6 +71,9 @@
     "verificationCode": "Bestätigungscode",
     "verify": "Bestätigen",
     "resendCode": "Code erneut senden"
+  },
+  "maskedLogin": {
+    "noticeGuestsMasked": "Der Maskierungsmodus ist für nicht angemeldete Benutzer aktiviert."
   },
   "profile": {
     "title": "Benutzerprofil",

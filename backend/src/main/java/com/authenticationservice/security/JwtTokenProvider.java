@@ -2,6 +2,7 @@ package com.authenticationservice.security;
 
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
 
@@ -21,6 +22,8 @@ import io.jsonwebtoken.security.Keys;
 public class JwtTokenProvider {
 
     private static final String ROLES_CLAIM = "roles";
+    private static final String REMEMBER_DAYS_CLAIM = "rememberDays";
+    private static final int DEFAULT_REMEMBER_DAYS = 15;
 
     private final JwtProperties jwtProperties;
     private final SecretKey key;
@@ -84,6 +87,27 @@ public class JwtTokenProvider {
         }
     }
 
+    public String generateRefreshToken(User user, Integer rememberDays) {
+        if (rememberDays == null) {
+            return generateRefreshToken(user);
+        }
+        int days = rememberDays > 0 ? rememberDays : DEFAULT_REMEMBER_DAYS;
+        long expirationMs = TimeUnit.DAYS.toMillis(days);
+        try {
+            Date now = new Date();
+            Date expiry = new Date(now.getTime() + expirationMs);
+            return Jwts.builder()
+                    .subject(user.getEmail())
+                    .issuedAt(now)
+                    .expiration(expiry)
+                    .claim(REMEMBER_DAYS_CLAIM, days)
+                    .signWith(refreshKey)
+                    .compact();
+        } catch (Exception e) {
+            throw new RuntimeException("Error generating refresh token: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
+        }
+    }
+
     public boolean validateRefreshToken(String refreshToken) {
         try {
             refreshParser.parseSignedClaims(refreshToken);
@@ -96,6 +120,22 @@ public class JwtTokenProvider {
     public String getEmailFromRefresh(String refreshToken) {
         Claims claims = refreshParser.parseSignedClaims(refreshToken).getPayload();
         return claims.getSubject();
+    }
+
+    public Integer getRememberDaysFromRefresh(String refreshToken) {
+        try {
+            Claims claims = refreshParser.parseSignedClaims(refreshToken).getPayload();
+            Object value = claims.get(REMEMBER_DAYS_CLAIM);
+            if (value instanceof Integer i) {
+                return i;
+            }
+            if (value instanceof Number n) {
+                return n.intValue();
+            }
+            return null;
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     public boolean validateAccessToken(String accessToken) {

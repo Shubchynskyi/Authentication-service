@@ -8,6 +8,10 @@ import { TestMemoryRouter } from '../test-utils/router';
 vi.mock('../utils/token', () => ({
     clearTokens: vi.fn(),
     isValidJwtFormat: vi.fn(),
+    // New exports required by AuthContext after remember-device changes
+    setTokens: vi.fn(),
+    getTokenStorageMode: vi.fn(() => 'local'),
+    setTokenStorageMode: vi.fn(),
 }));
 
 // Mock AuthContext

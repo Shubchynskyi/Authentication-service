@@ -40,5 +40,6 @@ public class MessageConstants {
     // Authentication
     public static final String ACCOUNT_DISABLED = "Account is disabled";
     public static final String INVALID_REFRESH_TOKEN = "Invalid/expired refresh token";
+    public static final String INVALID_REMEMBER_DAYS = "Invalid remember days value";
 
 }

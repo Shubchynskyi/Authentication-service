@@ -602,15 +602,35 @@ const AdminPage = () => {
         <Box sx={{ width: '100%' }}>
 
 
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Tabs value={tabValue} onChange={handleTabChange}>
+            <Box
+                sx={{
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    mb: 1,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 1,
+                }}
+            >
+                <Tabs
+                    value={tabValue}
+                    onChange={handleTabChange}
+                    sx={{
+                        minHeight: 48,
+                        '& .MuiTabs-flexContainer': {
+                            flexWrap: 'wrap',
+                        },
+                    }}
+                >
                     <Tab label={t('admin.users')} />
                     <Tab label={t('admin.whitelistTab')} />
                     <Tab label={t('admin.blacklistTab')} />
                     <Tab label={t('admin.accessControlTab')} />
                     <Tab label={t('admin.maskedLoginTab')} />
                 </Tabs>
-                <Box sx={{ mr: 2 }}>
+                <Box sx={{ mr: 2, display: 'flex', alignItems: 'center' }}>
                     <Chip
                         label={`${t('admin.accessMode.currentMode')}: ${accessModeLabel}`}
                         color={accessModeChipColor}

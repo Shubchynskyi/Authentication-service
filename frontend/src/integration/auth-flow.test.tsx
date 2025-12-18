@@ -12,6 +12,10 @@ vi.mock('../utils/token', () => ({
     getAccessToken: vi.fn(),
     getRefreshToken: vi.fn(),
     clearTokens: vi.fn(),
+    // New exports required by AuthContext after remember-device changes
+    setTokens: vi.fn(),
+    getTokenStorageMode: vi.fn(() => 'local'),
+    setTokenStorageMode: vi.fn(),
 }));
 
 // Mock axios

@@ -4,7 +4,16 @@ import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
-const { mockApiPost, mockApiDefaults, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens } = vi.hoisted(() => {
+const {
+    mockApiPost,
+    mockApiDefaults,
+    mockGetAccessToken,
+    mockGetRefreshToken,
+    mockIsJwtExpired,
+    mockClearTokens,
+    mockPersistTokens,
+    mockGetTokenStorageMode,
+} = vi.hoisted(() => {
     const mockApiPost = vi.fn();
     const mockApiDefaults = {
         headers: {
@@ -15,8 +24,19 @@ const { mockApiPost, mockApiDefaults, mockGetAccessToken, mockGetRefreshToken, m
     const mockGetRefreshToken = vi.fn();
     const mockIsJwtExpired = vi.fn();
     const mockClearTokens = vi.fn();
+    const mockPersistTokens = vi.fn();
+    const mockGetTokenStorageMode = vi.fn();
 
-    return { mockApiPost, mockApiDefaults, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens };
+    return {
+        mockApiPost,
+        mockApiDefaults,
+        mockGetAccessToken,
+        mockGetRefreshToken,
+        mockIsJwtExpired,
+        mockClearTokens,
+        mockPersistTokens,
+        mockGetTokenStorageMode,
+    };
 });
 
 // Mock api
@@ -34,6 +54,10 @@ vi.mock('../utils/token', () => ({
     getRefreshToken: () => mockGetRefreshToken(),
     isJwtExpired: (token: string) => mockIsJwtExpired(token),
     clearTokens: () => mockClearTokens(),
+    // New exports required by AuthContext after remember-device changes
+    setTokens: (...args: any[]) => mockPersistTokens(...args),
+    getTokenStorageMode: () => mockGetTokenStorageMode(),
+    setTokenStorageMode: vi.fn(),
 }));
 
 // Mock logger
@@ -57,7 +81,7 @@ const TestComponent: React.FC = () => {
 
     const handleLogin = async () => {
         try {
-            await login('test@example.com', 'password');
+            await login('test@example.com', 'password', { rememberDevice: false });
         } catch (err) {
             // Error is handled by AuthContext, just catch to prevent unhandled rejection
         }
@@ -89,6 +113,7 @@ describe('AuthContext', () => {
         mockGetAccessToken.mockReturnValue(null);
         mockGetRefreshToken.mockReturnValue(null);
         mockIsJwtExpired.mockReturnValue(true);
+        mockGetTokenStorageMode.mockReturnValue('local');
         mockClearTokens.mockImplementation(() => {
             localStorage.removeItem('accessToken');
             localStorage.removeItem('refreshToken');
@@ -208,12 +233,13 @@ describe('AuthContext', () => {
                 expect(mockApiPost).toHaveBeenCalledWith('/api/auth/login', {
                     email: 'test@example.com',
                     password: 'password',
+                    rememberDevice: false,
+                    rememberDays: undefined,
                 });
             });
 
             await waitFor(() => {
-                expect(localStorage.getItem('accessToken')).toBe('new-access-token');
-                expect(localStorage.getItem('refreshToken')).toBe('new-refresh-token');
+                expect(mockPersistTokens).toHaveBeenCalledWith('new-access-token', 'new-refresh-token', 'local');
             });
 
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer new-access-token');
@@ -387,8 +413,7 @@ describe('AuthContext', () => {
             setTokensButton.click();
 
             await waitFor(() => {
-                expect(localStorage.getItem('accessToken')).toBe('access-token');
-                expect(localStorage.getItem('refreshToken')).toBe('refresh-token');
+                expect(mockPersistTokens).toHaveBeenCalledWith('access-token', 'refresh-token', 'local');
             });
 
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer access-token');

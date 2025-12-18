@@ -207,7 +207,10 @@ public class AuthService {
 
             try {
                 String accessToken = jwtTokenProvider.generateAccessToken(user);
-                String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+                Integer rememberDays = resolveRememberDays(request.getRememberDevice(), request.getRememberDays());
+                String refreshToken = rememberDays != null
+                        ? jwtTokenProvider.generateRefreshToken(user, rememberDays)
+                        : jwtTokenProvider.generateRefreshToken(user);
 
                 return buildTokenResponse(accessToken, refreshToken);
             } catch (Exception e) {
@@ -246,9 +249,24 @@ public class AuthService {
         }
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(user);
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user);
+
+        Integer rememberDays = jwtTokenProvider.getRememberDaysFromRefresh(refreshToken);
+        String newRefreshToken = rememberDays != null
+                ? jwtTokenProvider.generateRefreshToken(user, rememberDays)
+                : jwtTokenProvider.generateRefreshToken(user);
 
         return buildTokenResponse(newAccessToken, newRefreshToken);
+    }
+
+    private Integer resolveRememberDays(Boolean rememberDevice, Integer rememberDays) {
+        if (rememberDevice == null || !rememberDevice) {
+            return null;
+        }
+        int days = rememberDays != null ? rememberDays : 15;
+        if (days != 15 && days != 30 && days != 60 && days != 90) {
+            throw new RuntimeException(MessageConstants.INVALID_REMEMBER_DAYS);
+        }
+        return days;
     }
 
     public void resendVerification(String email) {
@@ -285,10 +303,12 @@ public class AuthService {
 
         if (user.getAuthProvider() == AuthProvider.GOOGLE) {
             String emailContent = EmailTemplateFactory.buildGoogleResetText();
+            String emailHtml = EmailTemplateFactory.buildGoogleResetHtml();
             emailService.sendEmail(
                     user.getEmail(),
                     EmailConstants.GOOGLE_PASSWORD_RESET_SUBJECT,
-                    emailContent);
+                    emailContent,
+                    emailHtml);
             return;
         }
 

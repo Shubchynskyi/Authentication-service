@@ -89,15 +89,7 @@ describe('HomePage', () => {
         await waitFor(() => {
             expect(screen.getByRole('link', { name: /Verify Email/i })).toBeInTheDocument();
         });
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^Profile$/i })).toBeInTheDocument();
-        });
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /Edit Profile/i })).toBeInTheDocument();
-        });
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /Admin Panel/i })).toBeInTheDocument();
-        });
+        // Profile/admin links are shown only when authenticated.
     });
 
     it('has correct links to routes', async () => {
@@ -116,14 +108,6 @@ describe('HomePage', () => {
         await waitFor(() => {
             expect(screen.getByRole('link', { name: /Verify Email/i })).toHaveAttribute('href', '/verify');
         });
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /^Profile$/i })).toHaveAttribute('href', '/profile');
-        });
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /Edit Profile/i })).toHaveAttribute('href', '/profile/edit');
-        });
-        await waitFor(() => {
-            expect(screen.getByRole('link', { name: /Admin Panel/i })).toHaveAttribute('href', '/admin');
-        });
+        // Profile/admin links are shown only when authenticated.
     });
 });

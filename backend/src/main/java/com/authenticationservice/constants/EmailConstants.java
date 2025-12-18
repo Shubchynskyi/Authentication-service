@@ -4,6 +4,14 @@ public final class EmailConstants {
         private EmailConstants() {
         }
 
+        public static final String TEMPLATE_VERIFICATION_HTML = "templates/email/verification.html";
+        public static final String TEMPLATE_RESET_PASSWORD_HTML = "templates/email/reset_password.html";
+        public static final String TEMPLATE_ACCOUNT_CREATED_HTML = "templates/email/account_created.html";
+        public static final String TEMPLATE_OTP_ACCESS_MODE_HTML = "templates/email/otp_access_mode.html";
+        public static final String TEMPLATE_ACCOUNT_LOCKED_HTML = "templates/email/account_locked.html";
+        public static final String TEMPLATE_ACCOUNT_BLOCKED_HTML = "templates/email/account_blocked.html";
+        public static final String TEMPLATE_GOOGLE_PASSWORD_RESET_HTML = "templates/email/google_password_reset.html";
+
         public static final String VERIFICATION_SUBJECT = "Email Verification - Authentication Service";
         public static final String RESET_PASSWORD_SUBJECT = "Password Reset Request";
         public static final String ADMIN_INVITE_SUBJECT = "Welcome to Authentication Service";

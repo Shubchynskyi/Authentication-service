@@ -35,6 +35,10 @@ vi.mock('../utils/token', () => ({
     getRefreshToken: () => mockGetRefreshToken(),
     isJwtExpired: (token: string) => mockIsJwtExpired(token),
     clearTokens: () => mockClearTokens(),
+    // New exports required by AuthContext after remember-device changes
+    setTokens: vi.fn(),
+    getTokenStorageMode: vi.fn(() => 'local'),
+    setTokenStorageMode: vi.fn(),
 }));
 
 // Mock axios for AuthContext

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import { API_URL } from './config';
-import { getAccessToken, getRefreshToken, isJwtExpired, clearTokens } from './utils/token';
+import { getAccessToken, getRefreshToken, isJwtExpired, clearTokens, setTokens as persistTokens, getTokenStorageMode } from './utils/token';
 import { logError } from './utils/logger';
 import i18n from './i18n/i18n';
 
@@ -82,10 +82,7 @@ api.interceptors.response.use(
                 });
 
                 const { accessToken, refreshToken: newRefreshToken } = response.data;
-                localStorage.setItem('accessToken', accessToken);
-                if (newRefreshToken) {
-                    localStorage.setItem('refreshToken', newRefreshToken);
-                }
+                persistTokens(accessToken, newRefreshToken || refreshToken, getTokenStorageMode());
 
                 api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`;
                 processQueue();

@@ -1,6 +1,7 @@
 package com.authenticationservice.util;
 
 import com.authenticationservice.constants.EmailConstants;
+import java.util.Map;
 
 /**
  * Builds plain text and HTML email payloads using shared templates.
@@ -15,7 +16,9 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildVerificationHtml(String link) {
-        return String.format(EmailConstants.VERIFICATION_EMAIL_HTML_TEMPLATE, link);
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_VERIFICATION_HTML,
+                Map.of("verificationLink", link));
     }
 
     public static String buildResetPasswordText(String link) {
@@ -23,7 +26,9 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildResetPasswordHtml(String link) {
-        return String.format(EmailConstants.RESET_PASSWORD_HTML_TEMPLATE, link, link, link);
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_RESET_PASSWORD_HTML,
+                Map.of("resetLink", link));
     }
 
     public static String buildAdminInviteText(String tempPassword, String verificationLink) {
@@ -31,12 +36,21 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildAdminInviteHtml(String tempPassword, String verificationLink) {
-        return String.format(EmailConstants.ADMIN_INVITE_HTML_TEMPLATE, tempPassword, verificationLink,
-                verificationLink, verificationLink);
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_ACCOUNT_CREATED_HTML,
+                Map.of(
+                        "tempPassword", tempPassword,
+                        "verificationLink", verificationLink));
     }
 
     public static String buildGoogleResetText() {
         return EmailConstants.GOOGLE_PASSWORD_RESET_TEXT_TEMPLATE;
+    }
+
+    public static String buildGoogleResetHtml() {
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_GOOGLE_PASSWORD_RESET_HTML,
+                Map.of());
     }
 
     public static String buildOtpAccessModeText(String otp) {
@@ -44,7 +58,9 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildOtpAccessModeHtml(String otp) {
-        return String.format(EmailConstants.OTP_ACCESS_MODE_HTML_TEMPLATE, otp);
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_OTP_ACCESS_MODE_HTML,
+                Map.of("otp", otp));
     }
 
     public static String buildAccountLockedText(int lockTimeMinutes, String frontendUrl) {
@@ -53,8 +69,11 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildAccountLockedHtml(int lockTimeMinutes, String frontendUrl) {
-        return String.format(EmailConstants.ACCOUNT_TEMPORARILY_LOCKED_HTML_TEMPLATE, lockTimeMinutes, frontendUrl,
-                lockTimeMinutes);
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_ACCOUNT_LOCKED_HTML,
+                Map.of(
+                        "lockTimeMinutes", String.valueOf(lockTimeMinutes),
+                        "frontendUrl", frontendUrl));
     }
 
     public static String buildAccountBlockedText(String frontendUrl) {
@@ -62,6 +81,8 @@ public final class EmailTemplateFactory {
     }
 
     public static String buildAccountBlockedHtml(String frontendUrl) {
-        return String.format(EmailConstants.ACCOUNT_BLOCKED_HTML_TEMPLATE, frontendUrl);
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_ACCOUNT_BLOCKED_HTML,
+                Map.of("frontendUrl", frontendUrl));
     }
 }

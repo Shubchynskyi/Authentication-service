@@ -1,5 +1,11 @@
 export type JwtPayload = { exp?: number };
 
+export type TokenStorageMode = 'local' | 'session';
+
+const ACCESS_TOKEN_KEY = 'accessToken';
+const REFRESH_TOKEN_KEY = 'refreshToken';
+const TOKEN_STORAGE_MODE_KEY = 'tokenStorageMode';
+
 /**
  * Validates JWT token format (must have 3 parts separated by dots)
  */
@@ -29,15 +35,68 @@ export function isJwtExpired(token: string | null | undefined): boolean {
   return payload.exp <= now;
 }
 
+function safeGet(storage: Storage, key: string): string | null {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSet(storage: Storage, key: string, value: string): void {
+  try {
+    storage.setItem(key, value);
+  } catch {
+    // ignore
+  }
+}
+
+function safeRemove(storage: Storage, key: string): void {
+  try {
+    storage.removeItem(key);
+  } catch {
+    // ignore
+  }
+}
+
+export function getTokenStorageMode(): TokenStorageMode {
+  const raw = safeGet(localStorage, TOKEN_STORAGE_MODE_KEY);
+  return raw === 'session' ? 'session' : 'local';
+}
+
+export function setTokenStorageMode(mode: TokenStorageMode): void {
+  safeSet(localStorage, TOKEN_STORAGE_MODE_KEY, mode);
+}
+
 export function getAccessToken(): string | null {
-  return localStorage.getItem('accessToken');
+  // Prefer current mode, but support reading from either storage for migration.
+  const mode = getTokenStorageMode();
+  const primary = mode === 'session' ? sessionStorage : localStorage;
+  const secondary = mode === 'session' ? localStorage : sessionStorage;
+  return safeGet(primary, ACCESS_TOKEN_KEY) ?? safeGet(secondary, ACCESS_TOKEN_KEY);
 }
 
 export function getRefreshToken(): string | null {
-  return localStorage.getItem('refreshToken');
+  const mode = getTokenStorageMode();
+  const primary = mode === 'session' ? sessionStorage : localStorage;
+  const secondary = mode === 'session' ? localStorage : sessionStorage;
+  return safeGet(primary, REFRESH_TOKEN_KEY) ?? safeGet(secondary, REFRESH_TOKEN_KEY);
+}
+
+export function setTokens(accessToken: string, refreshToken: string, mode: TokenStorageMode): void {
+  const storage = mode === 'session' ? sessionStorage : localStorage;
+
+  // Persist mode in localStorage so next reload knows where to read tokens from.
+  setTokenStorageMode(mode);
+
+  safeSet(storage, ACCESS_TOKEN_KEY, accessToken);
+  safeSet(storage, REFRESH_TOKEN_KEY, refreshToken);
 }
 
 export function clearTokens(): void {
-  localStorage.removeItem('accessToken');
-  localStorage.removeItem('refreshToken');
+  safeRemove(localStorage, ACCESS_TOKEN_KEY);
+  safeRemove(localStorage, REFRESH_TOKEN_KEY);
+  safeRemove(sessionStorage, ACCESS_TOKEN_KEY);
+  safeRemove(sessionStorage, REFRESH_TOKEN_KEY);
+  safeRemove(localStorage, TOKEN_STORAGE_MODE_KEY);
 }

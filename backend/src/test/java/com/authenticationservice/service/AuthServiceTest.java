@@ -580,6 +580,8 @@ class AuthServiceTest {
                                         .thenReturn(true);
                         when(jwtTokenProvider.getEmailFromRefresh(refreshToken))
                                         .thenReturn(testUser.getEmail());
+                        when(jwtTokenProvider.getRememberDaysFromRefresh(refreshToken))
+                                        .thenReturn(null);
                         when(userRepository.findByEmail(testUser.getEmail()))
                                         .thenReturn(Optional.of(testUser));
                         when(jwtTokenProvider.generateAccessToken(any(User.class)))
