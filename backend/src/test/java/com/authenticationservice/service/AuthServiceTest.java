@@ -7,6 +7,7 @@ import com.authenticationservice.constants.TestConstants;
 import com.authenticationservice.dto.LoginRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.VerificationRequest;
+import com.authenticationservice.exception.InvalidCredentialsException;
 import com.authenticationservice.exception.TooManyRequestsException;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.AuthProvider;
@@ -688,6 +689,97 @@ class AuthServiceTest {
                 }
 
                 @Test
+                @DisplayName("Should send blocked account notification instead of password reset for blocked LOCAL user")
+                void initiatePasswordReset_shouldSendBlockedNotification_whenUserBlockedLocal() {
+                        // Arrange
+                        testUser.setBlocked(true);
+                        testUser.setBlockReason("Blocked by administrator");
+                        testUser.setBlockedAt(LocalDateTime.now().minusDays(1));
+                        testUser.setAuthProvider(AuthProvider.LOCAL);
+                        when(userRepository.findByEmail(testUser.getEmail()))
+                                        .thenReturn(Optional.of(testUser));
+                        when(userRepository.save(any(User.class)))
+                                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        when(emailTemplateFactory.buildAccountBlockedByAdminText(anyString(), any(LocalDateTime.class)))
+                                        .thenReturn("Blocked notification text");
+                        when(emailTemplateFactory.buildAccountBlockedByAdminHtml(anyString(), any(LocalDateTime.class)))
+                                        .thenReturn("Blocked notification html");
+
+                        // Act & Assert
+                        assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
+                        verify(userRepository).save(testUser);
+                        verify(emailService).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.ACCOUNT_BLOCKED_BY_ADMIN_SUBJECT),
+                                anyString(),
+                                anyString());
+                        // Verify that password reset email is NOT sent
+                        verify(emailService, never()).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.RESET_PASSWORD_SUBJECT),
+                                anyString(),
+                                anyString());
+                }
+
+                @Test
+                @DisplayName("Should send blocked account notification instead of password reset for blocked GOOGLE user")
+                void initiatePasswordReset_shouldSendBlockedNotification_whenUserBlockedGoogle() {
+                        // Arrange
+                        testUser.setBlocked(true);
+                        testUser.setBlockReason("Blocked by administrator");
+                        testUser.setBlockedAt(LocalDateTime.now().minusDays(1));
+                        testUser.setAuthProvider(AuthProvider.GOOGLE);
+                        when(userRepository.findByEmail(testUser.getEmail()))
+                                        .thenReturn(Optional.of(testUser));
+                        when(userRepository.save(any(User.class)))
+                                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        when(emailTemplateFactory.buildAccountBlockedByAdminText(anyString(), any(LocalDateTime.class)))
+                                        .thenReturn("Blocked notification text");
+                        when(emailTemplateFactory.buildAccountBlockedByAdminHtml(anyString(), any(LocalDateTime.class)))
+                                        .thenReturn("Blocked notification html");
+
+                        // Act & Assert
+                        assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
+                        verify(userRepository).save(testUser);
+                        verify(emailService).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.ACCOUNT_BLOCKED_BY_ADMIN_SUBJECT),
+                                anyString(),
+                                anyString());
+                        // Verify that Google password reset email is NOT sent
+                        verify(emailService, never()).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.GOOGLE_PASSWORD_RESET_SUBJECT),
+                                anyString(),
+                                anyString());
+                }
+
+                @Test
+                @DisplayName("Should send blocked account notification when user is blocked without block reason")
+                void initiatePasswordReset_shouldSendBlockedNotification_whenUserBlockedWithoutReason() {
+                        // Arrange
+                        testUser.setBlocked(true);
+                        testUser.setBlockReason(null);
+                        testUser.setBlockedAt(LocalDateTime.now().minusDays(1));
+                        when(userRepository.findByEmail(testUser.getEmail()))
+                                        .thenReturn(Optional.of(testUser));
+                        when(userRepository.save(any(User.class)))
+                                        .thenAnswer(invocation -> invocation.getArgument(0));
+                        when(emailTemplateFactory.buildAccountBlockedByAdminText(any(), any(LocalDateTime.class)))
+                                        .thenReturn("Blocked notification text");
+                        when(emailTemplateFactory.buildAccountBlockedByAdminHtml(any(), any(LocalDateTime.class)))
+                                        .thenReturn("Blocked notification html");
+
+                        // Act & Assert
+                        assertDoesNotThrow(() -> authService.initiatePasswordReset(testUser.getEmail()));
+                        verify(emailService).sendEmail(
+                                eq(TestConstants.UserData.TEST_EMAIL),
+                                eq(EmailConstants.ACCOUNT_BLOCKED_BY_ADMIN_SUBJECT),
+                                anyString(),
+                                anyString());
+                }
+
+                @Test
                 @DisplayName("Should succeed when resetting password with valid token")
                 void resetPassword_shouldSucceed_whenTokenValid() {
                         // Arrange
@@ -886,19 +978,20 @@ class AuthServiceTest {
                 }
 
                 @Test
-                @DisplayName("Should throw exception when user is blocked during OAuth2 login")
-                void handleOAuth2Login_shouldThrowException_whenUserBlocked() {
+                @DisplayName("Should throw InvalidCredentialsException when user is blocked during OAuth2 login")
+                void handleOAuth2Login_shouldThrowInvalidCredentialsException_whenUserBlocked() {
                         // Arrange
                         testUser.setBlocked(true);
                         testUser.setBlockReason("Blocked for testing");
+                        testUser.setBlockedAt(LocalDateTime.now());
                         when(userRepository.findByEmail(testUser.getEmail()))
                                         .thenReturn(Optional.of(testUser));
 
                         // Act & Assert
-                        RuntimeException ex = assertThrows(RuntimeException.class,
+                        InvalidCredentialsException ex = assertThrows(InvalidCredentialsException.class,
                                         () -> authService.handleOAuth2Login(testUser.getEmail(), testUser.getName()));
-                        assertTrue(ex.getMessage().contains("Account is blocked"));
-                        assertTrue(ex.getMessage().contains("Blocked for testing"));
+                        assertNotNull(ex);
+                        // Verify that InvalidCredentialsException is thrown to hide account status
                 }
         }
 

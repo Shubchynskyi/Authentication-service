@@ -26,6 +26,15 @@ const OAuth2RedirectHandler = () => {
                 decodedError = error;
             }
             
+            // Handle invalid_credentials error - redirect to login page with standard error message
+            if (decodedError === 'invalid_credentials') {
+                navigate('/login?secret=true', {
+                    replace: true,
+                    state: { error: t('errors.loginFailed') }
+                });
+                return;
+            }
+
             let errorMessage = t('auth.loginError.generalError');
             if (decodedError.includes('Account is blocked')) {
                 const blockReason = decodedError.split('Account is blocked.')[1]?.trim();

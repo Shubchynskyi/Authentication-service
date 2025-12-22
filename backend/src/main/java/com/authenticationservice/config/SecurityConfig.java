@@ -133,6 +133,11 @@ public class SecurityConfig {
                                 response.sendRedirect(frontendUrl + "/oauth2/success#" +
                                         "accessToken=" + accessToken +
                                         "&refreshToken=" + refreshToken);
+                            } catch (com.authenticationservice.exception.InvalidCredentialsException e) {
+                                // Handle blocked users or invalid credentials - redirect with invalid_credentials error
+                                log.warn("OAuth2 login failed: invalid credentials");
+                                String encodedError = URLEncoder.encode("invalid_credentials", StandardCharsets.UTF_8);
+                                response.sendRedirect(frontendUrl + "/oauth2/success?error=" + encodedError);
                             } catch (Exception e) {
                                 log.error("OAuth2 login failed", e);
                                 response.sendRedirect(frontendUrl + "/oauth2/success?error=authentication_failed");

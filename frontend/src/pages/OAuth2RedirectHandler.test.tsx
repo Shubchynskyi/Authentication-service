@@ -143,6 +143,28 @@ describe('OAuth2RedirectHandler', () => {
         }, { timeout: 5000 });
     });
 
+    it('handles invalid_credentials error and redirects to login with secret parameter', async () => {
+        const errorMessage = encodeURIComponent('invalid_credentials');
+        vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(false);
+
+        render(
+            <TestMemoryRouter initialEntries={[`/oauth2/redirect?error=${errorMessage}`]}>
+                <OAuth2RedirectHandler />
+            </TestMemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(tokenUtils.clearTokens).toHaveBeenCalled();
+            expect(mockNavigate).toHaveBeenCalledWith(
+                '/login?secret=true',
+                expect.objectContaining({
+                    replace: true,
+                    state: { error: 'errors.loginFailed' }
+                })
+            );
+        }, { timeout: 5000 });
+    });
+
     it('sets tokens and navigates on successful OAuth', async () => {
         const accessToken = 'valid.access.token';
         const refreshToken = 'valid.refresh.token';

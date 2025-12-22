@@ -309,6 +309,23 @@ public class AuthService {
             return;
         }
 
+        // Check if user is blocked - send block notification instead of password reset
+        if (user.isBlocked()) {
+            user.setLastPasswordResetRequestedAt(now);
+            userRepository.save(user);
+            String emailText = emailTemplateFactory.buildAccountBlockedByAdminText(
+                    user.getBlockReason(), user.getBlockedAt());
+            String emailHtml = emailTemplateFactory.buildAccountBlockedByAdminHtml(
+                    user.getBlockReason(), user.getBlockedAt());
+            emailService.sendEmail(
+                    user.getEmail(),
+                    EmailConstants.ACCOUNT_BLOCKED_BY_ADMIN_SUBJECT,
+                    emailText,
+                    emailHtml);
+            log.info("Account blocked notification sent to {} instead of password reset", maskEmail(normalizedEmail));
+            return;
+        }
+
         if (user.getAuthProvider() == AuthProvider.GOOGLE) {
             user.setLastPasswordResetRequestedAt(now);
             userRepository.save(user);
@@ -433,8 +450,10 @@ public class AuthService {
         }
 
         if (user.isBlocked()) {
-            throw new RuntimeException("Account is blocked. " +
-                    (user.getBlockReason() != null ? user.getBlockReason() : ""));
+            // Throw InvalidCredentialsException to hide the fact that account is blocked
+            // This prevents revealing account status and shows generic "Invalid login or password" message
+            log.warn("Blocked user attempted OAuth2 login: {}", maskEmail(normalizedEmail));
+            throw new InvalidCredentialsException();
         }
 
         String accessToken = jwtTokenProvider.generateAccessToken(user);

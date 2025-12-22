@@ -10,6 +10,7 @@ public final class EmailConstants {
         public static final String TEMPLATE_OTP_ACCESS_MODE_HTML = "templates/email/otp_access_mode.html";
         public static final String TEMPLATE_ACCOUNT_LOCKED_HTML = "templates/email/account_locked.html";
         public static final String TEMPLATE_ACCOUNT_BLOCKED_HTML = "templates/email/account_blocked.html";
+        public static final String TEMPLATE_ACCOUNT_BLOCKED_BY_ADMIN_HTML = "templates/email/account_blocked_by_admin.html";
         public static final String TEMPLATE_GOOGLE_PASSWORD_RESET_HTML = "templates/email/google_password_reset.html";
 
         public static final String VERIFICATION_SUBJECT = "Email Verification - Authentication Service";
@@ -217,6 +218,12 @@ public final class EmailConstants {
                         "If this was not you, please secure your account immediately.\n\n" +
                         "To unlock your account, you need to reset your password.\n" +
                         "Follow the link to reset your password: %s/reset-password\n\n" +
+                        "Best regards,\n%s";
+
+        public static final String ACCOUNT_BLOCKED_BY_ADMIN_SUBJECT = "Account Blocked by Administrator";
+        public static final String ACCOUNT_BLOCKED_BY_ADMIN_TEXT_TEMPLATE = "Your account has been blocked by an administrator.%s%s\n\n"
+                        +
+                        "To restore access to your account, please contact the administrator.\n\n" +
                         "Best regards,\n%s";
 
         public static final String ACCOUNT_BLOCKED_HTML_TEMPLATE = "<!DOCTYPE html>" +

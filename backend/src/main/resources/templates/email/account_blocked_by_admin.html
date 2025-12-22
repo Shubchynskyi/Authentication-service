@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Blocked by Administrator</title>
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:'Helvetica Neue',Arial,sans-serif;">
+    <table role="presentation" width="100%" style="background-color:#f4f4f7;padding:24px 0;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="600" style="background-color:#ffffff;border:1px solid #e4e7ec;border-radius:12px;overflow:hidden;">
+            <tr>
+              <td style="padding:24px 24px 8px;font-size:20px;font-weight:600;color:#111827;">Account Blocked by Administrator</td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+                Your account has been blocked by an administrator.
+              </td>
+            </tr>
+            {{blockDateRow}}
+            {{blockReasonRow}}
+            <tr>
+              <td style="padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;">
+                To restore access to your account, please contact the administrator.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 24px 24px;font-size:14px;color:#4b5563;">Best regards,<br />{{emailSignature}}</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
+

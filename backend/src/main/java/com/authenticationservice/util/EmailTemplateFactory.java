@@ -5,6 +5,8 @@ import com.authenticationservice.constants.EmailConstants;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -111,6 +113,47 @@ public class EmailTemplateFactory {
         variables.put("emailSignature", getEmailSignature());
         return EmailHtmlTemplateRenderer.renderFromClasspath(
                 EmailConstants.TEMPLATE_ACCOUNT_BLOCKED_HTML,
+                variables);
+    }
+
+    public String buildAccountBlockedByAdminText(String blockReason, LocalDateTime blockedAt) {
+        String dateText = "";
+        if (blockedAt != null) {
+            String formattedDate = blockedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            dateText = "\n\nBlocked on: " + formattedDate;
+        }
+
+        String reasonText = "";
+        if (blockReason != null && !blockReason.trim().isEmpty()) {
+            reasonText = "\nReason: " + blockReason;
+        }
+
+        return String.format(EmailConstants.ACCOUNT_BLOCKED_BY_ADMIN_TEXT_TEMPLATE, dateText, reasonText, getEmailSignature());
+    }
+
+    public String buildAccountBlockedByAdminHtml(String blockReason, LocalDateTime blockedAt) {
+        Map<String, String> variables = new HashMap<>();
+        variables.put("emailSignature", getEmailSignature());
+
+        // Build date row HTML if blockedAt is not null
+        String dateRow = "";
+        if (blockedAt != null) {
+            String formattedDate = blockedAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+            dateRow = "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">" +
+                    "Blocked on: <strong>" + formattedDate + "</strong></td></tr>";
+        }
+        variables.put("blockDateRow", dateRow);
+
+        // Build reason row HTML if blockReason is not null or empty
+        String reasonRow = "";
+        if (blockReason != null && !blockReason.trim().isEmpty()) {
+            reasonRow = "<tr><td style=\"padding:0 24px 16px;font-size:14px;color:#4b5563;line-height:1.6;\">" +
+                    "Reason: " + blockReason + "</td></tr>";
+        }
+        variables.put("blockReasonRow", reasonRow);
+
+        return EmailHtmlTemplateRenderer.renderFromClasspath(
+                EmailConstants.TEMPLATE_ACCOUNT_BLOCKED_BY_ADMIN_HTML,
                 variables);
     }
 }

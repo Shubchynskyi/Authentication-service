@@ -90,12 +90,6 @@ docker-compose.override.yml
 scripts/
 
 # ============================================
-# Templates & Previews
-# ============================================
-email_preview_*.html
-masked_login_templates/
-
-# ============================================
 # OS Files
 # ============================================
 .DS_Store
