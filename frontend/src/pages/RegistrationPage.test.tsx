@@ -185,10 +185,13 @@ describe('RegistrationPage', () => {
         }, { timeout: 5000 });
     });
 
-    it('handles whitelist error in WHITELIST mode', async () => {
+    it('handles whitelist error and shows generic message instead of password hint', async () => {
         const axiosError = {
             isAxiosError: true,
-            response: { data: 'This email is not in whitelist. Registration is forbidden.' },
+            response: { 
+                status: 400,
+                data: { message: 'Unable to complete registration. Contact administrator.' }
+            },
         };
         mockApiPost.mockRejectedValueOnce(axiosError);
         mockIsAxiosError.mockReturnValue(true);
@@ -209,20 +212,25 @@ describe('RegistrationPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            // Error is shown in Alert component via message state
+            // Error should be shown in place of password hint (as Alert)
             const alerts = screen.getAllByRole('alert');
-            const whitelistAlert = alerts.find(alert => 
-                alert.textContent?.includes('not in whitelist') || 
-                alert.textContent?.includes('Registration is forbidden')
+            const registrationError = alerts.find(alert => 
+                alert.textContent?.includes('Unable to complete registration') ||
+                alert.textContent?.includes('Contact administrator')
             );
-            expect(whitelistAlert).toBeInTheDocument();
+            expect(registrationError).toBeInTheDocument();
+            // Password hint should not be visible when registration error is shown
+            expect(screen.queryByText(/Password must be at least 8 characters/i)).not.toBeInTheDocument();
         }, { timeout: 5000 });
     });
 
-    it('handles blacklist error during registration', async () => {
+    it('handles registration error and shows it instead of password hint', async () => {
         const axiosError = {
             isAxiosError: true,
-            response: { data: 'This email is in blacklist. Registration is forbidden.' },
+            response: { 
+                status: 400,
+                data: { message: 'Unable to complete registration. Contact administrator.' }
+            },
         };
         mockApiPost.mockRejectedValueOnce(axiosError);
         mockIsAxiosError.mockReturnValue(true);
@@ -234,7 +242,7 @@ describe('RegistrationPage', () => {
         const passwordInput = getPasswordInput();
         const confirmPasswordInput = screen.getByLabelText(/Confirm Password/i);
 
-        fireEvent.change(emailInput, { target: { value: 'blocked@example.com' } });
+        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
         fireEvent.change(usernameInput, { target: { value: 'User' } });
         fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
         fireEvent.change(confirmPasswordInput, { target: { value: 'Password123@' } });
@@ -243,13 +251,15 @@ describe('RegistrationPage', () => {
         fireEvent.click(submitButton);
 
         await waitFor(() => {
-            // Error is shown in Alert component via message state
+            // Error should be shown in place of password hint (as Alert)
             const alerts = screen.getAllByRole('alert');
-            const blacklistAlert = alerts.find(alert => 
-                alert.textContent?.includes('blacklist') || 
-                alert.textContent?.includes('Registration is forbidden')
+            const registrationError = alerts.find(alert => 
+                alert.textContent?.includes('Unable to complete registration') ||
+                alert.textContent?.includes('Contact administrator')
             );
-            expect(blacklistAlert).toBeInTheDocument();
+            expect(registrationError).toBeInTheDocument();
+            // Password hint should not be visible when registration error is shown
+            expect(screen.queryByText(/Password must be at least 8 characters/i)).not.toBeInTheDocument();
         }, { timeout: 5000 });
     });
 

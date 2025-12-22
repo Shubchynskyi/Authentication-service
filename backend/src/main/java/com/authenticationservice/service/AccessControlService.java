@@ -1,5 +1,6 @@
 package com.authenticationservice.service;
 
+import com.authenticationservice.exception.RegistrationForbiddenException;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.BlockedEmail;
@@ -41,7 +42,7 @@ public class AccessControlService {
      * BLACKLIST mode: email must not be in blacklist.
      * 
      * @param email Email to check
-     * @throws RuntimeException if email is not allowed for registration
+     * @throws RegistrationForbiddenException if email is not allowed for registration
      */
     public void checkRegistrationAccess(String email) {
         String normalizedEmail = normalizeEmail(email);
@@ -54,7 +55,7 @@ public class AccessControlService {
             Optional<AllowedEmail> allowed = allowedEmailRepository.findByEmail(normalizedEmail);
             if (allowed.isEmpty()) {
                 log.error("Email {} is not in whitelist. Registration denied.", maskEmail(normalizedEmail));
-                throw new RuntimeException("This email is not in whitelist. Registration is forbidden.");
+                throw new RegistrationForbiddenException();
             }
             log.debug("Email {} is in whitelist, registration allowed", maskEmail(normalizedEmail));
         } else {
@@ -62,7 +63,7 @@ public class AccessControlService {
             Optional<BlockedEmail> blocked = blockedEmailRepository.findByEmail(normalizedEmail);
             if (blocked.isPresent()) {
                 log.error("Email {} is in blacklist. Registration denied.", maskEmail(normalizedEmail));
-                throw new RuntimeException("This email is in blacklist. Registration is forbidden.");
+                throw new RegistrationForbiddenException();
             }
             log.debug("Email {} is not in blacklist, registration allowed", maskEmail(normalizedEmail));
         }

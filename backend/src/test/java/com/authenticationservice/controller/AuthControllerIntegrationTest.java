@@ -139,11 +139,12 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
 
         // Act & Assert
+        // Should return generic message, not revealing that user exists
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("already exists")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Unable to complete registration")));
     }
 
     @Test
@@ -156,11 +157,12 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
 
         // Act & Assert
+        // Should return generic message, not revealing whitelist details
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
                 .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("whitelist")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Unable to complete registration")));
     }
 
     @Test
@@ -186,11 +188,12 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         request.setPassword(TestConstants.TestData.NEW_USER_PASSWORD);
 
         // Act & Assert
+        // Should return generic message, not revealing blacklist details
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REGISTER_URL)
                         .contentType(MediaType.APPLICATION_JSON_VALUE)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("blacklist")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Unable to complete registration")));
     }
 
     @Test

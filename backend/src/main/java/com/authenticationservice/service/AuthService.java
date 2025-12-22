@@ -10,6 +10,7 @@ import com.authenticationservice.exception.AccountBlockedException;
 import com.authenticationservice.exception.AccountLockedException;
 import com.authenticationservice.exception.InvalidCredentialsException;
 import com.authenticationservice.exception.InvalidVerificationCodeException;
+import com.authenticationservice.exception.RegistrationForbiddenException;
 import com.authenticationservice.exception.TooManyRequestsException;
 import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
@@ -84,7 +85,7 @@ public class AuthService {
 
             if (userRepository.findByEmail(normalizedEmail).isPresent()) {
                 log.error("User with email {} already exists", maskEmail(normalizedEmail));
-                throw new RuntimeException("User with this email already exists.");
+                throw new RegistrationForbiddenException();
             }
 
             String verificationToken = UUID.randomUUID().toString();

@@ -32,6 +32,7 @@ const RegistrationPage: React.FC = () => {
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [messageType, setMessageType] = useState<'error' | 'success'>('success');
+  const [registrationError, setRegistrationError] = useState('');
 
   // Recalculate password error when language changes
   useEffect(() => {
@@ -75,6 +76,7 @@ const RegistrationPage: React.FC = () => {
       return;
     }
     setPasswordError('');
+    setRegistrationError('');
 
     try {
       const response = await api.post<string>(
@@ -85,18 +87,22 @@ const RegistrationPage: React.FC = () => {
       setMessageType('success');
       navigate('/verify', { state: { email } });
     } catch (err) {
-      setMessageType('error');
-      const message = extractErrorMessage(err, {
+      const errorMessage = extractErrorMessage(err, {
         fallbackMessage: t('auth.loginError.serverError'),
-        transform: (raw) => {
-          const lowered = raw.toLowerCase();
-          if (lowered.includes('not in whitelist') || lowered.includes('whitelist')) {
-            return t('auth.loginError.notInWhitelist');
-          }
-          return raw;
-        },
       });
-      setMessage(message);
+      
+      // Check if this is a registration error (400 Bad Request)
+      // Show it in place of password hint instead of at the bottom
+      if (axios.isAxiosError(err) && err.response?.status === 400) {
+        setRegistrationError(errorMessage);
+        setMessage('');
+      } else {
+        // For other errors (network, server errors), show at the bottom
+        setMessageType('error');
+        setMessage(errorMessage);
+        setRegistrationError('');
+      }
+      
       // Log critical errors only (server errors, not validation errors)
       if (axios.isAxiosError(err) && (!err.response || err.response.status >= 500)) {
         import('../utils/logger').then(({ logError }) => {
@@ -154,7 +160,15 @@ const RegistrationPage: React.FC = () => {
             passwordHelperText={passwordError || ''}
             passwordRequired
             confirmRequired
-            renderHint={<PasswordHint text={t('errors.passwordRequirements')} />}
+            renderHint={
+              registrationError ? (
+                <Alert severity="error" sx={{ mt: 1 }}>
+                  {registrationError}
+                </Alert>
+              ) : (
+                <PasswordHint text={t('errors.passwordRequirements')} />
+              )
+            }
           />
           <Button
             type="submit"

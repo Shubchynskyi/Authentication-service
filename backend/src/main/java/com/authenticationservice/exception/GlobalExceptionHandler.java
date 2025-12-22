@@ -44,6 +44,14 @@ public class GlobalExceptionHandler {
                 .body(Map.of("error", BAD_REQUEST, "message", message));
     }
 
+    @ExceptionHandler(RegistrationForbiddenException.class)
+    public ResponseEntity<Map<String, String>> handleRegistrationForbidden(RegistrationForbiddenException ex) {
+        String message = resolveMessage(ex.getMessageKey(), "Unable to complete registration. Contact administrator.");
+        log.warn("Registration forbidden: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(Map.of("error", BAD_REQUEST, "message", message));
+    }
+
     @ExceptionHandler(AccountLockedException.class)
     public ResponseEntity<Map<String, String>> handleAccountLocked(AccountLockedException ex) {
         // Return same message as InvalidCredentialsException to not reveal account existence
@@ -132,11 +140,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
         String message = ex.getMessage();
         // Business logic errors should return 400 (Bad Request)
+        // Note: Registration errors during user registration (not in whitelist, blacklist) are handled
+        // by RegistrationForbiddenException, but admin operations (createUser/updateUser) still use
+        // RuntimeException with "already exists" message
         if (message != null && (
                 message.contains("already exists") ||
                 message.contains("not found") ||
-                message.contains("not in whitelist") ||
-                message.contains("blacklist") ||
                 message.contains("already in whitelist") ||
                 message.contains("Role not found") ||
                 message.contains("Insufficient permissions") ||

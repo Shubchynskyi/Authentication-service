@@ -107,6 +107,30 @@ class GlobalExceptionHandlerTest {
     }
 
     @Nested
+    @DisplayName("RegistrationForbiddenException Tests")
+    class RegistrationForbiddenExceptionTests {
+        @Test
+        @DisplayName("Should return 400 with localized message")
+        void handleRegistrationForbidden_shouldReturn400_withLocalizedMessage() {
+            // Arrange
+            RegistrationForbiddenException ex = new RegistrationForbiddenException();
+            String localizedMessage = "Unable to complete registration. Contact administrator.";
+            when(messageSource.getMessage(eq("registration.forbidden"), isNull(), any(Locale.class)))
+                    .thenReturn(localizedMessage);
+
+            // Act
+            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleRegistrationForbidden(ex);
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals("Bad Request", response.getBody().get("error"));
+            assertEquals(localizedMessage, response.getBody().get("message"));
+            verify(messageSource).getMessage(eq("registration.forbidden"), isNull(), any(Locale.class));
+        }
+    }
+
+    @Nested
     @DisplayName("InvalidCredentialsException Tests")
     class InvalidCredentialsExceptionTests {
         @Test
@@ -233,22 +257,6 @@ class GlobalExceptionHandlerTest {
     @DisplayName("RuntimeException Tests")
     class RuntimeExceptionTests {
         @Test
-        @DisplayName("Should return 400 for business logic errors - already exists")
-        void handleRuntimeException_shouldReturn400_forAlreadyExistsError() {
-            // Arrange
-            RuntimeException ex = new RuntimeException("User with this email already exists");
-
-            // Act
-            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleRuntimeException(ex);
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertNotNull(response.getBody());
-            assertEquals("Bad Request", response.getBody().get("error"));
-            assertEquals("User with this email already exists", response.getBody().get("message"));
-        }
-
-        @Test
         @DisplayName("Should return 400 for business logic errors - not found")
         void handleRuntimeException_shouldReturn400_forNotFoundError() {
             // Arrange
@@ -262,21 +270,6 @@ class GlobalExceptionHandlerTest {
             assertNotNull(response.getBody());
             assertEquals("Bad Request", response.getBody().get("error"));
             assertEquals("User not found", response.getBody().get("message"));
-        }
-
-        @Test
-        @DisplayName("Should return 400 for business logic errors - not in whitelist")
-        void handleRuntimeException_shouldReturn400_forNotInWhitelistError() {
-            // Arrange
-            RuntimeException ex = new RuntimeException("This email is not in whitelist");
-
-            // Act
-            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleRuntimeException(ex);
-
-            // Assert
-            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            assertNotNull(response.getBody());
-            assertEquals("Bad Request", response.getBody().get("error"));
         }
 
         @Test

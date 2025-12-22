@@ -236,13 +236,14 @@ class AuthServiceTest {
                 void register_shouldThrowException_whenEmailNotAllowed() {
                         // Arrange
                         RegistrationRequest request = createRegistrationRequest();
-                        doThrow(new RuntimeException("This email is not in whitelist. Registration is forbidden."))
+                        doThrow(new com.authenticationservice.exception.RegistrationForbiddenException())
                                         .when(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
 
                         // Act & Assert
-                        RuntimeException ex = assertThrows(RuntimeException.class,
+                        com.authenticationservice.exception.RegistrationForbiddenException ex = assertThrows(
+                                        com.authenticationservice.exception.RegistrationForbiddenException.class,
                                         () -> authService.register(request));
-                        assertEquals("This email is not in whitelist. Registration is forbidden.", ex.getMessage());
+                        assertEquals("registration.forbidden", ex.getMessage());
                         verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
 
@@ -256,9 +257,10 @@ class AuthServiceTest {
                                         .thenReturn(Optional.of(testUser));
 
                         // Act & Assert
-                        RuntimeException ex = assertThrows(RuntimeException.class,
+                        com.authenticationservice.exception.RegistrationForbiddenException ex = assertThrows(
+                                        com.authenticationservice.exception.RegistrationForbiddenException.class,
                                         () -> authService.register(request));
-                        assertEquals("User with this email already exists.", ex.getMessage());
+                        assertEquals("registration.forbidden", ex.getMessage());
                         verify(accessControlService).checkRegistrationAccess(TestConstants.UserData.TEST_EMAIL);
                 }
 
@@ -953,13 +955,14 @@ class AuthServiceTest {
                                         .thenReturn(Optional.empty());
                         
                         // Email is not allowed for registration
-                        doThrow(new RuntimeException("This email is not in whitelist. Registration is forbidden."))
+                        doThrow(new com.authenticationservice.exception.RegistrationForbiddenException())
                                         .when(accessControlService).checkRegistrationAccess(newEmail);
 
                         // Act & Assert
-                        RuntimeException ex = assertThrows(RuntimeException.class,
+                        com.authenticationservice.exception.RegistrationForbiddenException ex = assertThrows(
+                                        com.authenticationservice.exception.RegistrationForbiddenException.class,
                                         () -> authService.handleOAuth2Login(newEmail, newName));
-                        assertEquals("This email is not in whitelist. Registration is forbidden.", ex.getMessage());
+                        assertEquals("registration.forbidden", ex.getMessage());
                         verify(accessControlService).checkRegistrationAccess(newEmail);
                 }
 
