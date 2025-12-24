@@ -38,6 +38,7 @@ import AddIcon from '@mui/icons-material/Add';
 import GoogleIcon from '@mui/icons-material/Google';
 import PersonIcon from '@mui/icons-material/Person';
 import { getMaskedLoginSettingsAdmin, updateMaskedLoginSettings, MaskedLoginAdminSettings } from '../services/maskedLoginService';
+import MaskedLoginTemplatePreview from '../components/MaskedLoginTemplatePreview';
 
 interface User {
     id: number;
@@ -922,6 +923,13 @@ const AdminPage = () => {
                                         </Button>
                                     ))}
                                 </Box>
+                                
+                                {/* Preview of selected template */}
+                                {maskedLoginDraft.enabled && maskedLoginDraft.templateId && (
+                                    <Box sx={{ mt: 3 }}>
+                                        <MaskedLoginTemplatePreview templateId={maskedLoginDraft.templateId} />
+                                    </Box>
+                                )}
                             </Box>
                         )}
 

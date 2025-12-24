@@ -5,10 +5,26 @@ import { AuthProvider } from './context/AuthContext';
 import { ProfileProvider } from './context/ProfileContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { LayoutProvider, useLayout } from './context/LayoutContext';
 import AppRoutes from './routes';
 import NotificationContainer from './components/NotificationContainer';
 import Navbar from './components/Navbar';
 import './i18n/i18n';
+
+const AppContent: React.FC = () => {
+    const { hideNavbar } = useLayout();
+
+    return (
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+            {!hideNavbar && <Navbar />}
+            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                {!hideNavbar && <Toolbar />}
+                <NotificationContainer />
+                <AppRoutes />
+            </Box>
+        </Box>
+    );
+};
 
 const App: React.FC = () => {
     return (
@@ -16,16 +32,11 @@ const App: React.FC = () => {
             <NotificationProvider>
                 <AuthProvider>
                     <ProfileProvider>
-                        <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-                            <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                <Navbar />
-                                <Box sx={{ display: 'flex', flexDirection: 'column' }}>
-                                    <Toolbar />
-                                    <NotificationContainer />
-                                    <AppRoutes />
-                                </Box>
-                            </Box>
-                        </Router>
+                        <LayoutProvider>
+                            <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                                <AppContent />
+                            </Router>
+                        </LayoutProvider>
                     </ProfileProvider>
                 </AuthProvider>
             </NotificationProvider>

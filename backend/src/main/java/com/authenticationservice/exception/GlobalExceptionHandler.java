@@ -139,10 +139,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> handleRuntimeException(RuntimeException ex) {
         String message = ex.getMessage();
-        // Business logic errors should return 400 (Bad Request)
-        // Note: Registration errors during user registration (not in whitelist, blacklist) are handled
-        // by RegistrationForbiddenException, but admin operations (createUser/updateUser) still use
-        // RuntimeException with "already exists" message
+        // Business logic errors return 400; registration errors are handled by RegistrationForbiddenException
         if (message != null && (
                 message.contains("already exists") ||
                 message.contains("not found") ||

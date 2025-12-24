@@ -141,6 +141,18 @@ export const testTranslations: Record<string, string> = {
   'admin.accessMode.changeModePrompt': 'Enter your password and OTP code to change access mode:',
   'admin.accessMode.modeChanged': 'Access mode changed successfully',
   'admin.accessMode.invalidOtp': 'Invalid or expired OTP code',
+  'admin.maskedLoginTab': 'Masked Login',
+  'admin.maskedLogin.title': 'Masked Login Settings',
+  'admin.maskedLogin.description': 'Enable to mask login pages with fake content',
+  'admin.maskedLogin.enable': 'Enable masked login',
+  'admin.maskedLogin.selectTemplate': 'Select template',
+  'admin.maskedLogin.template': 'Template',
+  'admin.maskedLogin.settingsUpdated': 'Masked login settings updated',
+  'admin.maskedLogin.templateChanged': 'Template changed',
+  'admin.maskedLogin.lastUpdated': 'Last updated',
+  'admin.maskedLogin.screenshotPlaceholder': 'Screenshot unavailable',
+  'admin.maskedLogin.clickHereToLogin': 'Click here to login',
+  'admin.maskedLogin.clickHere': 'Click here',
 };
 
 // Helper function to get translation or return key

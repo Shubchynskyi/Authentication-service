@@ -171,7 +171,10 @@
       "template": "Template",
       "settingsUpdated": "Masked login settings updated",
       "templateChanged": "Template changed",
-      "lastUpdated": "Last updated"
+      "lastUpdated": "Last updated",
+      "screenshotPlaceholder": "Screenshot unavailable",
+      "clickHereToLogin": "Click here to login",
+      "clickHere": "Click here"
     },
     "reasonLabel": "Reason (optional)",
     "errors": {

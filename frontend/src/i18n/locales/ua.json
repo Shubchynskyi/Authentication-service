@@ -165,7 +165,10 @@
       "template": "Шаблон",
       "settingsUpdated": "Налаштування маскування входу оновлено",
       "templateChanged": "Шаблон змінено",
-      "lastUpdated": "Останнє оновлення"
+      "lastUpdated": "Останнє оновлення",
+      "screenshotPlaceholder": "Скріншот недоступний",
+      "clickHereToLogin": "Клікніть тут для входу",
+      "clickHere": "Клікніть тут"
     },
     "reasonLabel": "Причина (необов'язково)",
     "errors": {

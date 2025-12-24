@@ -9,7 +9,6 @@ import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.exception.InvalidCredentialsException;
 import com.authenticationservice.exception.TooManyRequestsException;
-import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.AuthProvider;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
@@ -46,7 +45,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.lenient;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("AuthService Tests")

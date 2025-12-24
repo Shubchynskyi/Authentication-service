@@ -17,3 +17,4 @@ public class RegistrationForbiddenException extends RuntimeException {
     }
 }
 
+

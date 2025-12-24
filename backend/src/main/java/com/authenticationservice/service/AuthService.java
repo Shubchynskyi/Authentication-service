@@ -80,7 +80,6 @@ public class AuthService {
         log.info("Starting registration process for email: {}", maskEmail(normalizedEmail));
 
         try {
-            // Check access control (whitelist/blacklist) - this must be the first check
             accessControlService.checkRegistrationAccess(normalizedEmail);
 
             if (userRepository.findByEmail(normalizedEmail).isPresent()) {
@@ -162,7 +161,6 @@ public class AuthService {
             log.debug("User blocked: {}", user.isBlocked());
             log.debug("User verified: {}", user.isEmailVerified());
 
-            // Check access control (whitelist/blacklist) - this must be the first check
             accessControlService.checkLoginAccess(normalizedEmail);
 
             // Check disabled account before any other validation
@@ -239,7 +237,6 @@ public class AuthService {
 
         accessControlService.checkLoginAccess(email);
 
-        // Security: Check if user account is still active
         if (!user.isEnabled()) {
             log.error("Refresh token used for disabled account: {}", maskEmail(email));
             throw new RuntimeException(MessageConstants.ACCOUNT_DISABLED);
@@ -406,8 +403,6 @@ public class AuthService {
                 .orElseGet(() -> {
                     log.info("Creating new OAuth2 user: {}", maskEmail(normalizedEmail));
 
-                    // Check access control (whitelist/blacklist) - this must be the first check for
-                    // new users
                     accessControlService.checkRegistrationAccess(normalizedEmail);
 
                     User newUser = new User();
@@ -428,10 +423,7 @@ public class AuthService {
                     return savedUser;
                 });
 
-        // Handle existing user with LOCAL provider and unverified email
-        // If user registered locally but didn't verify email, and now logs in via
-        // Google,
-        // we should mark email as verified and update auth provider to GOOGLE
+        // If user registered locally but didn't verify email, mark as verified when logging in via Google
         if (user.getAuthProvider() == AuthProvider.LOCAL && !user.isEmailVerified()) {
             log.info("User {} with LOCAL provider and unverified email is logging in via Google. " +
                     "Updating emailVerified to true and authProvider to GOOGLE.", maskEmail(normalizedEmail));

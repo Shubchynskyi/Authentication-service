@@ -162,7 +162,17 @@ const RegistrationPage: React.FC = () => {
             confirmRequired
             renderHint={
               registrationError ? (
-                <Alert severity="error" sx={{ mt: 1 }}>
+                <Alert 
+                  severity="error" 
+                  sx={{ 
+                    mt: 1,
+                    p: 1.25,
+                    borderRadius: 1,
+                    minHeight: 120, // Same as PasswordHint to prevent layout shift
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
                   {registrationError}
                 </Alert>
               ) : (

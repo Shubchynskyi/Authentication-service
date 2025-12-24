@@ -171,7 +171,10 @@
       "template": "Шаблон",
       "settingsUpdated": "Настройки маскировки входа обновлены",
       "templateChanged": "Шаблон изменён",
-      "lastUpdated": "Последнее обновление"
+      "lastUpdated": "Последнее обновление",
+      "screenshotPlaceholder": "Скриншот недоступен",
+      "clickHereToLogin": "Кликните здесь для входа",
+      "clickHere": "Кликните здесь"
     },
     "reasonLabel": "Причина (необязательно)",
     "errors": {

@@ -165,7 +165,10 @@
       "template": "Vorlage",
       "settingsUpdated": "Einstellungen für maskierte Anmeldung aktualisiert",
       "templateChanged": "Vorlage geändert",
-      "lastUpdated": "Zuletzt aktualisiert"
+      "lastUpdated": "Zuletzt aktualisiert",
+      "screenshotPlaceholder": "Screenshot nicht verfügbar",
+      "clickHereToLogin": "Hier klicken, um sich anzumelden",
+      "clickHere": "Hier klicken"
     },
     "reasonLabel": "Grund (optional)",
     "errors": {

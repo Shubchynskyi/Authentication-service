@@ -38,7 +38,7 @@ public class MaskedLoginController {
             Map.entry(2, "template_02_maintenance.html"),
             Map.entry(3, "template_03_cooking.html"),
             Map.entry(4, "template_04_terms.html"),
-            Map.entry(5, "template_05_update.html"),
+            Map.entry(5, "template_05_about.html"),
             Map.entry(6, "template_06_catfacts.html"),
             Map.entry(7, "template_07_lorem.html"),
             Map.entry(8, "template_08_weather.html"),
