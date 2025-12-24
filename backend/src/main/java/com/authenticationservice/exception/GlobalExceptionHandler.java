@@ -151,7 +151,9 @@ public class GlobalExceptionHandler {
                 message.contains("Expired reset token") ||
                 message.contains("Current password is required") ||
                 message.contains("Incorrect current password") ||
-                message.contains("expired"))) {
+                message.contains("expired") ||
+                message.contains("15, 30, 60, 90") ||
+                message.contains("validation.rememberDays.invalid"))) {
             log.warn("Business logic error: {}", message);
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Bad Request", "message", message));

@@ -118,6 +118,12 @@ class AuthServiceTest {
                                 any()))
                                 .thenReturn(TestConstants.ErrorMessages.INVALID_VERIFICATION_CODE);
 
+                lenient().when(messageSource.getMessage(
+                                eq(com.authenticationservice.constants.MessageConstants.INVALID_REMEMBER_DAYS),
+                                any(),
+                                any()))
+                                .thenReturn("Invalid remember days value. Supported values: 15, 30, 60, 90");
+
                 // Mock EmailTemplateFactory methods
                 lenient().when(emailTemplateFactory.buildVerificationText(anyString())).thenReturn("Verification text");
                 lenient().when(emailTemplateFactory.buildVerificationHtml(anyString())).thenReturn("Verification html");

@@ -287,6 +287,22 @@ class GlobalExceptionHandlerTest {
         }
 
         @Test
+        @DisplayName("Should return 400 for invalid remember days value")
+        void handleRuntimeException_shouldReturn400_forInvalidRememberDays() {
+            // Arrange - используем локализованное сообщение (английский вариант)
+            RuntimeException ex = new RuntimeException("Invalid remember days value. Supported values: 15, 30, 60, 90");
+
+            // Act
+            ResponseEntity<Map<String, String>> response = globalExceptionHandler.handleRuntimeException(ex);
+
+            // Assert
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            assertNotNull(response.getBody());
+            assertEquals("Bad Request", response.getBody().get("error"));
+            assertTrue(response.getBody().get("message").contains("15, 30, 60, 90"));
+        }
+
+        @Test
         @DisplayName("Should return 500 for generic runtime exceptions")
         void handleRuntimeException_shouldReturn500_forGenericRuntimeException() {
             // Arrange

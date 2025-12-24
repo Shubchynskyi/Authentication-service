@@ -263,7 +263,7 @@ public class AuthService {
         }
         int days = rememberDays != null ? rememberDays : 15;
         if (days != 15 && days != 30 && days != 60 && days != 90) {
-            throw new RuntimeException(MessageConstants.INVALID_REMEMBER_DAYS);
+            throw new RuntimeException(getMessage(MessageConstants.INVALID_REMEMBER_DAYS));
         }
         return days;
     }
