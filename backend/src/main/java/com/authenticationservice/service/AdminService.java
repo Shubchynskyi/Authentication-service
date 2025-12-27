@@ -75,10 +75,6 @@ public class AdminService {
     @Value("${frontend.url}")
     private String frontendUrl;
 
-    private String normalizeEmail(String email) {
-        return EmailUtils.normalize(email);
-    }
-
     private String getMessage(String key) {
         return messageSource.getMessage(key, null, LocaleContextHolder.getLocale());
     }
@@ -96,7 +92,7 @@ public class AdminService {
     }
 
     public void addToWhitelist(String email, String reason) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         if (allowedEmailRepository.findByEmail(normalizedEmail).isPresent()) {
             throw new AccessListDuplicateException(
                     AccessListChangeLog.AccessListType.WHITELIST,
@@ -118,7 +114,7 @@ public class AdminService {
     }
 
     public void removeFromWhitelist(String email, String reason) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         AllowedEmail existing = allowedEmailRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Email not found in whitelist"));
         allowedEmailRepository.delete(existing);
@@ -129,7 +125,7 @@ public class AdminService {
     }
 
     public AccessListUpdateResponse addToBlacklist(String email, String reason) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         if (blockedEmailRepository.findByEmail(normalizedEmail).isPresent()) {
             throw new AccessListDuplicateException(
                     AccessListChangeLog.AccessListType.BLACKLIST,
@@ -162,7 +158,7 @@ public class AdminService {
     }
 
     public void removeFromBlacklist(String email, String reason) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         BlockedEmail existing = blockedEmailRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("Email not found in blacklist"));
         blockedEmailRepository.delete(existing);
@@ -204,7 +200,7 @@ public class AdminService {
 
     @Transactional
     public void createUser(AdminUpdateUserRequest request) {
-        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedEmail = EmailUtils.normalize(request.getEmail());
         request.setEmail(normalizedEmail);
         log.info("Starting user creation process for email: {}", maskEmail(normalizedEmail));
 
@@ -293,7 +289,7 @@ public class AdminService {
         }
         if (request.getEmail() != null && !request.getEmail().isBlank() &&
                 !request.getEmail().equalsIgnoreCase(user.getEmail())) {
-            String normalizedEmail = normalizeEmail(request.getEmail());
+            String normalizedEmail = EmailUtils.normalize(request.getEmail());
             request.setEmail(normalizedEmail);
             if (userRepository.existsByEmail(normalizedEmail)) {
                 throw new RuntimeException("User with this email already exists");
@@ -341,7 +337,7 @@ public class AdminService {
     }
 
     public boolean verifyAdminPassword(String email, String password) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -407,7 +403,7 @@ public class AdminService {
     @Transactional
     public void changeAccessMode(AccessMode newMode, String adminEmail, String adminPassword,
             String otpCode, String reason) {
-        String normalizedAdminEmail = normalizeEmail(adminEmail);
+        String normalizedAdminEmail = EmailUtils.normalize(adminEmail);
         if (!verifyAdminPassword(normalizedAdminEmail, adminPassword)) {
             throw new RuntimeException("Invalid admin password");
         }
@@ -451,7 +447,7 @@ public class AdminService {
      * @param adminEmail Admin email
      */
     public void sendModeChangeOtp(String adminEmail) {
-        String normalizedAdminEmail = normalizeEmail(adminEmail);
+        String normalizedAdminEmail = EmailUtils.normalize(adminEmail);
         String otp = otpService.generateOtp(normalizedAdminEmail);
 
         String emailText = emailTemplateFactory.buildOtpAccessModeText(otp);

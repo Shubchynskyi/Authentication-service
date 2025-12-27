@@ -22,7 +22,7 @@ fi
 # Configuration - use variables from .env or defaults
 BUILDER_IMAGE_NAME=${BUILDER_IMAGE_NAME:-auth-service-builder}
 APP_TEST_CONTAINER_NAME=${APP_TEST_CONTAINER_NAME:-auth-service-test-builder}
-JAR_NAME=${JAR_NAME:-authorization-service-0.0.1-SNAPSHOT.jar}
+JAR_NAME=${JAR_NAME:-authorization-service-1.0.0.jar}
 DOCKERFILE_BUILD=${DOCKERFILE_BUILD:-backend/Docker-Build.Dockerfile}
 BACKEND_DIR="$SCRIPT_DIR/backend"
 JAR_PATH="$BACKEND_DIR/$JAR_NAME"
@@ -101,10 +101,13 @@ fi
 
 # Copy the JAR file from the container
 echo -e "${GREEN}Copying JAR file from container...${NC}"
-if docker cp "$APP_TEST_CONTAINER_NAME:/app/target/$JAR_NAME" "$JAR_PATH"; then
+if docker cp "$APP_TEST_CONTAINER_NAME:/app/target/$JAR_NAME" "$JAR_PATH" 2>/dev/null; then
     echo -e "${GREEN}JAR file copied successfully to $JAR_PATH${NC}"
 else
-    echo -e "${RED}Failed to copy JAR file. Container logs:${NC}"
+    echo -e "${RED}Failed to copy JAR file from /app/target/$JAR_NAME${NC}"
+    echo -e "${YELLOW}Attempting to list files in /app/target directory:${NC}"
+    docker cp "$APP_TEST_CONTAINER_NAME:/app/target/" /tmp/target_listing 2>/dev/null && ls -la /tmp/target_listing/ 2>/dev/null || echo "Could not list target directory"
+    echo -e "${RED}Container logs:${NC}"
     docker logs "$APP_TEST_CONTAINER_NAME"
     exit 1
 fi

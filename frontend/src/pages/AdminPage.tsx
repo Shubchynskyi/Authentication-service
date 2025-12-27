@@ -185,21 +185,6 @@ const AdminPage = () => {
     const fetchMaskedLoginSettings = async () => {
         try {
             const settings = await getMaskedLoginSettingsAdmin();
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: 'debug-session',
-                    runId: 'pre-fix',
-                    hypothesisId: 'H1',
-                    location: 'AdminPage:fetchMaskedLoginSettings',
-                    message: 'admin_fetch',
-                    data: settings ? { enabled: settings.enabled, templateId: settings.templateId, updatedAt: settings.updatedAt } : null,
-                    timestamp: Date.now(),
-                }),
-            }).catch(() => {});
-            // #endregion
             setMaskedLoginSettings(settings);
             if (settings) {
                 setMaskedLoginDraft({
@@ -209,21 +194,6 @@ const AdminPage = () => {
             }
         } catch (error) {
             console.error('Error fetching masked login settings:', error);
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    sessionId: 'debug-session',
-                    runId: 'pre-fix',
-                    hypothesisId: 'H1',
-                    location: 'AdminPage:fetchMaskedLoginSettings',
-                    message: 'error',
-                    data: { error: (error as any)?.message || 'unknown' },
-                    timestamp: Date.now(),
-                }),
-            }).catch(() => {});
-            // #endregion
         }
     };
 
@@ -1002,42 +972,12 @@ const AdminPage = () => {
                                     templateId: maskedLoginDraft.templateId,
                                     password: maskedLoginPassword,
                                 });
-                                // #region agent log
-                                fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        sessionId: 'debug-session',
-                                        runId: 'pre-fix',
-                                        hypothesisId: 'H2',
-                                        location: 'AdminPage:maskedLoginSave',
-                                        message: 'save_success',
-                                        data: { enabled: maskedLoginDraft.enabled, templateId: maskedLoginDraft.templateId },
-                                        timestamp: Date.now(),
-                                    }),
-                                }).catch(() => {});
-                                // #endregion
                                 await fetchMaskedLoginSettings();
                                 setMaskedLoginPassword('');
                                 setMaskedLoginPasswordDialog(false);
                                 showNotification(t('admin.maskedLogin.settingsUpdated'), 'success');
                             } catch (error: any) {
                                 const status = error?.response?.status;
-                                // #region agent log
-                                fetch('http://127.0.0.1:7242/ingest/cb46ac54-f77f-4626-89d1-bea5d51e8615', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({
-                                        sessionId: 'debug-session',
-                                        runId: 'pre-fix',
-                                        hypothesisId: 'H2',
-                                        location: 'AdminPage:maskedLoginSave',
-                                        message: 'save_error',
-                                        data: { status: status ?? null, error: (error as any)?.message || 'unknown' },
-                                        timestamp: Date.now(),
-                                    }),
-                                }).catch(() => {});
-                                // #endregion
                                 if (status === 401) {
                                     showNotification(t('admin.errors.invalidAdminPassword'), 'error');
                                 } else {

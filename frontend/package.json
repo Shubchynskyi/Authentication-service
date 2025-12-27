@@ -2,6 +2,7 @@
   "name": "auth-service-ui",
   "private": true,
   "version": "0.1.0",
+  "author": "Dmytro Shubchynskyi <d.shubchynskyi@gmail.com>",
   "type": "module",
   "scripts": {
     "dev": "vite",

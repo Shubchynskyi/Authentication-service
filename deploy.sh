@@ -20,7 +20,7 @@ else
 fi
 
 # Configuration - use variables from .env or defaults
-JAR_NAME=${JAR_NAME:-authorization-service-0.0.1-SNAPSHOT.jar}
+JAR_NAME=${JAR_NAME:-authorization-service-1.0.0.jar}
 FINAL_IMAGE_NAME=${FINAL_IMAGE_NAME:-auth-service:latest}
 DOCKERFILE_FINAL=${DOCKERFILE_FINAL:-backend/Docker-Final.Dockerfile}
 BACKEND_DIR="$SCRIPT_DIR/backend"

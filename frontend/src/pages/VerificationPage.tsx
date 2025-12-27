@@ -66,8 +66,8 @@ const VerificationPage: React.FC = () => {
   const handleResendVerification = async () => {
     setResendLoading(true);
     try {
-      const response = await axios.post<string>(
-        'http://localhost:8080/api/auth/resend-verification',
+      const response = await api.post<string>(
+        '/api/auth/resend-verification',
         { email }
       );
       showNotification(response.data || t('auth.verification.codeResent'), 'success');

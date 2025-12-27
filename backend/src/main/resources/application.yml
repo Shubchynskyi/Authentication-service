@@ -60,10 +60,10 @@ frontend:
   url: ${FRONTEND_URL}
 
 app:
-  version: ${APP_VERSION:0.0.1-SNAPSHOT}
+  version: ${APP_VERSION:1.0.0}
 
 rate-limit:
-  admin-per-minute: ${RATE_LIMIT_ADMIN_PER_MINUTE:300} # TODO: tighten limits after testing
+  admin-per-minute: ${RATE_LIMIT_ADMIN_PER_MINUTE:120}
   auth-per-minute: ${RATE_LIMIT_AUTH_PER_MINUTE:120}
   resend-per-minute: ${RATE_LIMIT_RESEND_PER_MINUTE:1}
 

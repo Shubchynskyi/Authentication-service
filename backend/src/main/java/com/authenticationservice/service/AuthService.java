@@ -64,10 +64,6 @@ public class AuthService {
     @Value("${password.reset.cooldown-minutes:10}")
     private int passwordResetCooldownMinutes;
 
-    private String normalizeEmail(String email) {
-        return EmailUtils.normalize(email);
-    }
-
     private String maskEmail(String email) {
         return LoggingSanitizer.maskEmail(email);
     }
@@ -75,7 +71,7 @@ public class AuthService {
     @Transactional
     public void register(RegistrationRequest request) {
         long startTime = System.currentTimeMillis();
-        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedEmail = EmailUtils.normalize(request.getEmail());
         request.setEmail(normalizedEmail);
         log.info("Starting registration process for email: {}", maskEmail(normalizedEmail));
 
@@ -129,7 +125,7 @@ public class AuthService {
     }
 
     public void verifyEmail(VerificationRequest request) {
-        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedEmail = EmailUtils.normalize(request.getEmail());
         request.setEmail(normalizedEmail);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
@@ -146,7 +142,7 @@ public class AuthService {
     @Transactional
     public Map<String, String> login(LoginRequest request) {
         long startTime = System.currentTimeMillis();
-        String normalizedEmail = normalizeEmail(request.getEmail());
+        String normalizedEmail = EmailUtils.normalize(request.getEmail());
         request.setEmail(normalizedEmail);
         log.debug("Login attempt for email: {}", maskEmail(normalizedEmail));
 
@@ -231,7 +227,7 @@ public class AuthService {
         if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
             throw new RuntimeException(MessageConstants.INVALID_REFRESH_TOKEN);
         }
-        String email = normalizeEmail(jwtTokenProvider.getEmailFromRefresh(refreshToken));
+        String email = EmailUtils.normalize(jwtTokenProvider.getEmailFromRefresh(refreshToken));
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException(SecurityConstants.USER_NOT_FOUND_ERROR));
 
@@ -269,7 +265,7 @@ public class AuthService {
     }
 
     public void resendVerification(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
@@ -292,7 +288,7 @@ public class AuthService {
     }
 
     public void initiatePasswordReset(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElse(null);
 
@@ -369,7 +365,7 @@ public class AuthService {
     }
 
     public String generatePasswordResetToken(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         User user = userRepository.findByEmail(normalizedEmail)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
@@ -396,7 +392,7 @@ public class AuthService {
 
     @Transactional
     public Map<String, String> handleOAuth2Login(String email, String name) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         log.debug("Handling OAuth2 login for email: {}, name: {}", maskEmail(normalizedEmail), name);
 
         User user = userRepository.findByEmail(normalizedEmail)

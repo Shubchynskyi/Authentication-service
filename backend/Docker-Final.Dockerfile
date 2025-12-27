@@ -8,7 +8,7 @@ WORKDIR /app
 RUN apk add --no-cache wget
 
 # Build argument for JAR name
-ARG JAR_NAME=authorization-service-0.0.1-SNAPSHOT.jar
+ARG JAR_NAME=authorization-service-1.0.0.jar
 
 # Copy the built JAR file from the host machine
 # The JAR should be copied by build-and-test.sh script

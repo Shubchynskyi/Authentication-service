@@ -6,7 +6,7 @@
     <springProperty scope="context" name="LOG_FILE_ENABLED" source="LOG_FILE_ENABLED" defaultValue="true"/>
     <springProperty scope="context" name="LOG_JSON_ENABLED" source="LOG_JSON_ENABLED" defaultValue="false"/>
     <springProperty scope="context" name="APP_NAME" source="spring.application.name" defaultValue="authorization-service"/>
-    <springProperty scope="context" name="APP_VERSION" source="app.version" defaultValue="0.0.1-SNAPSHOT"/>
+    <springProperty scope="context" name="APP_VERSION" source="app.version" defaultValue="1.0.0"/>
 
     <!-- File locations -->
     <springProperty scope="context" name="LOG_FILE_PATH" source="LOG_FILE_PATH" defaultValue="logs/app.log"/>

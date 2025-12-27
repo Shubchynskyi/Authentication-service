@@ -27,10 +27,6 @@ public class AccessControlService {
     private final BlockedEmailRepository blockedEmailRepository;
     private final AccessModeService accessModeService;
 
-    private String normalizeEmail(String email) {
-        return EmailUtils.normalize(email);
-    }
-
     private String maskEmail(String email) {
         return LoggingSanitizer.maskEmail(email);
     }
@@ -45,7 +41,7 @@ public class AccessControlService {
      * @throws RegistrationForbiddenException if email is not allowed for registration
      */
     public void checkRegistrationAccess(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         log.debug("Checking registration access for email: {}", maskEmail(normalizedEmail));
         
         AccessMode currentMode = accessModeService.getCurrentMode();
@@ -79,7 +75,7 @@ public class AccessControlService {
      * @throws RuntimeException if email is not allowed for login
      */
     public void checkLoginAccess(String email) {
-        String normalizedEmail = normalizeEmail(email);
+        String normalizedEmail = EmailUtils.normalize(email);
         log.debug("Checking login access for email: {}", maskEmail(normalizedEmail));
         
         // In both modes, blacklist blocks login
