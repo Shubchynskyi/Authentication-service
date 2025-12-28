@@ -14,7 +14,7 @@ This project implements a production-ready authentication service with features 
 
 ## Features
 
-<h3 style="color: #2563eb;">Authentication</h3>
+### 🔐 Authentication
 
 - **User Registration**: Email-based registration with email verification
 - **Login/Logout**: JWT-based authentication with access tokens (15 minutes) and refresh tokens (7 days)
@@ -23,7 +23,7 @@ This project implements a production-ready authentication service with features 
 - **OAuth2 Google Authentication**: Social login via Google OAuth2 with tokens returned via URL fragment
 - **Token Refresh**: Automatic token refresh mechanism
 
-<h3 style="color: #16a34a;">Authorization</h3>
+### 🛡️ Authorization
 
 - **Role-Based Access Control (RBAC)**: USER and ADMIN roles with protected endpoints
 - **Resource Access Control**: Endpoint-level access checks for admin panel and user management
@@ -33,7 +33,7 @@ This project implements a production-ready authentication service with features 
   - Admin can manage whitelist and blacklist entries
   - Blacklist always blocks login regardless of credentials
 
-<h3 style="color: #dc2626;">Security</h3>
+### 🔒 Security
 
 - **Account Protection**: 
   - 5 failed login attempts → 5-minute temporary lock with email notification
@@ -48,14 +48,14 @@ This project implements a production-ready authentication service with features 
 - **JWT Security**: Separate access and refresh tokens with configurable expiration
 - **Security Event Logging**: Comprehensive logging of rate limiting and authentication failures
 
-<h3 style="color: #7c3aed;">User Management</h3>
+### 👥 User Management
 
 - **Profile Management**: View and update user profile data
 - **User Management**: Admin can view user details, create new users, update user information (name, email, password, roles, statuses), and delete users
 - **User Search & Pagination**: Search users with pagination support
 - **Role Management**: Admin can assign and update user roles
 
-<h3 style="color: #ea580c;">Admin Panel</h3>
+### ⚙️ Admin Panel
 
 - **User Management Interface**: Admin interface for managing users (view, create, update, delete)
 - **Access List Management**: Manage whitelist and blacklist entries
@@ -65,7 +65,7 @@ This project implements a production-ready authentication service with features 
 - **Masked Login Settings**: Configure masked login functionality (enable/disable, select template)
 - **Audit Trail**: Separate log file for all admin actions
 
-<h3 style="color: #0891b2;">Masked Login</h3>
+### 🎭 Masked Login
 
 **Masked Login** is a security feature that displays a fake page (template) to unauthenticated users instead of the real login page. This helps protect the actual login endpoint from automated attacks and reconnaissance.
 
@@ -90,7 +90,7 @@ This project implements a production-ready authentication service with features 
 - **Public Settings Endpoint**: Frontend can check if masked login is enabled without authentication
 - **Secret Access**: Authenticated users and users with `?secret=true` parameter can access the real login page
 
-<h3 style="color: #059669;">Other Features</h3>
+### ✨ Other Features
 
 - **Multi-language Support**: Full localization for 4 languages (EN, DE, RU, UA), including validation errors
 - **Asynchronous Email Notifications**: Lock/block notifications sent asynchronously
@@ -104,7 +104,7 @@ This project implements a production-ready authentication service with features 
 
 ## Tech Stack
 
-<h3 style="color: #0369a1;">Backend</h3>
+### 🔧 Backend
 
 - **Java 21**
 - **Spring Boot 3.5.0**
@@ -121,7 +121,7 @@ This project implements a production-ready authentication service with features 
 - **JUnit 5** - Unit and integration testing
 - **Mockito** - Mocking framework
 
-<h3 style="color: #0369a1;">Frontend</h3>
+### 🎨 Frontend
 
 - **React 18**
 - **TypeScript 5.2**
@@ -136,16 +136,16 @@ This project implements a production-ready authentication service with features 
 
 ## Installation & Setup
 
-<h3 style="color: #0369a1;">Prerequisites</h3>
+### 📋 Prerequisites
 
 - **Java 21** and **Maven** for the backend
 - **Node.js 18+** and **npm** for the frontend
 - **Docker** (optional) for containerized workflow and Testcontainers
 - **PostgreSQL** database (or use Docker)
 
-<h3 style="color: #0369a1;">Quick Start</h3>
+### 🚀 Quick Start
 
-<h4 style="color: #64748b;">Using Docker (Recommended)</h4>
+#### 🐳 Using Docker (Recommended)
 
 1. **Build and test backend**:
    ```bash
@@ -161,7 +161,7 @@ This project implements a production-ready authentication service with features 
    ./deploy.sh server
    ```
 
-<h4 style="color: #64748b;">Manual Setup</h4>
+#### 💻 Manual Setup
 
 1. **Backend**:
    ```bash
@@ -177,7 +177,7 @@ This project implements a production-ready authentication service with features 
    npm run dev -- --host --port 5173
    ```
 
-<h3 style="color: #0369a1;">Environment Variables</h3>
+### 🔑 Environment Variables
 
 Create a `.env` file based on `env.example`. Required variables:
 
@@ -200,11 +200,11 @@ See `env.example` for all available configuration options.
 
 ## Configuration
 
-<h3 style="color: #0369a1;">Application Configuration</h3>
+### ⚙️ Application Configuration
 
 Settings are managed via `application.yml`. Sensitive data (database credentials, JWT secrets, mail settings, OAuth) must be provided via environment variables.
 
-<h3 style="color: #0369a1;">Logging Configuration</h3>
+### 📝 Logging Configuration
 
 - **Configuration file**: `logback-spring.xml`
 - **Log files**: 
@@ -224,7 +224,7 @@ Settings are managed via `application.yml`. Sensitive data (database credentials
 
 ## API Documentation
 
-<h3 style="color: #2563eb;">Authentication Endpoints (`/api/auth`)</h3>
+### 🔐 Authentication Endpoints (`/api/auth`)
 
 - `POST /register` - User registration
 - `POST /login` - User login
@@ -236,13 +236,13 @@ Settings are managed via `application.yml`. Sensitive data (database credentials
 - `GET /check-access/{resource}` - Check user access to resource
 - `GET /oauth2/success` - OAuth2 callback endpoint
 
-<h3 style="color: #2563eb;">User Profile Endpoints (`/api/protected`)</h3>
+### 👤 User Profile Endpoints (`/api/protected`)
 
 - `GET /profile` - Get user profile (authenticated)
 - `POST /profile` - Update user profile (authenticated)
 - `GET /check` - Check authentication status
 
-<h3 style="color: #2563eb;">Admin Endpoints (`/api/admin`)</h3>
+### ⚙️ Admin Endpoints (`/api/admin`)
 
 - `GET /users` - Get all users (paginated, with search)
 - `POST /users` - Create new user
@@ -264,7 +264,7 @@ Settings are managed via `application.yml`. Sensitive data (database credentials
 - `GET /masked-login/settings` - Get masked login settings
 - `PUT /masked-login/settings` - Update masked login settings (requires password)
 
-<h3 style="color: #2563eb;">Public Endpoints (`/api/public/masked-login`)</h3>
+### 🌐 Public Endpoints (`/api/public/masked-login`)
 
 - `GET /settings` - Get masked login public settings (enabled/disabled, template ID)
 - `GET /template/{templateId}` - Get masked login template HTML (template ID: 1-10)
@@ -295,7 +295,7 @@ Authentication-service/
 
 The following improvements are planned for future versions:
 
-<h3 style="color: #7c2d12;">Distributed Rate Limiting (Optional)</h3>
+### 📊 Distributed Rate Limiting (Optional)
 
 **Rate Limiting Service**: Currently uses in-memory storage (`ConcurrentHashMap`) for rate limiting buckets. This works well for single-instance deployments, but has limitations:
 
@@ -307,7 +307,7 @@ The following improvements are planned for future versions:
 
 **Note**: For single-instance deployments, the current in-memory implementation is perfectly adequate and performant.
 
-<h3 style="color: #7c2d12;">Java Version & Performance</h3>
+### ☕ Java Version & Performance
 
 **Java 25 & Virtual Threads**: For production and improved performance, consider upgrading to Java 25 LTS and enabling virtual threads:
 
@@ -320,7 +320,7 @@ The following improvements are planned for future versions:
 
 **Current**: Java 21 (LTS until 2026) - perfectly adequate for current needs
 
-<h3 style="color: #7c2d12;">Microservice Architecture</h3>
+### 🏗️ Microservice Architecture
 
 To use this authentication service in a microservices architecture, the following components need to be implemented:
 
@@ -334,7 +334,7 @@ To use this authentication service in a microservices architecture, the followin
 
 **Current State**: Service is designed as a standalone authentication service but requires additional endpoints and client libraries for microservice integration.
 
-<h3 style="color: #7c2d12;">Additional Planned Enhancements</h3>
+### 🔮 Additional Planned Enhancements
 
 - **Monitoring & Metrics**: Add Spring Boot Actuator or Micrometer + Prometheus integration
 - **API Documentation**: Add OpenAPI/Swagger documentation
@@ -344,7 +344,7 @@ To use this authentication service in a microservices architecture, the followin
 
 ## Application Screenshots
 
-<h3 style="color: #2563eb;">Authentication Flow</h3>
+### 🔄 Authentication Flow
 
 Complete step-by-step authentication flow demonstration:
 
@@ -379,7 +379,7 @@ Complete step-by-step authentication flow demonstration:
 </tr>
 </table>
 
-<h3 style="color: #2563eb;">Authentication Pages</h3>
+### 🔐 Authentication Pages
 
 #### Login Page
 Standard login form with email and password fields. Also includes Google OAuth2 authentication option.
@@ -402,7 +402,7 @@ Email verification page for confirming account registration.
 <img src="docs/images/app-screenshots/verification-page.png" alt="Verification Page" style="max-width: 600px; width: 100%; height: auto; border: 1px solid #e4e7ec; border-radius: 8px;" />
 </div>
 
-<h3 style="color: #7c3aed;">User Profile</h3>
+### 👤 User Profile
 
 #### Profile View
 User profile page displaying account information and status. For admin users, includes a link to the admin panel.
@@ -418,7 +418,7 @@ Profile editing interface for updating user information.
 <img src="docs/images/app-screenshots/profile-edit-page.png" alt="Profile Edit Page" style="max-width: 600px; width: 100%; height: auto; border: 1px solid #e4e7ec; border-radius: 8px;" />
 </div>
 
-<h3 style="color: #ea580c;">Admin Panel</h3>
+### ⚙️ Admin Panel
 
 #### Users Management
 Admin panel - Users management tab with pagination.
