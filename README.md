@@ -295,6 +295,21 @@ Authentication-service/
 
 The following improvements are planned for future versions:
 
+### 🔒 Token Storage Security Enhancement
+
+**Current State**: Tokens are stored in `localStorage` or `sessionStorage` on the frontend. The implementation includes automatic token refresh, cross-tab synchronization, and proper token validation on the backend.
+
+**Security Concerns**:
+- Browser storage is accessible to JavaScript, making tokens vulnerable to XSS attacks
+- No `httpOnly` cookie protection for refresh tokens
+- CSRF protection is disabled
+
+**Improvement**: Implement more secure token storage strategy:
+- **Refresh Token in httpOnly Cookie**: Store refresh token in an `httpOnly` cookie with `Secure` and `SameSite=Strict` flags
+- **Access Token in Memory**: Keep access token in React state instead of browser storage (automatically refreshed from httpOnly cookie on page reload)
+- **Content Security Policy (CSP)**: Add CSP headers to prevent XSS attacks
+- **CSRF Protection**: Re-enable CSRF protection for cookie-based authentication
+
 ### 📊 Distributed Rate Limiting (Optional)
 
 **Rate Limiting Service**: Currently uses in-memory storage (`ConcurrentHashMap`) for rate limiting buckets. This works well for single-instance deployments, but has limitations:
@@ -309,16 +324,7 @@ The following improvements are planned for future versions:
 
 ### ☕ Java Version & Performance
 
-**Java 25 & Virtual Threads**: For production and improved performance, consider upgrading to Java 25 LTS and enabling virtual threads:
-
-- **Java 25 LTS**: Latest long-term support version with performance improvements and security enhancements
-- **Virtual Threads**: Enable virtual threads for better throughput under high concurrent load
-  - More efficient handling of blocking I/O operations (HTTP requests, database queries, email sending)
-  - Better resource utilization with thousands of concurrent requests
-  - Enabled in Spring Boot 3.5.0+ via `spring.threads.virtual.enabled=true`
-  - Especially beneficial for `@Async` operations and HTTP request handling
-
-**Current**: Java 21 (LTS until 2026) - perfectly adequate for current needs
+For production and improved performance, consider upgrading to Java 25 LTS and enabling virtual threads for better throughput under high concurrent load. Current: Java 21.
 
 ### 🏗️ Microservice Architecture
 
