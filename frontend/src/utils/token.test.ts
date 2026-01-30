@@ -3,6 +3,10 @@ import {
   isValidJwtFormat,
   isJwtExpired,
   getAccessToken,
+  setAccessToken,
+  hasAuthSession,
+  setAuthSessionActive,
+  clearAuthSession,
   setTokens,
   clearTokens,
 } from './token';
@@ -10,10 +14,12 @@ import {
 describe('token utilities', () => {
   beforeEach(() => {
     clearTokens();
+    clearAuthSession();
   });
 
   afterEach(() => {
     clearTokens();
+    clearAuthSession();
   });
 
   describe('isValidJwtFormat', () => {
@@ -112,6 +118,19 @@ describe('token utilities', () => {
     });
   });
 
+  describe('setAccessToken', () => {
+    it('stores access token in memory', () => {
+      setAccessToken('memory-token');
+      expect(getAccessToken()).toBe('memory-token');
+    });
+
+    it('clears access token when set to null', () => {
+      setAccessToken('memory-token');
+      setAccessToken(null);
+      expect(getAccessToken()).toBeNull();
+    });
+  });
+
   describe('clearTokens', () => {
     it('removes access token from memory', () => {
       setTokens('test-access');
@@ -123,6 +142,23 @@ describe('token utilities', () => {
 
     it('does not throw when tokens do not exist', () => {
       expect(() => clearTokens()).not.toThrow();
+    });
+  });
+
+  describe('auth session flag', () => {
+    it('returns false when session flag is not set', () => {
+      expect(hasAuthSession()).toBe(false);
+    });
+
+    it('returns true when session flag is set', () => {
+      setAuthSessionActive();
+      expect(hasAuthSession()).toBe(true);
+    });
+
+    it('clears session flag', () => {
+      setAuthSessionActive();
+      clearAuthSession();
+      expect(hasAuthSession()).toBe(false);
     });
   });
 });

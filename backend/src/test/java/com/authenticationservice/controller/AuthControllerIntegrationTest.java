@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -38,11 +39,13 @@ import java.util.HashMap;
 import jakarta.persistence.EntityManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.web.context.WebApplicationContext;
 
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -71,6 +74,9 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
 
     @Autowired
     private EntityManager entityManager;
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
 
     private User testUser;
 
@@ -242,6 +248,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(header().string(HttpHeaders.SET_COOKIE,
                         org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
     }
@@ -274,6 +281,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
+                .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(header().string(HttpHeaders.SET_COOKIE,
                         org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
     }
@@ -288,6 +296,39 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
                 .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, invalidToken)))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should return unauthorized when refresh token cookie is missing")
+    void refresh_shouldReturnUnauthorized_whenCookieMissing() throws Exception {
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("Should clear refresh cookie on logout")
+    void logout_shouldClearRefreshCookie() throws Exception {
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.LOGOUT_URL))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                        org.hamcrest.Matchers.allOf(
+                                org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "="),
+                                org.hamcrest.Matchers.containsString("Max-Age=0"),
+                                org.hamcrest.Matchers.containsString("Path=/api/auth")
+                        )));
+    }
+
+    @Test
+    @DisplayName("Should set CSRF cookie")
+    void csrf_shouldSetCookie() throws Exception {
+        MockMvc securedMockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
+                .apply(springSecurity())
+                .build();
+
+        securedMockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.CSRF_URL))
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                        org.hamcrest.Matchers.containsString("XSRF-TOKEN=")));
     }
 
     @Test
@@ -905,6 +946,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.OAUTH2_SUCCESS_URL))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accessToken").exists())
+                    .andExpect(jsonPath("$.refreshToken").doesNotExist())
                     .andExpect(header().string(HttpHeaders.SET_COOKIE,
                             org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
         } finally {

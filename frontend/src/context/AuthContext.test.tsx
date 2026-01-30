@@ -247,6 +247,7 @@ describe('AuthContext', () => {
 
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer new-access-token');
             expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
+            expect(mockBroadcastAuthEvent).toHaveBeenCalledWith('login');
         });
 
         it('should handle login error with string error message', async () => {
@@ -398,6 +399,9 @@ describe('AuthContext', () => {
                 expect(mockApiDefaults.headers.common['Authorization']).toBeUndefined();
                 expect(window.location.href).toBe('/');
             });
+
+            expect(mockApiPost).toHaveBeenCalledWith('/api/auth/logout');
+            expect(mockBroadcastAuthEvent).toHaveBeenCalledWith('logout');
         });
     });
 
@@ -423,6 +427,7 @@ describe('AuthContext', () => {
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer access-token');
             expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
             expect(screen.getByTestId('error')).toHaveTextContent('null');
+            expect(mockBroadcastAuthEvent).toHaveBeenCalledWith('login');
         });
     });
 
@@ -488,4 +493,3 @@ describe('AuthContext', () => {
         });
     });
 });
-

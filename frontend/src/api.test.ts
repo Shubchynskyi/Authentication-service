@@ -115,6 +115,7 @@ describe('api', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         resetAuthEventHandler();
+        document.cookie = 'XSRF-TOKEN=; expires=Thu, 01 Jan 1970 00:00:00 GMT';
 
         // Reset mocks
         mockGetAccessToken.mockReturnValue(null);
@@ -127,23 +128,22 @@ describe('api', () => {
         mockRequestUse = vi.fn();
         mockResponseUse = vi.fn();
 
-        mockApiInstance = {
-            interceptors: {
-                request: {
-                    use: mockRequestUse,
-                },
-                response: {
-                    use: mockResponseUse,
-                },
+        mockApiInstance = vi.fn();
+        mockApiInstance.interceptors = {
+            request: {
+                use: mockRequestUse,
             },
-            defaults: {
-                headers: {
-                    common: {} as Record<string, string>,
-                },
+            response: {
+                use: mockResponseUse,
             },
-            get: mockGet,
-            post: mockPost,
         };
+        mockApiInstance.defaults = {
+            headers: {
+                common: {} as Record<string, string>,
+            },
+        };
+        mockApiInstance.get = mockGet;
+        mockApiInstance.post = mockPost;
 
         mockAxiosCreate.mockReturnValue(mockApiInstance);
 
@@ -255,6 +255,23 @@ describe('api', () => {
                 expect(result.headers['Accept-Language']).toBe('en');
             }
         });
+
+        it('should add X-XSRF-TOKEN header when cookie exists', async () => {
+            await import('./api');
+
+            document.cookie = 'XSRF-TOKEN=xsrf-token';
+            mockGetAccessToken.mockReturnValue(null);
+
+            const config = {
+                headers: {} as Record<string, string>,
+            };
+
+            const interceptor = mockRequestUse.mock.calls[0]?.[0];
+            if (interceptor) {
+                const result = interceptor(config);
+                expect(result.headers['X-XSRF-TOKEN']).toBe('xsrf-token');
+            }
+        });
     });
 
     describe('Response Interceptor - Token Refresh', () => {
@@ -302,6 +319,32 @@ describe('api', () => {
                 expect(mockClearTokens).toHaveBeenCalled();
                 expect(window.location.replace).toHaveBeenCalledWith('/login');
             }
+        });
+
+        it('should fetch csrf token before refresh when missing', async () => {
+            const originalRequest = {
+                url: '/api/protected/endpoint',
+                _retry: false,
+                headers: {} as Record<string, string>,
+            };
+
+            const error = {
+                response: { status: 401 },
+                config: originalRequest,
+            };
+
+            mockGet.mockResolvedValue({ data: {} });
+            mockPost.mockResolvedValue({ data: { accessToken: 'new-token' } });
+
+            const interceptor = mockResponseUse.mock.calls[0]?.[1];
+            if (interceptor) {
+                await interceptor(error);
+            }
+
+            expect(mockGet).toHaveBeenCalledWith('/api/auth/csrf');
+            expect(mockPost).toHaveBeenCalledWith('/api/auth/refresh');
+            expect(mockSetTokens).toHaveBeenCalledWith('new-token');
+            expect(mockApiInstance).toHaveBeenCalledWith(originalRequest);
         });
 
         it('should not retry refresh token request', async () => {

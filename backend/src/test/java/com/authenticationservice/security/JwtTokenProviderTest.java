@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -327,6 +328,30 @@ class JwtTokenProviderTest {
                       "Extracted roles should contain ROLE_USER");
             assertTrue(roles.contains(SecurityConstants.ROLE_ADMIN),
                       "Extracted roles should contain ROLE_ADMIN");
+        }
+    }
+
+    @Nested
+    @DisplayName("Refresh Token TTL Tests")
+    class RefreshTokenTtlTests {
+        @Test
+        @DisplayName("Should return positive TTL for valid refresh token")
+        void getRefreshTokenTtlSeconds_shouldReturnPositive_whenTokenValid() {
+            String token = jwtTokenProvider.generateRefreshToken(testUser);
+
+            long ttlSeconds = jwtTokenProvider.getRefreshTokenTtlSeconds(token);
+
+            assertTrue(ttlSeconds > 0, "TTL should be positive for valid refresh token");
+            assertTrue(ttlSeconds <= TimeUnit.MILLISECONDS.toSeconds(jwtProperties.getRefreshExpiration()),
+                    "TTL should not exceed configured refresh expiration");
+        }
+
+        @Test
+        @DisplayName("Should return zero TTL for invalid refresh token")
+        void getRefreshTokenTtlSeconds_shouldReturnZero_whenTokenInvalid() {
+            long ttlSeconds = jwtTokenProvider.getRefreshTokenTtlSeconds("invalid.refresh.token");
+
+            assertEquals(0, ttlSeconds, "TTL should be zero for invalid refresh token");
         }
     }
 }
