@@ -1,6 +1,13 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { TFunction } from 'i18next';
-import { validatePassword } from './passwordValidation';
+
+vi.mock('../config', () => ({
+  PASSWORD_REGEX: new RegExp(
+    '^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=!\\-_*?])(?=\\S+$).{8,}$'
+  ),
+}));
+
+let validatePassword: (password: string, t: TFunction) => string;
 
 // Mock translation function
 const mockT = vi.fn((key: string) => {
@@ -17,6 +24,10 @@ const mockT = vi.fn((key: string) => {
 }) as unknown as TFunction;
 
 describe('passwordValidation', () => {
+  beforeAll(async () => {
+    ({ validatePassword } = await import('./passwordValidation'));
+  });
+
   describe('validatePassword', () => {
     it('returns empty string for valid password', () => {
       const result = validatePassword('ValidPass123!', mockT);

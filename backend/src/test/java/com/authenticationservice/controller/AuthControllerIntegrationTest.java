@@ -22,6 +22,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
@@ -31,6 +32,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import jakarta.servlet.http.Cookie;
 import java.util.Collections;
 import java.util.HashMap;
 import jakarta.persistence.EntityManager;
@@ -71,7 +73,6 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     private EntityManager entityManager;
 
     private User testUser;
-    private Role userRole;
 
     private void setAccessMode(AccessMode mode) {
         ensureAccessModeSettings(mode);
@@ -92,7 +93,6 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
 
             createAllowedEmail(TestConstants.UserData.TEST_EMAIL);
             testUser = createDefaultTestUser();
-            userRole = getOrCreateRole(SecurityConstants.ROLE_USER);
             userRepository.flush();
             return null;
         });
@@ -242,7 +242,8 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+                .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                        org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
     }
 
     @Test
@@ -270,24 +271,23 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("{\"refreshToken\":\"" + refreshToken + "\"}"))
+                .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").exists())
-                .andExpect(jsonPath("$.refreshToken").exists());
+                .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                        org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
     }
 
     @Test
-    @DisplayName("Should return bad request when refresh token is invalid")
-    void refresh_shouldReturnBadRequest_whenTokenInvalid() throws Exception {
+    @DisplayName("Should return unauthorized when refresh token is invalid")
+    void refresh_shouldReturnUnauthorized_whenTokenInvalid() throws Exception {
         // Arrange
         String invalidToken = "invalid.refresh.token";
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content("{\"refreshToken\":\"" + invalidToken + "\"}"))
-                .andExpect(status().isBadRequest());
+                .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, invalidToken)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -426,6 +426,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         
         // Force commit by starting and committing a new transaction
         transactionTemplate.execute(status -> {
+            assertNotNull(userId);
             userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found before login attempt"));
             entityManager.flush();
@@ -476,6 +477,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         
         // Force commit by starting and committing a new transaction
         transactionTemplate.execute(status -> {
+            assertNotNull(userId);
             userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found before login attempt"));
             entityManager.flush();
@@ -552,6 +554,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
                         .orElseThrow(() -> new RuntimeException("User not found"))
         );
+        assertNotNull(user);
         assertEquals(0, user.getFailedLoginAttempts());
     }
 
@@ -902,7 +905,8 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
             mockMvc.perform(get(ApiConstants.AUTH_BASE_URL + ApiConstants.OAUTH2_SUCCESS_URL))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.accessToken").exists())
-                    .andExpect(jsonPath("$.refreshToken").exists());
+                    .andExpect(header().string(HttpHeaders.SET_COOKIE,
+                            org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
         } finally {
             SecurityContextHolder.clearContext();
         }
@@ -918,6 +922,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
      * @param entityManager Entity manager for clearing cache
      * @return Updated user when condition is met
      */
+    @SuppressWarnings("BusyWait")
     private User waitForUserUpdate(Long userId, 
                                    java.util.function.Predicate<User> condition,
                                    TransactionTemplate transactionTemplate,

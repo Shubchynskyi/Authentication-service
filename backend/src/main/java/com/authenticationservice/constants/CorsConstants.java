@@ -15,7 +15,8 @@ public final class CorsConstants {
         "Accept-Language",
         "Accept",
         "Origin",
-        "X-Requested-With"
+        "X-Requested-With",
+        "X-XSRF-TOKEN"
     );
     public static final String ALL_PATHS = "/**";
 } 

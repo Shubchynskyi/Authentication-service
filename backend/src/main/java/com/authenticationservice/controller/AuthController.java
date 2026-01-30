@@ -10,21 +10,25 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import jakarta.validation.Valid;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.web.util.WebUtils;
+import jakarta.servlet.http.HttpServletRequest;
 
 import com.authenticationservice.constants.ApiConstants;
 import com.authenticationservice.constants.MessageConstants;
 import com.authenticationservice.constants.SecurityConstants;
 import com.authenticationservice.dto.EmailRequest;
 import com.authenticationservice.dto.LoginRequest;
-import com.authenticationservice.dto.RefreshTokenRequest;
 import com.authenticationservice.dto.RegistrationRequest;
 import com.authenticationservice.dto.ResetPasswordRequest;
 import com.authenticationservice.dto.VerificationRequest;
 import com.authenticationservice.service.AuthService;
 import com.authenticationservice.security.JwtTokenProvider;
+import com.authenticationservice.security.RefreshTokenCookieService;
 import com.authenticationservice.util.LoggingSanitizer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -39,6 +43,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenCookieService refreshTokenCookieService;
 
     private String maskEmail(String email) {
         return LoggingSanitizer.maskEmail(email);
@@ -56,16 +61,58 @@ public class AuthController {
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req) {
         log.debug("Login request received for email: {}", maskEmail(req.getEmail()));
         Map<String, String> tokens = authService.login(req);
+        String refreshToken = tokens.get(SecurityConstants.REFRESH_TOKEN_KEY);
+        String accessToken = tokens.get(SecurityConstants.ACCESS_TOKEN_KEY);
+        if (refreshToken == null || accessToken == null) {
+            throw new RuntimeException("Token generation failed");
+        }
+        String refreshCookie = refreshTokenCookieService.createRefreshTokenCookie(refreshToken).toString();
         log.info("Login successful for email: {}", maskEmail(req.getEmail()));
-        return ResponseEntity.ok(tokens);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie)
+                .body(Map.of(SecurityConstants.ACCESS_TOKEN_KEY, accessToken));
     }
 
     @PostMapping(ApiConstants.REFRESH_URL)
-    public ResponseEntity<Map<String, String>> refresh(@Valid @RequestBody RefreshTokenRequest request) {
+    public ResponseEntity<Map<String, String>> refresh(HttpServletRequest request) {
         log.debug("Token refresh request received");
-        Map<String, String> tokens = authService.refresh(request.getRefreshToken());
-        log.info("Token refresh successful");
-        return ResponseEntity.ok(tokens);
+        var cookie = WebUtils.getCookie(request, refreshTokenCookieService.getCookieName());
+        String refreshToken = cookie != null ? cookie.getValue() : null;
+        if (refreshToken == null || refreshToken.isBlank()) {
+            // No refresh token - return 401 (not logged in)
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        try {
+            Map<String, String> tokens = authService.refresh(refreshToken);
+            String newRefreshToken = tokens.get(SecurityConstants.REFRESH_TOKEN_KEY);
+            String accessToken = tokens.get(SecurityConstants.ACCESS_TOKEN_KEY);
+            if (newRefreshToken == null || accessToken == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            String refreshCookie = refreshTokenCookieService.createRefreshTokenCookie(newRefreshToken).toString();
+            log.info("Token refresh successful");
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, refreshCookie)
+                    .body(Map.of(SecurityConstants.ACCESS_TOKEN_KEY, accessToken));
+        } catch (Exception e) {
+            // Invalid/expired token - return 401
+            log.debug("Token refresh failed: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+    }
+
+    @PostMapping(ApiConstants.LOGOUT_URL)
+    public ResponseEntity<Void> logout() {
+        String refreshCookie = refreshTokenCookieService.clearRefreshTokenCookie().toString();
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie)
+                .build();
+    }
+
+    @GetMapping(ApiConstants.CSRF_URL)
+    public ResponseEntity<Void> csrf(CsrfToken csrfToken) {
+        csrfToken.getToken(); // Force cookie write (Spring Security 6+ deferred loading)
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping(ApiConstants.VERIFY_URL)
@@ -138,7 +185,15 @@ public class AuthController {
 
         log.debug("OAuth2 login request received for email: {}", maskEmail(email));
         Map<String, String> tokens = authService.handleOAuth2Login(email, name);
+        String refreshToken = tokens.get(SecurityConstants.REFRESH_TOKEN_KEY);
+        String accessToken = tokens.get(SecurityConstants.ACCESS_TOKEN_KEY);
+        if (refreshToken == null || accessToken == null) {
+            throw new RuntimeException("Token generation failed");
+        }
+        String refreshCookie = refreshTokenCookieService.createRefreshTokenCookie(refreshToken).toString();
         log.info("OAuth2 login successful for email: {}", maskEmail(email));
-        return ResponseEntity.ok(tokens);
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, refreshCookie)
+                .body(Map.of(SecurityConstants.ACCESS_TOKEN_KEY, accessToken));
     }
 }

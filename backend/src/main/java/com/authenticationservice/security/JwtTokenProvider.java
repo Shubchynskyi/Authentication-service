@@ -138,6 +138,21 @@ public class JwtTokenProvider {
         }
     }
 
+    public long getRefreshTokenTtlSeconds(String refreshToken) {
+        try {
+            Claims claims = refreshParser.parseSignedClaims(refreshToken).getPayload();
+            Date expiration = claims.getExpiration();
+            if (expiration == null) {
+                return 0;
+            }
+            long nowMillis = System.currentTimeMillis();
+            long ttlMillis = expiration.getTime() - nowMillis;
+            return Math.max(0, TimeUnit.MILLISECONDS.toSeconds(ttlMillis));
+        } catch (Exception ex) {
+            return 0;
+        }
+    }
+
     public boolean validateAccessToken(String accessToken) {
         try {
             accessParser.parseSignedClaims(accessToken);

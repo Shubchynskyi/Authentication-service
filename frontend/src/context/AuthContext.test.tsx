@@ -4,38 +4,46 @@ import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
+let authEventHandler: ((event: { type: 'login' | 'logout'; at: number }) => void) | null = null;
+
 const {
     mockApiPost,
+    mockApiGet,
     mockApiDefaults,
     mockGetAccessToken,
-    mockGetRefreshToken,
     mockIsJwtExpired,
     mockClearTokens,
-    mockPersistTokens,
-    mockGetTokenStorageMode,
+    mockSetTokens,
+    mockBroadcastAuthEvent,
+    mockSubscribeAuthEvents,
 } = vi.hoisted(() => {
     const mockApiPost = vi.fn();
+    const mockApiGet = vi.fn();
     const mockApiDefaults = {
         headers: {
             common: {} as Record<string, string>,
         },
     };
     const mockGetAccessToken = vi.fn();
-    const mockGetRefreshToken = vi.fn();
     const mockIsJwtExpired = vi.fn();
     const mockClearTokens = vi.fn();
-    const mockPersistTokens = vi.fn();
-    const mockGetTokenStorageMode = vi.fn();
+    const mockSetTokens = vi.fn();
+    const mockBroadcastAuthEvent = vi.fn();
+    const mockSubscribeAuthEvents = vi.fn((handler: (event: { type: 'login' | 'logout'; at: number }) => void) => {
+        authEventHandler = handler;
+        return () => {};
+    });
 
     return {
         mockApiPost,
+        mockApiGet,
         mockApiDefaults,
         mockGetAccessToken,
-        mockGetRefreshToken,
         mockIsJwtExpired,
         mockClearTokens,
-        mockPersistTokens,
-        mockGetTokenStorageMode,
+        mockSetTokens,
+        mockBroadcastAuthEvent,
+        mockSubscribeAuthEvents,
     };
 });
 
@@ -43,21 +51,23 @@ const {
 vi.mock('../api', () => ({
     default: {
         post: mockApiPost,
+        get: mockApiGet,
         defaults: mockApiDefaults,
-        get: vi.fn(),
     },
 }));
 
 // Mock token utils
 vi.mock('../utils/token', () => ({
     getAccessToken: () => mockGetAccessToken(),
-    getRefreshToken: () => mockGetRefreshToken(),
     isJwtExpired: (token: string) => mockIsJwtExpired(token),
     clearTokens: () => mockClearTokens(),
-    // New exports required by AuthContext after remember-device changes
-    setTokens: (...args: any[]) => mockPersistTokens(...args),
-    getTokenStorageMode: () => mockGetTokenStorageMode(),
-    setTokenStorageMode: vi.fn(),
+    setTokens: (...args: any[]) => mockSetTokens(...args),
+}));
+
+vi.mock('../utils/authEvents', () => ({
+    broadcastAuthEvent: (...args: any[]) => mockBroadcastAuthEvent(...args),
+    subscribeAuthEvents: (handler: (event: { type: 'login' | 'logout'; at: number }) => void) =>
+        mockSubscribeAuthEvents(handler),
 }));
 
 // Mock logger
@@ -98,7 +108,7 @@ const TestComponent: React.FC = () => {
             <button data-testid="logout-btn" onClick={logout}>
                 Logout
             </button>
-            <button data-testid="set-tokens-btn" onClick={() => setTokens('access-token', 'refresh-token')}>
+            <button data-testid="set-tokens-btn" onClick={() => setTokens('access-token')}>
                 Set Tokens
             </button>
         </div>
@@ -108,16 +118,13 @@ const TestComponent: React.FC = () => {
 describe('AuthContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
+        authEventHandler = null;
         mockApiDefaults.headers.common = {};
+        mockApiGet.mockResolvedValue({ data: {} });
+        mockApiPost.mockResolvedValue({ data: {} });
         mockGetAccessToken.mockReturnValue(null);
-        mockGetRefreshToken.mockReturnValue(null);
         mockIsJwtExpired.mockReturnValue(true);
-        mockGetTokenStorageMode.mockReturnValue('local');
-        mockClearTokens.mockImplementation(() => {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-        });
+        mockClearTokens.mockImplementation(() => {});
 
         // Mock window.location.href
         delete (window as any).location;
@@ -126,14 +133,12 @@ describe('AuthContext', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
         cleanup();
     });
 
     describe('Initialization', () => {
         it('should set authenticated to false when no tokens exist', async () => {
             mockGetAccessToken.mockReturnValue(null);
-            mockGetRefreshToken.mockReturnValue(null);
 
             render(
                 <AuthProvider>
@@ -152,7 +157,6 @@ describe('AuthContext', () => {
         it('should set authenticated to true when valid access token exists', async () => {
             const validToken = 'valid.access.token';
             mockGetAccessToken.mockReturnValue(validToken);
-            mockGetRefreshToken.mockReturnValue(null);
             mockIsJwtExpired.mockReturnValue(false);
 
             render(
@@ -172,7 +176,6 @@ describe('AuthContext', () => {
         it('should set authenticated to false when access token is expired', async () => {
             const expiredToken = 'expired.access.token';
             mockGetAccessToken.mockReturnValue(expiredToken);
-            mockGetRefreshToken.mockReturnValue('refresh-token');
             mockIsJwtExpired.mockReturnValue(true);
 
             render(
@@ -190,7 +193,6 @@ describe('AuthContext', () => {
 
         it('should clear tokens when no valid tokens exist', async () => {
             mockGetAccessToken.mockReturnValue(null);
-            mockGetRefreshToken.mockReturnValue(null);
 
             render(
                 <AuthProvider>
@@ -211,10 +213,11 @@ describe('AuthContext', () => {
             const mockResponse = {
                 data: {
                     accessToken: 'new-access-token',
-                    refreshToken: 'new-refresh-token',
                 },
             };
-            mockApiPost.mockResolvedValue(mockResponse);
+            mockApiPost
+                .mockResolvedValueOnce({ data: {} })
+                .mockResolvedValueOnce(mockResponse);
 
             render(
                 <AuthProvider>
@@ -239,7 +242,7 @@ describe('AuthContext', () => {
             });
 
             await waitFor(() => {
-                expect(mockPersistTokens).toHaveBeenCalledWith('new-access-token', 'new-refresh-token', 'local');
+                expect(mockSetTokens).toHaveBeenCalledWith('new-access-token');
             });
 
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer new-access-token');
@@ -315,11 +318,11 @@ describe('AuthContext', () => {
         it('should handle login error with missing tokens in response', async () => {
             const mockResponse = {
                 data: {
-                    accessToken: 'token',
-                    // Missing refreshToken
                 },
             };
-            mockApiPost.mockResolvedValue(mockResponse);
+            mockApiPost
+                .mockResolvedValueOnce({ data: {} })
+                .mockResolvedValueOnce(mockResponse);
 
             render(
                 <AuthProvider>
@@ -374,8 +377,6 @@ describe('AuthContext', () => {
 
     describe('logout', () => {
         it('should clear tokens and redirect on logout', async () => {
-            localStorage.setItem('accessToken', 'token');
-            localStorage.setItem('refreshToken', 'refresh');
             mockApiDefaults.headers.common['Authorization'] = 'Bearer token';
 
             render(
@@ -391,9 +392,12 @@ describe('AuthContext', () => {
             const logoutButton = screen.getByTestId('logout-btn');
             logoutButton.click();
 
-            expect(mockClearTokens).toHaveBeenCalled();
-            expect(mockApiDefaults.headers.common['Authorization']).toBeUndefined();
-            expect(window.location.href).toBe('/');
+            // logout is now async, wait for it to complete
+            await waitFor(() => {
+                expect(mockClearTokens).toHaveBeenCalled();
+                expect(mockApiDefaults.headers.common['Authorization']).toBeUndefined();
+                expect(window.location.href).toBe('/');
+            });
         });
     });
 
@@ -413,7 +417,7 @@ describe('AuthContext', () => {
             setTokensButton.click();
 
             await waitFor(() => {
-                expect(mockPersistTokens).toHaveBeenCalledWith('access-token', 'refresh-token', 'local');
+                expect(mockSetTokens).toHaveBeenCalledWith('access-token');
             });
 
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer access-token');
@@ -423,7 +427,34 @@ describe('AuthContext', () => {
     });
 
     describe('Cross-tab synchronization', () => {
-        it('should update auth state when token is added in another tab', async () => {
+        it('should update auth state on logout event', async () => {
+            mockGetAccessToken.mockReturnValue('token');
+            mockIsJwtExpired.mockReturnValue(false);
+
+            render(
+                <AuthProvider>
+                    <TestComponent />
+                </AuthProvider>
+            );
+
+            await waitFor(() => {
+                expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
+            });
+
+            authEventHandler?.({ type: 'logout', at: Date.now() });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
+            });
+
+            expect(mockApiDefaults.headers.common['Authorization']).toBeUndefined();
+        });
+
+        it('should refresh access token on login event', async () => {
+            mockApiPost
+                .mockResolvedValueOnce({ data: {} })
+                .mockResolvedValueOnce({ data: { accessToken: 'new-token' } });
+
             render(
                 <AuthProvider>
                     <TestComponent />
@@ -434,86 +465,13 @@ describe('AuthContext', () => {
                 expect(screen.getByTestId('isLoading')).toHaveTextContent('false');
             });
 
-            // Simulate storage event from another tab
-            mockGetAccessToken.mockReturnValue('new-token');
-            mockGetRefreshToken.mockReturnValue('new-refresh');
-            mockIsJwtExpired.mockReturnValue(false);
-
-            const storageEvent = new StorageEvent('storage', {
-                key: 'accessToken',
-                oldValue: null,
-                newValue: 'new-token',
-            });
-            window.dispatchEvent(storageEvent);
+            authEventHandler?.({ type: 'login', at: Date.now() });
 
             await waitFor(() => {
                 expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
             });
 
             expect(mockApiDefaults.headers.common['Authorization']).toBe('Bearer new-token');
-        });
-
-        it('should update auth state when token is removed in another tab', async () => {
-            mockGetAccessToken.mockReturnValue('token');
-            mockGetRefreshToken.mockReturnValue('refresh');
-            mockIsJwtExpired.mockReturnValue(false);
-
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            await waitFor(() => {
-                expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('true');
-            });
-
-            // Simulate token removal in another tab
-            mockGetAccessToken.mockReturnValue(null);
-            mockGetRefreshToken.mockReturnValue(null);
-
-            const storageEvent = new StorageEvent('storage', {
-                key: 'accessToken',
-                oldValue: 'token',
-                newValue: null,
-            });
-            window.dispatchEvent(storageEvent);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
-            });
-
-            expect(mockApiDefaults.headers.common['Authorization']).toBeUndefined();
-        });
-
-        it('should handle expired access token with refresh token', async () => {
-            render(
-                <AuthProvider>
-                    <TestComponent />
-                </AuthProvider>
-            );
-
-            await waitFor(() => {
-                expect(screen.getByTestId('isLoading')).toHaveTextContent('false');
-            });
-
-            // Simulate expired access token but refresh token exists
-            mockGetAccessToken.mockReturnValue('expired-token');
-            mockGetRefreshToken.mockReturnValue('refresh-token');
-            mockIsJwtExpired.mockReturnValue(true);
-
-            const storageEvent = new StorageEvent('storage', {
-                key: 'accessToken',
-                oldValue: 'token',
-                newValue: 'expired-token',
-            });
-            window.dispatchEvent(storageEvent);
-
-            await waitFor(() => {
-                expect(screen.getByTestId('isAuthenticated')).toHaveTextContent('false');
-            });
-
-            expect(mockApiDefaults.headers.common['Authorization']).toBeUndefined();
         });
     });
 

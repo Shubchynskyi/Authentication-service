@@ -53,7 +53,7 @@ const OAuth2RedirectHandler = () => {
             return;
         }
 
-        // Tokens come via URL fragment (#accessToken=...&refreshToken=...)
+        // Token comes via URL fragment (#accessToken=...)
         // URL fragment is not sent to server, providing better security
         const hash = window.location.hash;
         if (!hash || hash.length <= 1) {
@@ -69,10 +69,8 @@ const OAuth2RedirectHandler = () => {
         // Parse hash fragment (remove leading #)
         const hashParams = new URLSearchParams(hash.substring(1));
         const encodedAccessToken = hashParams.get('accessToken');
-        const encodedRefreshToken = hashParams.get('refreshToken');
         
-        if (!encodedAccessToken || !encodedRefreshToken) {
-            // Clear tokens if no valid tokens received
+        if (!encodedAccessToken) {
             clearTokens();
             navigate('/', { 
                 replace: true,
@@ -81,12 +79,10 @@ const OAuth2RedirectHandler = () => {
             return;
         }
 
-        // Decode URL-encoded tokens
+        // Decode URL-encoded token
         let accessToken: string;
-        let refreshToken: string;
         try {
             accessToken = decodeURIComponent(encodedAccessToken);
-            refreshToken = decodeURIComponent(encodedRefreshToken);
         } catch (decodeError) {
             console.error('Failed to decode tokens from URL:', decodeError);
             clearTokens();
@@ -98,7 +94,7 @@ const OAuth2RedirectHandler = () => {
         }
 
         // Validate JWT token format before saving
-        if (!isValidJwtFormat(accessToken) || !isValidJwtFormat(refreshToken)) {
+        if (!isValidJwtFormat(accessToken)) {
             console.error('Invalid JWT token format received');
             clearTokens();
             navigate('/', { 
@@ -112,7 +108,7 @@ const OAuth2RedirectHandler = () => {
         window.history.replaceState(null, '', window.location.pathname);
 
         // Set new tokens
-        setTokens(accessToken, refreshToken);
+        setTokens(accessToken);
         navigate('/', { replace: true });
     }, [navigate, searchParams, setTokens, t]);
 

@@ -30,15 +30,10 @@ public final class SecurityConstants {
 
     // AuthController specific constants
     public static final String REFRESH_TOKEN_KEY = "refreshToken";
-    public static final String EMAIL_KEY = "email";
     public static final String ADMIN_PANEL_RESOURCE = "admin-panel";
     public static final String USER_MANAGEMENT_RESOURCE = "user-management";
     public static final String OAUTH2_EMAIL_ATTRIBUTE = "email";
     public static final String OAUTH2_NAME_ATTRIBUTE = "name";
-    public static final String ERROR_KEY = "error";
-    public static final String PASSWORD_KEY = "password";
-    public static final String MODE_KEY = "mode";
-    public static final String OTP_CODE_KEY = "otpCode";
-    public static final String REASON_KEY = "reason";
     public static final String ACCESS_TOKEN_KEY = "accessToken";
+    public static final String REFRESH_TOKEN_COOKIE_NAME = "refreshToken";
 }

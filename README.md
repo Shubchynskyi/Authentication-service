@@ -17,11 +17,11 @@ This project implements a production-ready authentication service with features 
 ### 🔐 Authentication
 
 - **User Registration**: Email-based registration with email verification
-- **Login/Logout**: JWT-based authentication with access tokens (15 minutes) and refresh tokens (7 days)
+- **Login/Logout**: JWT-based authentication with access tokens (15 minutes) and refresh tokens (7 days, stored in httpOnly cookies)
 - **Email Verification**: Token-based verification with resend functionality
 - **Password Reset**: Secure password reset flow with 1-hour token expiration and cooldown between requests
-- **OAuth2 Google Authentication**: Social login via Google OAuth2 with tokens returned via URL fragment
-- **Token Refresh**: Automatic token refresh mechanism
+- **OAuth2 Google Authentication**: Social login via Google OAuth2 with access token returned via URL fragment
+- **Token Refresh**: Automatic access token refresh via httpOnly refresh cookie
 
 ### 🛡️ Authorization
 
@@ -45,7 +45,9 @@ This project implements a production-ready authentication service with features 
   - Responses include `Retry-After` header and `retryAfterSeconds` field to inform clients when to retry
 - **Password Validation**: Strong password requirements with regex validation
 - **Secure Password Storage**: BCrypt password hashing
-- **JWT Security**: Separate access and refresh tokens with configurable expiration
+- **JWT Security**: Refresh token stored in httpOnly cookie; access token kept in memory with configurable expiration
+- **CSRF Protection**: Enabled for cookie-based refresh/logout flows
+- **Content Security Policy (CSP)**: Default CSP headers to reduce XSS risk
 - **Security Event Logging**: Comprehensive logging of rate limiting and authentication failures
 
 ### 👥 User Management
@@ -229,12 +231,18 @@ Settings are managed via `application.yml`. Sensitive data (database credentials
 - `POST /register` - User registration
 - `POST /login` - User login
 - `POST /refresh` - Refresh access token
+- `POST /logout` - Logout and clear refresh cookie
 - `POST /verify` - Verify email address
 - `POST /resend-verification` - Resend verification email
 - `POST /forgot-password` - Initiate password reset
 - `POST /reset-password` - Reset password with token
+- `GET /csrf` - Issue CSRF cookie for XSRF protection
 - `GET /check-access/{resource}` - Check user access to resource
 - `GET /oauth2/success` - OAuth2 callback endpoint
+
+Notes:
+- `POST /login` and `POST /refresh` set the refresh token httpOnly cookie and return `accessToken` in JSON.
+- `POST /refresh` and `POST /logout` require the `X-XSRF-TOKEN` header (call `GET /csrf` to prime it).
 
 ### 👤 User Profile Endpoints (`/api/protected`)
 
@@ -294,21 +302,6 @@ Authentication-service/
 ## Future Improvements
 
 The following improvements are planned for future versions:
-
-### 🔒 Token Storage Security Enhancement
-
-**Current State**: Tokens are stored in `localStorage` or `sessionStorage` on the frontend. The implementation includes automatic token refresh, cross-tab synchronization, and proper token validation on the backend.
-
-**Security Concerns**:
-- Browser storage is accessible to JavaScript, making tokens vulnerable to XSS attacks
-- No `httpOnly` cookie protection for refresh tokens
-- CSRF protection is disabled
-
-**Improvement**: Implement more secure token storage strategy:
-- **Refresh Token in httpOnly Cookie**: Store refresh token in an `httpOnly` cookie with `Secure` and `SameSite=Strict` flags
-- **Access Token in Memory**: Keep access token in React state instead of browser storage (automatically refreshed from httpOnly cookie on page reload)
-- **Content Security Policy (CSP)**: Add CSP headers to prevent XSS attacks
-- **CSRF Protection**: Re-enable CSRF protection for cookie-based authentication
 
 ### 📊 Distributed Rate Limiting (Optional)
 

@@ -3,17 +3,17 @@ import {
   isValidJwtFormat,
   isJwtExpired,
   getAccessToken,
-  getRefreshToken,
+  setTokens,
   clearTokens,
 } from './token';
 
 describe('token utilities', () => {
   beforeEach(() => {
-    localStorage.clear();
+    clearTokens();
   });
 
   afterEach(() => {
-    localStorage.clear();
+    clearTokens();
   });
 
   describe('isValidJwtFormat', () => {
@@ -101,38 +101,24 @@ describe('token utilities', () => {
   });
 
   describe('getAccessToken', () => {
-    it('returns null when token is not in localStorage', () => {
+    it('returns null when token is not set', () => {
       expect(getAccessToken()).toBeNull();
     });
 
-    it('returns token from localStorage', () => {
+    it('returns token from memory', () => {
       const token = 'test-access-token';
-      localStorage.setItem('accessToken', token);
+      setTokens(token);
       expect(getAccessToken()).toBe(token);
     });
   });
 
-  describe('getRefreshToken', () => {
-    it('returns null when token is not in localStorage', () => {
-      expect(getRefreshToken()).toBeNull();
-    });
-
-    it('returns token from localStorage', () => {
-      const token = 'test-refresh-token';
-      localStorage.setItem('refreshToken', token);
-      expect(getRefreshToken()).toBe(token);
-    });
-  });
-
   describe('clearTokens', () => {
-    it('removes both tokens from localStorage', () => {
-      localStorage.setItem('accessToken', 'test-access');
-      localStorage.setItem('refreshToken', 'test-refresh');
-      
+    it('removes access token from memory', () => {
+      setTokens('test-access');
+
       clearTokens();
-      
-      expect(localStorage.getItem('accessToken')).toBeNull();
-      expect(localStorage.getItem('refreshToken')).toBeNull();
+
+      expect(getAccessToken()).toBeNull();
     });
 
     it('does not throw when tokens do not exist', () => {

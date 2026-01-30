@@ -4,16 +4,19 @@ import { vi, beforeEach, afterEach, describe, it, expect } from 'vitest';
 import { ProfileProvider, useProfile } from './ProfileContext';
 import { AuthProvider, useAuth } from './AuthContext';
 
-// Create mocks using vi.hoisted() to avoid hoisting issues
-const { mockApiGet, mockApiPost, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens } = vi.hoisted(() => {
+const { mockApiGet, mockApiPost, mockGetAccessToken, mockIsJwtExpired, mockClearTokens, mockBroadcastAuthEvent, mockSubscribeAuthEvents } = vi.hoisted(() => {
     const mockApiGet = vi.fn();
     const mockApiPost = vi.fn();
     const mockGetAccessToken = vi.fn();
-    const mockGetRefreshToken = vi.fn();
     const mockIsJwtExpired = vi.fn();
     const mockClearTokens = vi.fn();
+    const mockBroadcastAuthEvent = vi.fn();
+    const mockSubscribeAuthEvents = vi.fn((handler: (event: any) => void) => {
+        void handler;
+        return () => {};
+    });
     
-    return { mockApiGet, mockApiPost, mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens };
+    return { mockApiGet, mockApiPost, mockGetAccessToken, mockIsJwtExpired, mockClearTokens, mockBroadcastAuthEvent, mockSubscribeAuthEvents };
 });
 
 // Mock api
@@ -32,13 +35,14 @@ vi.mock('../api', () => ({
 // Mock token utils
 vi.mock('../utils/token', () => ({
     getAccessToken: () => mockGetAccessToken(),
-    getRefreshToken: () => mockGetRefreshToken(),
     isJwtExpired: (token: string) => mockIsJwtExpired(token),
     clearTokens: () => mockClearTokens(),
-    // New exports required by AuthContext after remember-device changes
     setTokens: vi.fn(),
-    getTokenStorageMode: vi.fn(() => 'local'),
-    setTokenStorageMode: vi.fn(),
+}));
+
+vi.mock('../utils/authEvents', () => ({
+    broadcastAuthEvent: (...args: any[]) => mockBroadcastAuthEvent(...args),
+    subscribeAuthEvents: (handler: (event: any) => void) => mockSubscribeAuthEvents(handler),
 }));
 
 // Mock axios for AuthContext
@@ -88,26 +92,21 @@ const TestWrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 describe('ProfileContext', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
+        mockApiGet.mockResolvedValue({ data: {} });
+        mockApiPost.mockResolvedValue({ data: {} });
         mockGetAccessToken.mockReturnValue(null);
-        mockGetRefreshToken.mockReturnValue(null);
         mockIsJwtExpired.mockReturnValue(true);
-        mockClearTokens.mockImplementation(() => {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-        });
+        mockClearTokens.mockImplementation(() => {});
     });
 
     afterEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
         cleanup();
     });
 
     describe('Initialization', () => {
         it('should not fetch profile when not authenticated', async () => {
             mockGetAccessToken.mockReturnValue(null);
-            mockGetRefreshToken.mockReturnValue(null);
 
             render(
                 <TestWrapper>
@@ -129,7 +128,7 @@ describe('ProfileContext', () => {
             });
 
             await waitFor(() => {
-                expect(mockApiGet).not.toHaveBeenCalled();
+                expect(mockApiGet).not.toHaveBeenCalledWith('/api/protected/profile');
                 expect(screen.getByTestId('profile')).toHaveTextContent('null');
             }, { timeout: 5000 });
         });
@@ -144,7 +143,6 @@ describe('ProfileContext', () => {
 
             const validToken = 'valid.token.here';
             mockGetAccessToken.mockReturnValue(validToken);
-            mockGetRefreshToken.mockReturnValue(null);
             mockIsJwtExpired.mockReturnValue(false);
             mockApiGet.mockResolvedValue({ data: mockProfile });
 
@@ -201,7 +199,7 @@ describe('ProfileContext', () => {
                     const timer = setTimeout(() => {
                         mockGetAccessToken.mockReturnValue('token');
                         mockIsJwtExpired.mockReturnValue(false);
-                        setTokens('token', 'refresh-token');
+                        setTokens('token');
                     }, 100);
                     return () => clearTimeout(timer);
                 }, [setTokens]);
@@ -308,7 +306,9 @@ describe('ProfileContext', () => {
 
             mockGetAccessToken.mockReturnValue('token');
             mockIsJwtExpired.mockReturnValue(false);
-            mockApiGet.mockReturnValue(promise);
+            mockApiGet
+                .mockResolvedValueOnce({ data: {} })
+                .mockReturnValueOnce(promise);
 
             render(
                 <TestWrapper>
@@ -422,6 +422,7 @@ describe('ProfileContext', () => {
             mockGetAccessToken.mockReturnValue('token');
             mockIsJwtExpired.mockReturnValue(false);
             mockApiGet
+                .mockResolvedValueOnce({ data: {} })
                 .mockResolvedValueOnce({ data: initialProfile })
                 .mockResolvedValueOnce({ data: updatedProfile });
             mockApiPost.mockResolvedValue({});
@@ -454,7 +455,10 @@ describe('ProfileContext', () => {
             });
 
             await waitFor(() => {
-                expect(mockApiGet).toHaveBeenCalledTimes(2);
+                const profileCalls = mockApiGet.mock.calls.filter(
+                    ([url]) => url === '/api/protected/profile'
+                );
+                expect(profileCalls).toHaveLength(2);
             });
 
             await waitFor(() => {

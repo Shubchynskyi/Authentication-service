@@ -12,6 +12,8 @@ public final class ApiConstants {
     public static final String LOGIN_URL = "/login";
     public static final String VERIFY_URL = "/verify";
     public static final String REFRESH_URL = "/refresh";
+    public static final String LOGOUT_URL = "/logout";
+    public static final String CSRF_URL = "/csrf";
     public static final String PROFILE_URL = "/profile";
     public static final String RESEND_VERIFICATION_URL = "/resend-verification";
     public static final String FORGOT_PASSWORD_URL = "/forgot-password";

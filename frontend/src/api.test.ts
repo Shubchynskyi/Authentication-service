@@ -7,11 +7,23 @@ vi.mock('./config', () => ({
 }));
 
 // Create mocks using vi.hoisted() to avoid hoisting issues
-const { mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens, mockI18n, mockAxiosPost, mockAxiosCreate } = vi.hoisted(() => {
+const {
+    mockGetAccessToken,
+    mockIsJwtExpired,
+    mockClearTokens,
+    mockSetTokens,
+    mockI18n,
+    mockAxiosPost,
+    mockAxiosCreate,
+    mockSubscribeAuthEvents,
+    getAuthEventHandler,
+    resetAuthEventHandler,
+} = vi.hoisted(() => {
+    let authEventHandler: ((event: { type: 'login' | 'logout'; at: number }) => void) | null = null;
     const mockGetAccessToken = vi.fn();
-    const mockGetRefreshToken = vi.fn();
     const mockIsJwtExpired = vi.fn();
     const mockClearTokens = vi.fn();
+    const mockSetTokens = vi.fn();
     const mockI18n = {
         language: 'en',
     };
@@ -34,14 +46,35 @@ const { mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearToke
         post: vi.fn(),
     }));
 
-    return { mockGetAccessToken, mockGetRefreshToken, mockIsJwtExpired, mockClearTokens, mockI18n, mockAxiosPost, mockAxiosCreate };
+    const mockSubscribeAuthEvents = vi.fn((handler: (event: { type: 'login' | 'logout'; at: number }) => void) => {
+        authEventHandler = handler;
+        return () => {};
+    });
+
+    const getAuthEventHandler = () => authEventHandler;
+    const resetAuthEventHandler = () => {
+        authEventHandler = null;
+    };
+
+    return {
+        mockGetAccessToken,
+        mockIsJwtExpired,
+        mockClearTokens,
+        mockSetTokens,
+        mockI18n,
+        mockAxiosPost,
+        mockAxiosCreate,
+        mockSubscribeAuthEvents,
+        getAuthEventHandler,
+        resetAuthEventHandler,
+    };
 });
 
 // Mock token utils
 vi.mock('./utils/token', () => ({
     getAccessToken: () => mockGetAccessToken(),
-    getRefreshToken: () => mockGetRefreshToken(),
     isJwtExpired: (token: string) => mockIsJwtExpired(token),
+    setTokens: (...args: any[]) => mockSetTokens(...args),
     clearTokens: () => mockClearTokens(),
 }));
 
@@ -55,6 +88,11 @@ vi.mock('./utils/logger', () => ({
 // Mock i18n
 vi.mock('./i18n/i18n', () => ({
     default: mockI18n,
+}));
+
+vi.mock('./utils/authEvents', () => ({
+    subscribeAuthEvents: (handler: (event: { type: 'login' | 'logout'; at: number }) => void) =>
+        mockSubscribeAuthEvents(handler),
 }));
 
 // Mock axios
@@ -76,16 +114,12 @@ describe('api', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
+        resetAuthEventHandler();
 
         // Reset mocks
         mockGetAccessToken.mockReturnValue(null);
-        mockGetRefreshToken.mockReturnValue(null);
         mockIsJwtExpired.mockReturnValue(true);
-        mockClearTokens.mockImplementation(() => {
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('refreshToken');
-        });
+        mockClearTokens.mockImplementation(() => {});
 
         // Setup axios instance mock with proper vi.fn() for methods
         mockGet = vi.fn();
@@ -126,7 +160,6 @@ describe('api', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
         vi.useRealTimers();
     });
 
@@ -256,8 +289,7 @@ describe('api', () => {
                 config: originalRequest,
             };
 
-            mockGetRefreshToken.mockReturnValue('refresh-token');
-            mockAxiosPost.mockRejectedValue(new Error('Refresh failed'));
+            mockPost.mockRejectedValue(new Error('Refresh failed'));
 
             const interceptor = mockResponseUse.mock.calls[0]?.[1];
             if (interceptor) {
@@ -269,32 +301,6 @@ describe('api', () => {
 
                 expect(mockClearTokens).toHaveBeenCalled();
                 expect(window.location.replace).toHaveBeenCalledWith('/login');
-            }
-        });
-
-        it('should clear auth when refresh token is missing', async () => {
-            const originalRequest = {
-                url: '/api/protected/endpoint',
-                _retry: false,
-                headers: {} as Record<string, string>,
-            };
-
-            const error = {
-                response: { status: 401 },
-                config: originalRequest,
-            };
-
-            mockGetRefreshToken.mockReturnValue(null);
-
-            const interceptor = mockResponseUse.mock.calls[0]?.[1];
-            if (interceptor) {
-                try {
-                    await interceptor(error);
-                } catch (e) {
-                    // Expected to throw
-                }
-
-                expect(mockClearTokens).toHaveBeenCalled();
             }
         });
 
@@ -318,7 +324,7 @@ describe('api', () => {
                     // Expected to throw
                 }
 
-                expect(mockAxiosPost).not.toHaveBeenCalled();
+                expect(mockPost).not.toHaveBeenCalled();
                 expect(mockClearTokens).toHaveBeenCalled();
             }
         });
@@ -343,7 +349,7 @@ describe('api', () => {
                     // Expected to throw
                 }
 
-                expect(mockAxiosPost).not.toHaveBeenCalled();
+                expect(mockPost).not.toHaveBeenCalled();
             }
         });
 
@@ -367,7 +373,7 @@ describe('api', () => {
                     expect(e).toBe(error);
                 }
 
-                expect(mockAxiosPost).not.toHaveBeenCalled();
+                expect(mockPost).not.toHaveBeenCalled();
             }
         });
     });
@@ -404,105 +410,19 @@ describe('api', () => {
 
     describe('Cross-tab logout synchronization', () => {
         beforeEach(async () => {
-            vi.useFakeTimers();
             await import('./api');
         });
 
-        afterEach(() => {
-            vi.useRealTimers();
-        });
-
-        it('should redirect to login when tokens are removed in another tab', async () => {
-            localStorage.setItem('accessToken', 'token');
-            localStorage.setItem('refreshToken', 'refresh');
-
-            // Simulate token removal in another tab
-            mockGetAccessToken.mockReturnValue(null);
-            mockGetRefreshToken.mockReturnValue(null);
-
-            const storageEvent = new StorageEvent('storage', {
-                key: 'accessToken',
-                oldValue: 'token',
-                newValue: null,
-            });
-
-            window.dispatchEvent(storageEvent);
-
-            // Advance timer for setTimeout
-            vi.advanceTimersByTime(300);
-
-            await vi.runAllTimersAsync();
+        it('should redirect to login on logout event', async () => {
+            getAuthEventHandler()?.({ type: 'logout', at: Date.now() });
 
             expect(mockClearTokens).toHaveBeenCalled();
             expect(window.location.replace).toHaveBeenCalledWith('/login');
         });
 
-        it('should not redirect if tokens are re-set after delay', async () => {
-            localStorage.setItem('accessToken', 'token');
-            localStorage.setItem('refreshToken', 'refresh');
-
-            // Simulate token removal then re-set
-            mockGetAccessToken
-                .mockReturnValueOnce(null)
-                .mockReturnValueOnce('new-token');
-            mockGetRefreshToken
-                .mockReturnValueOnce(null)
-                .mockReturnValueOnce('new-refresh');
-
-            const storageEvent = new StorageEvent('storage', {
-                key: 'accessToken',
-                oldValue: 'token',
-                newValue: null,
-            });
-
-            window.dispatchEvent(storageEvent);
-
-            // Advance timer
-            vi.advanceTimersByTime(300);
-
-            await vi.runAllTimersAsync();
-
-            // Should not redirect if tokens are back
-            // Note: This test may be flaky due to timing, but the logic is correct
-            // The actual implementation has a 300ms delay to handle token re-setting
-            // Verify that getAccessToken was called (which happens in the timeout)
-            expect(mockGetAccessToken).toHaveBeenCalled();
-            // Note: window.location.replace may or may not be called depending on timing
-            // The important part is that the logic checks for tokens before redirecting
-        });
-
-        it('should not handle non-token storage events', async () => {
-            const storageEvent = new StorageEvent('storage', {
-                key: 'otherKey',
-                oldValue: 'old',
-                newValue: 'new',
-            });
-
-            window.dispatchEvent(storageEvent);
-
-            vi.advanceTimersByTime(300);
-
-            expect(mockClearTokens).not.toHaveBeenCalled();
-        });
-
         it('should not redirect if already on login page', async () => {
             (window as any).location.pathname = '/login';
-            localStorage.setItem('accessToken', 'token');
-
-            mockGetAccessToken.mockReturnValue(null);
-            mockGetRefreshToken.mockReturnValue(null);
-
-            const storageEvent = new StorageEvent('storage', {
-                key: 'accessToken',
-                oldValue: 'token',
-                newValue: null,
-            });
-
-            window.dispatchEvent(storageEvent);
-
-            vi.advanceTimersByTime(300);
-
-            await vi.runAllTimersAsync();
+            getAuthEventHandler()?.({ type: 'logout', at: Date.now() });
 
             expect(mockClearTokens).toHaveBeenCalled();
             expect(window.location.replace).not.toHaveBeenCalled();

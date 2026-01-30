@@ -2,9 +2,6 @@ package com.authenticationservice.config;
 
 import com.authenticationservice.constants.CorsConstants;
 import com.authenticationservice.constants.TestConstants;
-import com.authenticationservice.security.JwtAuthenticationFilter;
-import com.authenticationservice.security.RateLimitingFilter;
-import com.authenticationservice.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -18,7 +15,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.DefaultSecurityFilterChain;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
@@ -29,24 +25,11 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SecurityConfig Tests")
 class SecurityConfigTest {
-
-    @Mock
-    private JwtAuthenticationFilter jwtAuthenticationFilter;
-
-    @Mock
-    private RateLimitingFilter rateLimitingFilter;
-
-    @Mock
-    private AuthService authService;
-
-    @Mock
-    private HttpSecurity httpSecurity;
 
     @Mock
     private AuthenticationConfiguration authenticationConfiguration;
@@ -74,7 +57,7 @@ class SecurityConfigTest {
             // Act
             CorsConfigurationSource source = securityConfig.corsConfigurationSource();
             assertNotNull(source);
-            assertTrue(source instanceof UrlBasedCorsConfigurationSource);
+            assertInstanceOf(UrlBasedCorsConfigurationSource.class, source);
             
             // Get configuration directly from UrlBasedCorsConfigurationSource using reflection
             UrlBasedCorsConfigurationSource urlBasedSource = (UrlBasedCorsConfigurationSource) source;
@@ -85,7 +68,7 @@ class SecurityConfigTest {
             assertNotNull(corsConfigurations, "CORS configurations map should not be null");
             assertFalse(corsConfigurations.isEmpty(), "CORS configurations map should not be empty");
             
-            // Get configuration - try ALL_PATHS first, then get first available
+            // Get configuration - try ALL_PATHS first, then get the first available
             CorsConfiguration config = corsConfigurations.get(CorsConstants.ALL_PATHS);
             if (config == null) {
                 config = corsConfigurations.values().iterator().next();
@@ -112,7 +95,7 @@ class SecurityConfigTest {
             // Act
             CorsConfigurationSource source = securityConfig.corsConfigurationSource();
             assertNotNull(source);
-            assertTrue(source instanceof UrlBasedCorsConfigurationSource);
+            assertInstanceOf(UrlBasedCorsConfigurationSource.class, source);
             
             // Get configuration directly from UrlBasedCorsConfigurationSource using reflection
             UrlBasedCorsConfigurationSource urlBasedSource = (UrlBasedCorsConfigurationSource) source;
@@ -123,7 +106,7 @@ class SecurityConfigTest {
             assertNotNull(corsConfigurations, "CORS configurations map should not be null");
             assertFalse(corsConfigurations.isEmpty(), "CORS configurations map should not be empty");
             
-            // Get configuration - try ALL_PATHS first, then get first available
+            // Get configuration - try ALL_PATHS first, then get the first available
             CorsConfiguration config = corsConfigurations.get(CorsConstants.ALL_PATHS);
             if (config == null) {
                 config = corsConfigurations.values().iterator().next();
@@ -150,7 +133,7 @@ class SecurityConfigTest {
             // Act
             CorsConfigurationSource source = securityConfig.corsConfigurationSource();
             assertNotNull(source);
-            assertTrue(source instanceof UrlBasedCorsConfigurationSource);
+            assertInstanceOf(UrlBasedCorsConfigurationSource.class, source);
             
             // Get configuration directly from UrlBasedCorsConfigurationSource using reflection
             UrlBasedCorsConfigurationSource urlBasedSource = (UrlBasedCorsConfigurationSource) source;
@@ -161,7 +144,7 @@ class SecurityConfigTest {
             assertNotNull(corsConfigurations, "CORS configurations map should not be null");
             assertFalse(corsConfigurations.isEmpty(), "CORS configurations map should not be empty");
             
-            // Get configuration - try ALL_PATHS first, then get first available
+            // Get configuration - try ALL_PATHS first, then get the first available
             CorsConfiguration config = corsConfigurations.get(CorsConstants.ALL_PATHS);
             if (config == null) {
                 config = corsConfigurations.values().iterator().next();
@@ -184,7 +167,7 @@ class SecurityConfigTest {
             // Act
             CorsConfigurationSource source = securityConfig.corsConfigurationSource();
             assertNotNull(source);
-            assertTrue(source instanceof UrlBasedCorsConfigurationSource);
+            assertInstanceOf(UrlBasedCorsConfigurationSource.class, source);
             
             // Get configuration directly from UrlBasedCorsConfigurationSource using reflection
             UrlBasedCorsConfigurationSource urlBasedSource = (UrlBasedCorsConfigurationSource) source;
@@ -195,7 +178,7 @@ class SecurityConfigTest {
             assertNotNull(corsConfigurations, "CORS configurations map should not be null");
             assertFalse(corsConfigurations.isEmpty(), "CORS configurations map should not be empty");
             
-            // Get configuration - try ALL_PATHS first, then get first available
+            // Get configuration - try ALL_PATHS first, then get the first available
             CorsConfiguration config = corsConfigurations.get(CorsConstants.ALL_PATHS);
             if (config == null) {
                 config = corsConfigurations.values().iterator().next();
@@ -219,7 +202,7 @@ class SecurityConfigTest {
             // Act
             CorsConfigurationSource source = securityConfig.corsConfigurationSource();
             assertNotNull(source);
-            assertTrue(source instanceof UrlBasedCorsConfigurationSource);
+            assertInstanceOf(UrlBasedCorsConfigurationSource.class, source);
             
             // Get configuration directly from UrlBasedCorsConfigurationSource using reflection
             UrlBasedCorsConfigurationSource urlBasedSource = (UrlBasedCorsConfigurationSource) source;
@@ -230,7 +213,7 @@ class SecurityConfigTest {
             assertNotNull(corsConfigurations, "CORS configurations map should not be null");
             assertFalse(corsConfigurations.isEmpty(), "CORS configurations map should not be empty");
             
-            // Get configuration - try ALL_PATHS first, then get first available
+            // Get configuration - try ALL_PATHS first, then get the first available
             CorsConfiguration config = corsConfigurations.get(CorsConstants.ALL_PATHS);
             if (config == null) {
                 config = corsConfigurations.values().iterator().next();
@@ -268,66 +251,35 @@ class SecurityConfigTest {
     @DisplayName("Security Filter Chain Tests")
     class SecurityFilterChainTests {
         @Test
-        @DisplayName("Should create API SecurityFilterChain without throwing exception")
-        void apiFilterChain_shouldCreateSecurityFilterChain_withoutThrowingException() throws Exception {
+        @DisplayName("Should create SecurityFilterChain without throwing exception")
+        void securityFilterChain_shouldCreateSecurityFilterChain_withoutThrowingException() throws Exception {
             // Arrange
             HttpSecurity http = mock(HttpSecurity.class);
             DefaultSecurityFilterChain securityFilterChain = mock(DefaultSecurityFilterChain.class);
 
-            when(http.securityMatcher(anyString())).thenReturn(http);
             when(http.cors(any())).thenReturn(http);
             when(http.csrf(any())).thenReturn(http);
             when(http.sessionManagement(any())).thenReturn(http);
+            when(http.headers(any())).thenReturn(http);
             when(http.exceptionHandling(any())).thenReturn(http);
-            when(http.authorizeHttpRequests(any())).thenReturn(http);
-            when(http.httpBasic(any())).thenReturn(http);
-            when(http.addFilterBefore(any(), any())).thenReturn(http);
-            when(http.build()).thenReturn(securityFilterChain);
-
-            // Act & Assert
-            assertDoesNotThrow(() -> {
-                SecurityFilterChain result = securityConfig.apiSecurityFilterChain(http);
-                assertNotNull(result);
-            });
-
-            verify(http).securityMatcher(anyString());
-            verify(http).cors(any());
-            verify(http).csrf(any());
-            verify(http).sessionManagement(any());
-            verify(http).exceptionHandling(any());
-            verify(http).authorizeHttpRequests(any());
-            verify(http).httpBasic(any());
-            verify(http, atLeastOnce()).addFilterBefore(any(), any());
-            verify(http).build();
-        }
-
-        @Test
-        @DisplayName("Should create Web SecurityFilterChain without throwing exception")
-        void webFilterChain_shouldCreateSecurityFilterChain_withoutThrowingException() throws Exception {
-            // Arrange
-            HttpSecurity http = mock(HttpSecurity.class);
-            DefaultSecurityFilterChain securityFilterChain = mock(DefaultSecurityFilterChain.class);
-
-            when(http.securityMatcher(any(RequestMatcher.class))).thenReturn(http);
-            when(http.cors(any())).thenReturn(http);
-            when(http.csrf(any())).thenReturn(http);
-            when(http.sessionManagement(any())).thenReturn(http);
             when(http.authorizeHttpRequests(any())).thenReturn(http);
             when(http.oauth2Login(any())).thenReturn(http);
             when(http.httpBasic(any())).thenReturn(http);
             when(http.addFilterBefore(any(), any())).thenReturn(http);
+            when(http.addFilterAfter(any(), any())).thenReturn(http);
             when(http.build()).thenReturn(securityFilterChain);
 
             // Act & Assert
             assertDoesNotThrow(() -> {
-                SecurityFilterChain result = securityConfig.webSecurityFilterChain(http);
+                SecurityFilterChain result = securityConfig.securityFilterChain(http);
                 assertNotNull(result);
             });
 
-            verify(http).securityMatcher(any(RequestMatcher.class));
             verify(http).cors(any());
             verify(http).csrf(any());
             verify(http).sessionManagement(any());
+            verify(http).headers(any());
+            verify(http).exceptionHandling(any());
             verify(http).authorizeHttpRequests(any());
             verify(http).oauth2Login(any());
             verify(http).httpBasic(any());
@@ -336,4 +288,3 @@ class SecurityConfigTest {
         }
     }
 }
-

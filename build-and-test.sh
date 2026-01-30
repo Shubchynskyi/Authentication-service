@@ -77,8 +77,8 @@ trap 'echo -e "${RED}An error occurred. Cleaning up...${NC}"; \
       rm -f "$JAR_PATH" 2>/dev/null || true; \
       exit 1' ERR
 
-# Run the container for testing and building
-echo -e "${GREEN}Running tests and building JAR with testcontainers...${NC}"
+# Run the container to build the JAR (tests disabled)
+echo -e "${GREEN}Building JAR (tests disabled)...${NC}"
 # Note: Testcontainers configuration for Docker-in-Docker scenario
 docker run --name "$APP_TEST_CONTAINER_NAME" \
     -v "$DOCKER_SOCKET:/var/run/docker.sock" \
@@ -87,7 +87,7 @@ docker run --name "$APP_TEST_CONTAINER_NAME" \
     -e DOCKER_HOST=unix:///var/run/docker.sock \
     -e TESTCONTAINERS_RYUK_DISABLED=true \
     -e TESTCONTAINERS_CHECKS_DISABLE=true \
-    "$BUILDER_IMAGE_NAME"
+    "$BUILDER_IMAGE_NAME" mvn clean verify
 
 # Check the exit status of the container
 EXIT_CODE=$(docker inspect "$APP_TEST_CONTAINER_NAME" --format='{{.State.ExitCode}}')

@@ -10,12 +10,8 @@ vi.mock('../utils/token', () => ({
     isJwtExpired: mockIsJwtExpired,
     isValidJwtFormat: vi.fn(() => true),
     getAccessToken: vi.fn(),
-    getRefreshToken: vi.fn(),
     clearTokens: vi.fn(),
-    // New exports required by AuthContext after remember-device changes
     setTokens: vi.fn(),
-    getTokenStorageMode: vi.fn(() => 'local'),
-    setTokenStorageMode: vi.fn(),
 }));
 
 // Mock axios
@@ -103,7 +99,6 @@ vi.mock('../pages/ProfilePage', () => ({
 describe('Authentication Flow Integration', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
         mockLogin.mockClear();
         mockShowNotification.mockClear();
         mockIsJwtExpired.mockReset();
@@ -112,7 +107,6 @@ describe('Authentication Flow Integration', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
-        localStorage.clear();
         cleanup();
     });
 

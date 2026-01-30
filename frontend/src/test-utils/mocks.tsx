@@ -167,14 +167,14 @@ export const setupTokenMocks = (modulePath = '../utils/token') => {
     const mockIsJwtExpired = vi.fn();
     const mockIsValidJwtFormat = vi.fn();
     const mockGetAccessToken = vi.fn();
-    const mockGetRefreshToken = vi.fn();
+    const mockSetTokens = vi.fn();
     const mockClearTokens = vi.fn();
 
     vi.mock(modulePath, () => ({
         isJwtExpired: mockIsJwtExpired,
         isValidJwtFormat: mockIsValidJwtFormat,
         getAccessToken: mockGetAccessToken,
-        getRefreshToken: mockGetRefreshToken,
+        setTokens: mockSetTokens,
         clearTokens: mockClearTokens,
     }));
 
@@ -182,7 +182,7 @@ export const setupTokenMocks = (modulePath = '../utils/token') => {
         mockIsJwtExpired,
         mockIsValidJwtFormat,
         mockGetAccessToken,
-        mockGetRefreshToken,
+        mockSetTokens,
         mockClearTokens,
     };
 };

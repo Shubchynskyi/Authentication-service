@@ -8,10 +8,7 @@ import { TestMemoryRouter } from '../test-utils/router';
 vi.mock('../utils/token', () => ({
     clearTokens: vi.fn(),
     isValidJwtFormat: vi.fn(),
-    // New exports required by AuthContext after remember-device changes
     setTokens: vi.fn(),
-    getTokenStorageMode: vi.fn(() => 'local'),
-    setTokenStorageMode: vi.fn(),
 }));
 
 // Mock AuthContext
@@ -60,7 +57,6 @@ describe('OAuth2RedirectHandler', () => {
         vi.mocked(tokenUtils.isValidJwtFormat).mockClear();
         mockSetTokens.mockClear();
         mockNavigate.mockClear();
-        localStorage.clear();
         // Reset location hash
         setLocationHash('');
     });
@@ -71,7 +67,6 @@ describe('OAuth2RedirectHandler', () => {
         vi.mocked(tokenUtils.isValidJwtFormat).mockClear();
         mockSetTokens.mockClear();
         mockNavigate.mockClear();
-        localStorage.clear();
         // Restore original location
         Object.defineProperty(window, 'location', {
             value: originalLocation,
@@ -167,12 +162,10 @@ describe('OAuth2RedirectHandler', () => {
 
     it('sets tokens and navigates on successful OAuth', async () => {
         const accessToken = 'valid.access.token';
-        const refreshToken = 'valid.refresh.token';
         const encodedAccessToken = encodeURIComponent(accessToken);
-        const encodedRefreshToken = encodeURIComponent(refreshToken);
 
         // Tokens come via URL hash fragment
-        setLocationHash(`#accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`);
+        setLocationHash(`#accessToken=${encodedAccessToken}`);
         vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(true);
 
         render(
@@ -183,8 +176,7 @@ describe('OAuth2RedirectHandler', () => {
 
         await waitFor(() => {
             expect(tokenUtils.isValidJwtFormat).toHaveBeenCalledWith(accessToken);
-            expect(tokenUtils.isValidJwtFormat).toHaveBeenCalledWith(refreshToken);
-            expect(mockSetTokens).toHaveBeenCalledWith(accessToken, refreshToken);
+            expect(mockSetTokens).toHaveBeenCalledWith(accessToken);
             expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
         }, { timeout: 5000 });
     });
@@ -209,12 +201,10 @@ describe('OAuth2RedirectHandler', () => {
 
     it('clears tokens and navigates when token format is invalid', async () => {
         const accessToken = 'invalid-token';
-        const refreshToken = 'invalid-token';
         const encodedAccessToken = encodeURIComponent(accessToken);
-        const encodedRefreshToken = encodeURIComponent(refreshToken);
 
         // Tokens come via URL hash fragment
-        setLocationHash(`#accessToken=${encodedAccessToken}&refreshToken=${encodedRefreshToken}`);
+        setLocationHash(`#accessToken=${encodedAccessToken}`);
         vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(false);
 
         render(
@@ -234,7 +224,7 @@ describe('OAuth2RedirectHandler', () => {
 
     it('handles decode error gracefully', async () => {
         // Invalid URL encoding that will cause decode error in hash fragment
-        setLocationHash('#accessToken=%E0%A4%A&refreshToken=test');
+        setLocationHash('#accessToken=%E0%A4%A');
         vi.mocked(tokenUtils.isValidJwtFormat).mockReturnValue(false);
 
         render(

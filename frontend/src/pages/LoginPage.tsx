@@ -23,7 +23,6 @@ import { API_URL } from '../config';
 import FormPaper from '../components/FormPaper';
 import { getMaskedLoginSettingsPublic, getTemplate } from '../services/maskedLoginService';
 import MaskedLoginTemplate from '../components/MaskedLoginTemplate';
-import { setTokenStorageMode, type TokenStorageMode } from '../utils/token';
 
 const LoginPage = () => {
     const [email, setEmail] = useState('');
@@ -97,8 +96,6 @@ const LoginPage = () => {
         }
 
         try {
-            const mode: TokenStorageMode = rememberDevice ? 'local' : 'session';
-            setTokenStorageMode(mode);
             await login(email, password, { rememberDevice, rememberDays });
             const redirectTo =
                 (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname || '/';
