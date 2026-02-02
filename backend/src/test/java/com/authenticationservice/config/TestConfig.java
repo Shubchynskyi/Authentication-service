@@ -2,6 +2,7 @@ package com.authenticationservice.config;
 
 import com.authenticationservice.service.AccessModeInitializer;
 import com.authenticationservice.service.EmailService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
@@ -35,6 +36,12 @@ public class TestConfig {
         AccessModeInitializer mock = mock(AccessModeInitializer.class);
         doNothing().when(mock).initialize();
         return mock;
+    }
+
+    @Bean
+    @Primary
+    public ObjectMapper objectMapper() {
+        return new ObjectMapper().findAndRegisterModules();
     }
 }
 

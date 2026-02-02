@@ -7,11 +7,11 @@ import org.junit.jupiter.api.Test;
 import com.authenticationservice.config.TestPropertyConfigurator;
 import com.authenticationservice.constants.TestConstants;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -34,7 +34,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class AccessModeSettingsRepositoryTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
+    static PostgreSQLContainer postgres = new PostgreSQLContainer(TestConstants.TestDatabase.POSTGRES_IMAGE)
             .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
             .withUsername(TestConstants.TestDatabase.USERNAME)
             .withPassword(TestConstants.TestDatabase.PASSWORD);

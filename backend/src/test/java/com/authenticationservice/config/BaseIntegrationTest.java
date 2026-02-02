@@ -16,7 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -32,7 +32,7 @@ import java.util.Set;
 public abstract class BaseIntegrationTest {
 
     @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(TestConstants.TestDatabase.POSTGRES_IMAGE)
+    static PostgreSQLContainer postgres = new PostgreSQLContainer(TestConstants.TestDatabase.POSTGRES_IMAGE)
             .withDatabaseName(TestConstants.TestDatabase.DATABASE_NAME)
             .withUsername(TestConstants.TestDatabase.USERNAME)
             .withPassword(TestConstants.TestDatabase.PASSWORD);

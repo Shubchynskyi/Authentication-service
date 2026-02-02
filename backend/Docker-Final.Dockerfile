@@ -1,6 +1,6 @@
 # Final production Docker image
 # This image contains only the built JAR file
-FROM eclipse-temurin:23-jdk-alpine
+FROM eclipse-temurin:25-jdk-alpine
 
 WORKDIR /app
 

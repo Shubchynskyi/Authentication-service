@@ -108,8 +108,8 @@ This project implements a production-ready authentication service with features 
 
 ### 🔧 Backend
 
-- **Java 21**
-- **Spring Boot 3.5.0**
+- **Java 25**
+- **Spring Boot 4.0.2 (Spring Framework 7.0.3)**
 - **Spring Security** - Authentication and authorization
 - **Spring Data JPA / Hibernate** - Database persistence
 - **PostgreSQL 17.5** - Database
@@ -140,7 +140,7 @@ This project implements a production-ready authentication service with features 
 
 ### 📋 Prerequisites
 
-- **Java 21** and **Maven** for the backend
+- **Java 25** and **Maven** for the backend
 - **Node.js 18+** and **npm** for the frontend
 - **Docker** (optional) for containerized workflow and Testcontainers
 - **PostgreSQL** database (or use Docker)
@@ -315,9 +315,9 @@ The following improvements are planned for future versions:
 
 **Note**: For single-instance deployments, the current in-memory implementation is perfectly adequate and performant.
 
-### ☕ Java Version & Performance
+### ☕ Java Version & Performance (Implemented)
 
-For production and improved performance, consider upgrading to Java 25 LTS and enabling virtual threads for better throughput under high concurrent load. Current: Java 21.
+Service runs on Java 25 LTS with virtual threads enabled for request handling to improve throughput under high concurrent load. To disable, set `spring.threads.virtual.enabled=false`.
 
 ### 🏗️ Microservice Architecture
 

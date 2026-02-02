@@ -6,11 +6,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.ContentCachingRequestWrapper;
 import org.springframework.web.util.ContentCachingResponseWrapper;
+import org.jspecify.annotations.NonNull;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -28,6 +28,7 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
     private static final List<String> SKIP_PATHS = Arrays.asList(
             "/actuator", "/health", "/favicon.ico"
     );
+    private static final int REQUEST_CONTENT_CACHE_LIMIT_BYTES = 1024 * 1024;
 
     @Value("${slow-request-threshold-ms:1000}")
     private long slowRequestThresholdMs;
@@ -45,7 +46,10 @@ public class HttpRequestLoggingFilter extends OncePerRequestFilter {
         long startTime = System.currentTimeMillis();
         
         // Wrap request and response to enable content caching for logging
-        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(request);
+        ContentCachingRequestWrapper wrappedRequest = new ContentCachingRequestWrapper(
+                request,
+                REQUEST_CONTENT_CACHE_LIMIT_BYTES
+        );
         ContentCachingResponseWrapper wrappedResponse = new ContentCachingResponseWrapper(response);
 
         try {

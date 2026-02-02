@@ -1,15 +1,15 @@
 server:
   port: 8080
-  servlet:
-    encoding:
-      charset: UTF-8
-      force: true
-      enabled: true
   forward-headers-strategy: none
 
 spring:
   application:
     name: authorization-service
+  main:
+    keep-alive: true
+  threads:
+    virtual:
+      enabled: true
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -50,6 +50,11 @@ spring:
             token-uri: https://oauth2.googleapis.com/token
             user-info-uri: https://openidconnect.googleapis.com/v1/userinfo
             user-name-attribute: email
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
 
 admin:
   enabled: ${ADMIN_ENABLED}

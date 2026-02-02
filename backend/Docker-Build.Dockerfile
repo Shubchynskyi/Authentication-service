@@ -1,6 +1,6 @@
 # Dockerfile for building and testing
 # This image is used to run tests with testcontainers and build the JAR
-FROM eclipse-temurin:23-jdk-alpine AS build
+FROM eclipse-temurin:25-jdk-alpine AS build
 
 WORKDIR /app
 

@@ -11,18 +11,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.MOCK)
@@ -44,7 +43,7 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
     @BeforeEach
     void setUp() {
         TransactionTemplate transactionTemplate = getTransactionTemplate();
-        transactionTemplate.execute(status -> {
+        transactionTemplate.execute(_ -> {
             cleanupTestData();
             ensureRolesExist();
             ensureAccessModeSettings(AccessMode.WHITELIST);
@@ -54,7 +53,7 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
             return null;
         });
 
-        transactionTemplate.execute(status ->
+        transactionTemplate.execute(_ ->
                 userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
                         .orElseThrow(() -> new RuntimeException("User was not saved to database in setUp!"))
         );
@@ -65,7 +64,7 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
     void getProfile_shouldGetProfileSuccessfully() throws Exception {
         // Act & Assert - with addFilters = false, we need to mock Principal directly
         mockMvc.perform(get(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
-                .principal(() -> TestConstants.UserData.TEST_EMAIL))
+                        .principal(() -> TestConstants.UserData.TEST_EMAIL))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(TestConstants.UserData.TEST_EMAIL))
                 .andExpect(jsonPath("$.name").value(TestConstants.UserData.TEST_USERNAME));
@@ -84,11 +83,11 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
     void updateProfile_shouldUpdateProfileSuccessfully() throws Exception {
         // Arrange - verify user exists and password matches in a new transaction
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        User userBeforeUpdate = transactionTemplate.execute(status -> 
-            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found in database"))
+        User userBeforeUpdate = transactionTemplate.execute(_ ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User not found in database"))
         );
-        
+
         assertNotNull(userBeforeUpdate, "User should not be null");
         assertTrue(passwordEncoder.matches(TestConstants.UserData.TEST_PASSWORD, userBeforeUpdate.getPassword()),
                 "Current password should match before update");
@@ -100,15 +99,15 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
-                .principal(() -> TestConstants.UserData.TEST_EMAIL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // Verify the update in the database - check in a new transaction
-        User updatedUser = transactionTemplate.execute(status -> 
-            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found after update"))
+        User updatedUser = transactionTemplate.execute(_ ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User not found after update"))
         );
         assertNotNull(updatedUser, "Updated user should not be null");
         assertEquals(TestConstants.TestData.UPDATED_NAME, updatedUser.getName());
@@ -128,15 +127,15 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
-                .principal(() -> TestConstants.UserData.TEST_EMAIL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         // Verify the update in the database
-        User updatedUser = transactionTemplate.execute(status -> 
-            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found after update"))
+        User updatedUser = transactionTemplate.execute(_ ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User not found after update"))
         );
         assertNotNull(updatedUser, "Updated user should not be null");
         assertEquals(TestConstants.TestData.UPDATED_NAME, updatedUser.getName());
@@ -170,17 +169,17 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
-                .principal(() -> TestConstants.UserData.TEST_EMAIL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Incorrect current password")));
 
         // Verify user was not updated
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        User user = transactionTemplate.execute(status -> 
-            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found"))
+        User user = transactionTemplate.execute(_ ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User not found"))
         );
         assertNotNull(user, "User should not be null");
         assertEquals(TestConstants.UserData.TEST_USERNAME, user.getName(), "Name should not be updated");
@@ -197,17 +196,17 @@ class ProfileControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.PROTECTED_BASE_URL + ApiConstants.PROFILE_URL)
-                .principal(() -> TestConstants.UserData.TEST_EMAIL)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .principal(() -> TestConstants.UserData.TEST_EMAIL)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Password must be at least 8 characters")));
 
         // Verify user was not updated
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        User user = transactionTemplate.execute(status -> 
-            userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
-                    .orElseThrow(() -> new RuntimeException("User not found"))
+        User user = transactionTemplate.execute(_ ->
+                userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
+                        .orElseThrow(() -> new RuntimeException("User not found"))
         );
         assertNotNull(user, "User should not be null");
         assertEquals(TestConstants.UserData.TEST_USERNAME, user.getName(), "Name should not be updated");

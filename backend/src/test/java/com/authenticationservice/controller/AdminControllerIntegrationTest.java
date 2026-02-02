@@ -12,14 +12,13 @@ import com.authenticationservice.model.AllowedEmail;
 import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AccessModeSettingsRepository;
-import com.authenticationservice.repository.AllowedEmailRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -63,7 +62,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
     @BeforeEach
     void setUp() {
         TransactionTemplate transactionTemplate = getTransactionTemplate();
-        transactionTemplate.execute(status -> {
+        transactionTemplate.execute(_ -> {
             cleanupTestData();
             accessModeSettingsRepository.deleteAll();
             accessModeSettingsRepository.flush();
@@ -106,14 +105,14 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
     void getAllUsers_shouldReturnForbiddenForNonAdmin() throws Exception {
         // Arrange - Clear SecurityContext and set up regular user
         SecurityContextHolder.clearContext();
-        org.springframework.security.core.Authentication auth = 
-            new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
-                TestConstants.UserData.TEST_EMAIL, 
-                null, 
-                java.util.Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-            );
+        org.springframework.security.core.Authentication auth =
+                new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
+                        TestConstants.UserData.TEST_EMAIL,
+                        null,
+                        java.util.Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                );
         SecurityContextHolder.getContext().setAuthentication(auth);
-        
+
         try {
             // Act & Assert
             mockMvc.perform(get(ApiConstants.ADMIN_BASE_URL + ApiConstants.USERS_URL))
@@ -134,7 +133,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(get(ApiConstants.ADMIN_BASE_URL + ApiConstants.WHITELIST_URL)
-)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray());
     }
@@ -154,7 +153,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
     void getAllRoles_shouldGetAllRolesSuccessfully() throws Exception {
         // Act & Assert
         mockMvc.perform(get(ApiConstants.ADMIN_BASE_URL + ApiConstants.ROLES_URL)
-)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$[0]").value(SecurityConstants.ROLE_USER))
@@ -224,7 +223,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(get(ApiConstants.ADMIN_BASE_URL + ApiConstants.USER_ID_URL, userId)
-)
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.email").value(TestConstants.UserData.TEST_EMAIL))
                 .andExpect(jsonPath("$.username").value(TestConstants.UserData.TEST_USERNAME));
@@ -238,7 +237,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(get(ApiConstants.ADMIN_BASE_URL + ApiConstants.USER_ID_URL, nonExistentId)
-)
+                )
                 .andExpect(status().isNotFound());
     }
 
@@ -295,7 +294,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(delete(ApiConstants.ADMIN_BASE_URL + ApiConstants.USER_ID_URL, userId)
-)
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().string(MessageConstants.USER_DELETED));
 
@@ -311,7 +310,7 @@ class AdminControllerIntegrationTest extends BaseIntegrationTest {
 
         // Act & Assert
         mockMvc.perform(delete(ApiConstants.ADMIN_BASE_URL + ApiConstants.USER_ID_URL, nonExistentId)
-)
+                )
                 .andExpect(status().isBadRequest());
     }
 

@@ -2,7 +2,7 @@ package com.authenticationservice.config;
 
 import com.authenticationservice.constants.TestConstants;
 import org.springframework.test.context.DynamicPropertyRegistry;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 /**
  * Utility class for configuring test properties dynamically.
@@ -20,7 +20,7 @@ public final class TestPropertyConfigurator {
      * @param registry DynamicPropertyRegistry to configure
      * @param postgres PostgreSQLContainer instance for database properties
      */
-    public static void configureProperties(DynamicPropertyRegistry registry, PostgreSQLContainer<?> postgres) {
+    public static void configureProperties(DynamicPropertyRegistry registry, PostgreSQLContainer postgres) {
         // Database properties
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);

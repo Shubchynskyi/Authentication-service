@@ -18,7 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -226,11 +226,11 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     void login_shouldLoginSuccessfully() throws Exception {
         // Arrange - verify user exists and is correctly saved in a new transaction
         TransactionTemplate transactionTemplate = new TransactionTemplate(transactionManager);
-        User savedUser = transactionTemplate.execute(status -> 
+        User savedUser = transactionTemplate.execute(status ->
             userRepository.findByEmail(TestConstants.UserData.TEST_EMAIL)
                     .orElseThrow(() -> new RuntimeException("User not found in database"))
         );
-        
+
         assertNotNull(savedUser, "User should not be null");
         assertTrue(savedUser.isEmailVerified(), "User email should be verified");
         assertTrue(savedUser.isEnabled(), "User should be enabled");
@@ -464,7 +464,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
             entityManager.clear();
             return saved.getId();
         });
-        
+
         // Force commit by starting and committing a new transaction
         transactionTemplate.execute(status -> {
             assertNotNull(userId);
@@ -485,14 +485,14 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         // Wait for REQUIRES_NEW transaction to commit using polling
-        User lockedUser = waitForUserUpdate(userId, user -> 
+        User lockedUser = waitForUserUpdate(userId, user ->
             user.getFailedLoginAttempts() == 5 && user.getLockTime() != null,
             transactionTemplate, entityManager);
-        
+
         assertNotNull(lockedUser, "User should be found");
         assertEquals(5, lockedUser.getFailedLoginAttempts(), "Failed login attempts should be 5");
         assertNotNull(lockedUser.getLockTime(), "Lock time should be set");
-        assertTrue(lockedUser.getLockTime().isAfter(java.time.LocalDateTime.now()), 
+        assertTrue(lockedUser.getLockTime().isAfter(java.time.LocalDateTime.now()),
                 "Lock time should be in the future");
     }
 
@@ -515,7 +515,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
             entityManager.clear();
             return saved.getId();
         });
-        
+
         // Force commit by starting and committing a new transaction
         transactionTemplate.execute(status -> {
             assertNotNull(userId);
@@ -536,10 +536,10 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(status().isUnauthorized());
 
         // Wait for REQUIRES_NEW transaction to commit using polling
-        User blockedUser = waitForUserUpdate(userId, user -> 
+        User blockedUser = waitForUserUpdate(userId, user ->
             user.getFailedLoginAttempts() == 10 && user.isBlocked(),
             transactionTemplate, entityManager);
-        
+
         assertNotNull(blockedUser, "User should be found");
         assertEquals(10, blockedUser.getFailedLoginAttempts(), "Failed login attempts should be 10");
         assertTrue(blockedUser.isBlocked(), "Account should be blocked");
@@ -957,7 +957,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     /**
      * Waits for user to be updated in database with polling mechanism.
      * Replaces Thread.sleep() with condition-based waiting.
-     * 
+     *
      * @param userId User ID to check
      * @param condition Condition to wait for
      * @param transactionTemplate Transaction template for database access
@@ -965,7 +965,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
      * @return Updated user when condition is met
      */
     @SuppressWarnings("BusyWait")
-    private User waitForUserUpdate(Long userId, 
+    private User waitForUserUpdate(Long userId,
                                    java.util.function.Predicate<User> condition,
                                    TransactionTemplate transactionTemplate,
                                    EntityManager entityManager) {
