@@ -181,9 +181,10 @@ public class AdminService {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentUserEmail = auth.getName();
 
-        if (search != null && !search.isEmpty()) {
+        String normalizedSearch = search != null ? search.trim() : null;
+        if (normalizedSearch != null && !normalizedSearch.isEmpty()) {
             return userRepository
-                    .findByEmailNotAndEmailContainingOrNameContaining(currentUserEmail, search, search, pageable)
+                    .searchByEmailOrName(currentUserEmail, normalizedSearch, pageable)
                     .map(UserDTO::fromUser);
         }
 

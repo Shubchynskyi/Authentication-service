@@ -192,6 +192,22 @@ describe('AdminPage', () => {
             expect(screen.getByText('blocked')).toBeInTheDocument();
         });
 
+        it('applies search parameter when typing in search field', async () => {
+            renderAdminPage();
+
+            const searchInput = await screen.findByLabelText('Search users');
+            fireEvent.change(searchInput, { target: { value: 'adm' } });
+
+            await waitFor(() => {
+                expect(mockApiGet).toHaveBeenCalledWith(
+                    '/api/admin/users',
+                    expect.objectContaining({
+                        params: expect.objectContaining({ search: 'adm' })
+                    })
+                );
+            }, { timeout: 2000 });
+        });
+
         it('renders whitelist on Whitelist tab', async () => {
             renderAdminPage();
 

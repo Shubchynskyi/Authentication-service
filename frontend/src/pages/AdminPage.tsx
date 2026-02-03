@@ -7,6 +7,7 @@ import {
     DialogContent,
     DialogTitle,
     IconButton,
+    InputAdornment,
     Paper,
     Table,
     TableBody,
@@ -37,6 +38,8 @@ import { useNotification } from '../context/NotificationContext';
 import AddIcon from '@mui/icons-material/Add';
 import GoogleIcon from '@mui/icons-material/Google';
 import PersonIcon from '@mui/icons-material/Person';
+import SearchIcon from '@mui/icons-material/Search';
+import ClearIcon from '@mui/icons-material/Clear';
 import { getMaskedLoginSettingsAdmin, updateMaskedLoginSettings, MaskedLoginAdminSettings } from '../services/maskedLoginService';
 import MaskedLoginTemplatePreview from '../components/MaskedLoginTemplatePreview';
 
@@ -105,6 +108,8 @@ const AdminPage = () => {
     const [totalElements, setTotalElements] = useState(0);
     const [page, setPage] = useState(0);
     const [rowsPerPage, setRowsPerPage] = useState(10);
+    const [userSearch, setUserSearch] = useState('');
+    const [debouncedUserSearch, setDebouncedUserSearch] = useState('');
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [newEmail, setNewEmail] = useState('');
@@ -140,6 +145,7 @@ const AdminPage = () => {
     const MAX_BLOCK_REASON_LENGTH = 200; // Maximum symbols for block reason
     const accessModeLabel = accessMode === 'WHITELIST' ? t('admin.accessMode.whitelist') : t('admin.accessMode.blacklist');
     const accessModeChipColor: 'success' | 'error' = accessMode === 'WHITELIST' ? 'success' : 'error';
+    const USER_SEARCH_DEBOUNCE_MS = 350;
 
     const fetchWhitelist = async () => {
         try {
@@ -199,10 +205,12 @@ const AdminPage = () => {
 
     const fetchUsers = useCallback(async () => {
         try {
+            const normalizedSearch = debouncedUserSearch.trim();
             const response = await api.get('/api/admin/users', {
                 params: {
                     page,
-                    size: rowsPerPage
+                    size: rowsPerPage,
+                    ...(normalizedSearch ? { search: normalizedSearch } : {})
                 }
             });
             const content = Array.isArray(response.data?.content) ? response.data.content : [];
@@ -215,7 +223,14 @@ const AdminPage = () => {
             console.error('Error fetching users:', error);
             showNotification(t('common.error'), 'error');
         }
-    }, [page, rowsPerPage, showNotification, t]);
+    }, [page, rowsPerPage, debouncedUserSearch, showNotification, t]);
+
+    useEffect(() => {
+        const handle = setTimeout(() => {
+            setDebouncedUserSearch(userSearch.trim());
+        }, USER_SEARCH_DEBOUNCE_MS);
+        return () => clearTimeout(handle);
+    }, [userSearch]);
 
     useEffect(() => {
         fetchWhitelist();
@@ -238,6 +253,17 @@ const AdminPage = () => {
 
     const handleChangeRowsPerPage = (event: React.ChangeEvent<HTMLInputElement>) => {
         setRowsPerPage(parseInt(event.target.value, 10));
+        setPage(0);
+    };
+
+    const handleUserSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setUserSearch(event.target.value);
+        setPage(0);
+    };
+
+    const handleClearUserSearch = () => {
+        setUserSearch('');
+        setDebouncedUserSearch('');
         setPage(0);
     };
 
@@ -611,7 +637,34 @@ const AdminPage = () => {
             </Box>
 
             <TabPanel value={tabValue} index={0}>
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 1 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1, flexWrap: 'wrap', gap: 1 }}>
+                    <TextField
+                        value={userSearch}
+                        onChange={handleUserSearchChange}
+                        label={t('admin.userSearchLabel')}
+                        placeholder={t('admin.userSearchPlaceholder')}
+                        size="small"
+                        sx={{ minWidth: 260, maxWidth: 420, flexGrow: 1 }}
+                        InputProps={{
+                            startAdornment: (
+                                <InputAdornment position="start">
+                                    <SearchIcon fontSize="small" />
+                                </InputAdornment>
+                            ),
+                            endAdornment: userSearch ? (
+                                <InputAdornment position="end">
+                                    <IconButton
+                                        aria-label={t('admin.userSearchClear')}
+                                        onClick={handleClearUserSearch}
+                                        edge="end"
+                                        size="small"
+                                    >
+                                        <ClearIcon fontSize="small" />
+                                    </IconButton>
+                                </InputAdornment>
+                            ) : undefined
+                        }}
+                    />
                     <Button
                         variant="contained"
                         onClick={() => handleOpenDialog()}

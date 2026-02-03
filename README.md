@@ -339,7 +339,6 @@ To use this authentication service in a microservices architecture, the followin
 - **API Documentation**: Add OpenAPI/Swagger documentation
 - **Caching**: Implement caching for frequently accessed data (roles, settings)
 - **Health Checks**: Enhanced health check endpoints for Kubernetes/Docker orchestration
-- **User Search in Admin Panel**: Add search functionality for users in the admin panel
 
 ## Application Screenshots
 
