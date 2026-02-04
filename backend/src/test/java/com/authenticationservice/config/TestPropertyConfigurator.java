@@ -31,6 +31,13 @@ public final class TestPropertyConfigurator {
         registry.add("jwt.refresh-secret", () -> TestConstants.TestProperties.JWT_REFRESH_SECRET);
         registry.add("jwt.access-expiration", () -> TestConstants.TestProperties.JWT_ACCESS_EXPIRATION);
         registry.add("jwt.refresh-expiration", () -> TestConstants.TestProperties.JWT_REFRESH_EXPIRATION);
+
+        // Refresh token rotation properties
+        registry.add("security.refresh-rotation.enabled", () -> true);
+        registry.add("security.refresh-rotation.revoke-on-reuse", () -> true);
+        registry.add("security.refresh-rotation.max-families-per-user", () -> 5);
+        registry.add("security.refresh-rotation.cleanup-enabled", () -> true);
+        registry.add("security.refresh-rotation.cleanup-expired-after-days", () -> 30);
         
         // Mail properties
         registry.add("spring.mail.host", () -> TestConstants.TestProperties.MAIL_HOST);

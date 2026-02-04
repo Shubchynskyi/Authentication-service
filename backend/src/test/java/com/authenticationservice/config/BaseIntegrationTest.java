@@ -6,11 +6,14 @@ import com.authenticationservice.model.Role;
 import com.authenticationservice.model.User;
 import com.authenticationservice.repository.AllowedEmailRepository;
 import com.authenticationservice.repository.AccessModeSettingsRepository;
+import com.authenticationservice.repository.RefreshTokenFamilyRepository;
+import com.authenticationservice.repository.RefreshTokenRepository;
 import com.authenticationservice.repository.RoleRepository;
 import com.authenticationservice.repository.UserRepository;
 import com.authenticationservice.security.JwtTokenProvider;
 import com.authenticationservice.model.AccessMode;
 import com.authenticationservice.model.AccessModeSettings;
+import com.authenticationservice.service.RefreshTokenRotationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.test.context.DynamicPropertyRegistry;
@@ -59,6 +62,15 @@ public abstract class BaseIntegrationTest {
 
     @Autowired
     protected JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    protected RefreshTokenRotationService refreshTokenRotationService;
+
+    @Autowired
+    protected RefreshTokenRepository refreshTokenRepository;
+
+    @Autowired
+    protected RefreshTokenFamilyRepository refreshTokenFamilyRepository;
 
     @Autowired
     protected org.springframework.transaction.PlatformTransactionManager transactionManager;
@@ -162,7 +174,12 @@ public abstract class BaseIntegrationTest {
      * @return JWT refresh token
      */
     protected String generateRefreshToken(User user) {
-        return jwtTokenProvider.generateRefreshToken(user);
+        TransactionTemplate transactionTemplate = getTransactionTemplate();
+        return transactionTemplate.execute(status -> {
+            User managedUser = userRepository.findById(user.getId())
+                    .orElseThrow(() -> new RuntimeException("User not found for refresh token generation"));
+            return refreshTokenRotationService.issueRefreshToken(managedUser, null, null, null);
+        });
     }
 
     /**
@@ -181,6 +198,10 @@ public abstract class BaseIntegrationTest {
     protected void cleanupTestData() {
         TransactionTemplate transactionTemplate = getTransactionTemplate();
         transactionTemplate.execute(status -> {
+            refreshTokenRepository.deleteAll();
+            refreshTokenRepository.flush();
+            refreshTokenFamilyRepository.deleteAll();
+            refreshTokenFamilyRepository.flush();
             userRepository.deleteAll();
             userRepository.flush();
             allowedEmailRepository.deleteAll();

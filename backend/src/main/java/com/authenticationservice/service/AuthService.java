@@ -57,6 +57,7 @@ public class AuthService {
     private final MessageSource messageSource;
     private final RateLimitingService rateLimitingService;
     private final EmailTemplateFactory emailTemplateFactory;
+    private final RefreshTokenRotationService refreshTokenRotationService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -204,9 +205,7 @@ public class AuthService {
             try {
                 String accessToken = jwtTokenProvider.generateAccessToken(user);
                 Integer rememberDays = resolveRememberDays(request.getRememberDevice(), request.getRememberDays());
-                String refreshToken = rememberDays != null
-                        ? jwtTokenProvider.generateRefreshToken(user, rememberDays)
-                        : jwtTokenProvider.generateRefreshToken(user);
+                String refreshToken = refreshTokenRotationService.issueRefreshToken(user, rememberDays, null, null);
 
                 return buildTokenResponse(accessToken, refreshToken);
             } catch (Exception e) {
@@ -235,20 +234,19 @@ public class AuthService {
 
         if (!user.isEnabled()) {
             log.error("Refresh token used for disabled account: {}", maskEmail(email));
+            refreshTokenRotationService.revokeForAccountDisabled(user.getId());
             throw new RuntimeException(MessageConstants.ACCOUNT_DISABLED);
         }
 
         if (user.isBlocked()) {
             log.error("Refresh token used for blocked account: {}", maskEmail(email));
+            refreshTokenRotationService.revokeForAccountBlocked(user.getId());
             throw new AccountBlockedException(user.getBlockReason());
         }
 
         String newAccessToken = jwtTokenProvider.generateAccessToken(user);
 
-        Integer rememberDays = jwtTokenProvider.getRememberDaysFromRefresh(refreshToken);
-        String newRefreshToken = rememberDays != null
-                ? jwtTokenProvider.generateRefreshToken(user, rememberDays)
-                : jwtTokenProvider.generateRefreshToken(user);
+        String newRefreshToken = refreshTokenRotationService.rotateRefreshToken(refreshToken, user, null, null);
 
         return buildTokenResponse(newAccessToken, newRefreshToken);
     }
@@ -362,6 +360,14 @@ public class AuthService {
         user.setResetPasswordToken(null);
         user.setResetPasswordTokenExpiry(null);
         userRepository.save(user);
+        refreshTokenRotationService.revokeForPasswordChange(user.getId());
+    }
+
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+        refreshTokenRotationService.revokeByRefreshToken(refreshToken);
     }
 
     public String generatePasswordResetToken(String email) {
@@ -446,7 +452,7 @@ public class AuthService {
         }
 
         String accessToken = jwtTokenProvider.generateAccessToken(user);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(user);
+        String refreshToken = refreshTokenRotationService.issueRefreshToken(user, null, null, null);
 
         log.debug("Generated tokens for OAuth2 user: {}", maskEmail(normalizedEmail));
         return buildTokenResponse(accessToken, refreshToken);

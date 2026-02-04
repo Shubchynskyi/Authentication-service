@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -166,6 +167,22 @@ class JwtTokenProviderTest {
                       "Second refresh token should be valid");
             // Tokens may be the same if generated in the same millisecond, which is acceptable
             // The important thing is that both are valid and can be used
+        }
+
+        @Test
+        @DisplayName("Should extract refresh token id and family id when present")
+        void getRefreshTokenIdAndFamilyId_shouldReturnValues_whenTokenContainsClaims() {
+            String familyId = UUID.randomUUID().toString();
+            String tokenId = UUID.randomUUID().toString();
+
+            String token = jwtTokenProvider.generateRefreshToken(testUser, null, familyId, tokenId);
+
+            assertEquals(tokenId, jwtTokenProvider.getRefreshTokenId(token),
+                    "Refresh token id should match the provided value");
+            assertEquals(familyId, jwtTokenProvider.getRefreshTokenFamilyId(token),
+                    "Refresh token family id should match the provided value");
+            assertNotNull(jwtTokenProvider.getRefreshTokenExpirationTime(token),
+                    "Refresh token expiration time should be available");
         }
     }
 

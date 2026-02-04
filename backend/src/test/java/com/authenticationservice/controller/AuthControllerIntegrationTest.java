@@ -24,6 +24,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.annotation.Propagation;
@@ -274,7 +275,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should refresh token successfully")
     void refresh_shouldRefreshTokenSuccessfully() throws Exception {
         // Arrange
-        String refreshToken = jwtTokenProvider.generateRefreshToken(testUser);
+        String refreshToken = generateRefreshToken(testUser);
 
         // Act & Assert
         mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
@@ -284,6 +285,33 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.refreshToken").doesNotExist())
                 .andExpect(header().string(HttpHeaders.SET_COOKIE,
                         org.hamcrest.Matchers.containsString(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME + "=")));
+    }
+
+    @Test
+    @DisplayName("Should revoke family when refresh token is reused")
+    void refresh_shouldRevokeFamily_whenTokenReused() throws Exception {
+        // Arrange
+        String refreshToken = generateRefreshToken(testUser);
+
+        MvcResult firstRefresh = mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
+                .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken)))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Cookie rotatedCookie = firstRefresh.getResponse().getCookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME);
+        assertNotNull(rotatedCookie, "Rotated refresh cookie should be present");
+        String rotatedToken = rotatedCookie.getValue();
+
+        // Act & Assert
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
+                .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, refreshToken)))
+                .andExpect(status().isUnauthorized());
+
+        entityManager.clear();
+
+        mockMvc.perform(post(ApiConstants.AUTH_BASE_URL + ApiConstants.REFRESH_URL)
+                .cookie(new Cookie(SecurityConstants.REFRESH_TOKEN_COOKIE_NAME, rotatedToken)))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -1000,3 +1028,7 @@ class AuthControllerIntegrationTest extends BaseIntegrationTest {
         });
     }
 }
+
+
+
+

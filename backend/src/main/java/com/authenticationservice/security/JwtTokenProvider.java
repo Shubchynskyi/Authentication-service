@@ -1,7 +1,10 @@
 package com.authenticationservice.security;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Date;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import javax.crypto.SecretKey;
@@ -23,6 +26,7 @@ public class JwtTokenProvider {
 
     private static final String ROLES_CLAIM = "roles";
     private static final String REMEMBER_DAYS_CLAIM = "rememberDays";
+    private static final String REFRESH_FAMILY_CLAIM = "ftid";
     private static final int DEFAULT_REMEMBER_DAYS = 15;
 
     private final JwtProperties jwtProperties;
@@ -69,40 +73,46 @@ public class JwtTokenProvider {
     }
 
     public String generateRefreshToken(User user) {
-        try {
-            Date now = new Date();
-            long expiration = jwtProperties.getRefreshExpiration();
-            if (expiration <= 0) {
-                throw new IllegalStateException("JWT refresh expiration is not set or is invalid: " + expiration);
-            }
-            Date expiry = new Date(now.getTime() + expiration);
-            return Jwts.builder()
-                    .subject(user.getEmail())
-                    .issuedAt(now)
-                    .expiration(expiry)
-                    .signWith(refreshKey)
-                    .compact();
-        } catch (Exception e) {
-            throw new RuntimeException("Error generating refresh token: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
-        }
+        return generateRefreshToken(user, null);
     }
 
     public String generateRefreshToken(User user, Integer rememberDays) {
+        String familyId = UUID.randomUUID().toString();
+        String tokenId = UUID.randomUUID().toString();
+        return generateRefreshToken(user, rememberDays, familyId, tokenId);
+    }
+
+    public String generateRefreshToken(User user, Integer rememberDays, String familyId, String tokenId) {
         if (rememberDays == null) {
-            return generateRefreshToken(user);
+            return generateRefreshTokenWithTtl(user, jwtProperties.getRefreshExpiration(), familyId, tokenId, null);
         }
         int days = rememberDays > 0 ? rememberDays : DEFAULT_REMEMBER_DAYS;
         long expirationMs = TimeUnit.DAYS.toMillis(days);
+        return generateRefreshTokenWithTtl(user, expirationMs, familyId, tokenId, days);
+    }
+
+    private String generateRefreshTokenWithTtl(User user, long expirationMs, String familyId, String tokenId, Integer rememberDays) {
         try {
             Date now = new Date();
+            if (expirationMs <= 0) {
+                throw new IllegalStateException("JWT refresh expiration is not set or is invalid: " + expirationMs);
+            }
             Date expiry = new Date(now.getTime() + expirationMs);
-            return Jwts.builder()
-                    .subject(user.getEmail())
-                    .issuedAt(now)
-                    .expiration(expiry)
-                    .claim(REMEMBER_DAYS_CLAIM, days)
-                    .signWith(refreshKey)
-                    .compact();
+            var builder = Jwts.builder();
+            builder.subject(user.getEmail());
+            builder.issuedAt(now);
+            builder.expiration(expiry);
+            if (tokenId != null && !tokenId.isBlank()) {
+                builder.id(tokenId);
+            }
+            if (familyId != null && !familyId.isBlank()) {
+                builder.claim(REFRESH_FAMILY_CLAIM, familyId);
+            }
+            if (rememberDays != null) {
+                builder.claim(REMEMBER_DAYS_CLAIM, rememberDays);
+            }
+            builder.signWith(refreshKey);
+            return builder.compact();
         } catch (Exception e) {
             throw new RuntimeException("Error generating refresh token: " + (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
         }
@@ -118,13 +128,29 @@ public class JwtTokenProvider {
     }
 
     public String getEmailFromRefresh(String refreshToken) {
-        Claims claims = refreshParser.parseSignedClaims(refreshToken).getPayload();
+        Claims claims = parseRefreshClaims(refreshToken);
         return claims.getSubject();
+    }
+
+    public String getRefreshTokenId(String refreshToken) {
+        try {
+            return parseRefreshClaims(refreshToken).getId();
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    public String getRefreshTokenFamilyId(String refreshToken) {
+        try {
+            return parseRefreshClaims(refreshToken).get(REFRESH_FAMILY_CLAIM, String.class);
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     public Integer getRememberDaysFromRefresh(String refreshToken) {
         try {
-            Claims claims = refreshParser.parseSignedClaims(refreshToken).getPayload();
+            Claims claims = parseRefreshClaims(refreshToken);
             Object value = claims.get(REMEMBER_DAYS_CLAIM);
             if (value instanceof Integer i) {
                 return i;
@@ -138,9 +164,22 @@ public class JwtTokenProvider {
         }
     }
 
+    public LocalDateTime getRefreshTokenExpirationTime(String refreshToken) {
+        try {
+            Claims claims = parseRefreshClaims(refreshToken);
+            Date expiration = claims.getExpiration();
+            if (expiration == null) {
+                return null;
+            }
+            return LocalDateTime.ofInstant(expiration.toInstant(), ZoneOffset.UTC);
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
     public long getRefreshTokenTtlSeconds(String refreshToken) {
         try {
-            Claims claims = refreshParser.parseSignedClaims(refreshToken).getPayload();
+            Claims claims = parseRefreshClaims(refreshToken);
             Date expiration = claims.getExpiration();
             if (expiration == null) {
                 return 0;
@@ -171,5 +210,9 @@ public class JwtTokenProvider {
     public List<String> getRolesFromAccess(String accessToken) {
         Claims claims = accessParser.parseSignedClaims(accessToken).getPayload();
         return claims.get(ROLES_CLAIM, List.class);
+    }
+
+    private Claims parseRefreshClaims(String refreshToken) {
+        return refreshParser.parseSignedClaims(refreshToken).getPayload();
     }
 }

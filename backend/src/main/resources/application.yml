@@ -90,6 +90,14 @@ jwt:
   access-expiration: 900000 # 15 minutes
   refresh-expiration: 604800000 # 7 days
 
+security:
+  refresh-rotation:
+    enabled: ${SECURITY_REFRESH_ROTATION_ENABLED:true}
+    revoke-on-reuse: ${SECURITY_REFRESH_ROTATION_REVOKE_ON_REUSE:true}
+    max-families-per-user: ${SECURITY_REFRESH_ROTATION_MAX_FAMILIES_PER_USER:5}
+    cleanup-enabled: ${SECURITY_REFRESH_ROTATION_CLEANUP_ENABLED:true}
+    cleanup-expired-after-days: ${SECURITY_REFRESH_ROTATION_CLEANUP_EXPIRED_AFTER_DAYS:30}
+
 email:
   signature: ${EMAIL_SIGNATURE:Authentication Service Team}
 

@@ -44,6 +44,31 @@
       "name": "password.validation.pattern",
       "type": "java.lang.String",
       "description": "Regular expression pattern for password validation"
+    },
+    {
+      "name": "security.refresh-rotation.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable refresh token rotation and reuse detection"
+    },
+    {
+      "name": "security.refresh-rotation.revoke-on-reuse",
+      "type": "java.lang.Boolean",
+      "description": "Revoke refresh token family when reuse is detected"
+    },
+    {
+      "name": "security.refresh-rotation.max-families-per-user",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of active refresh token families per user"
+    },
+    {
+      "name": "security.refresh-rotation.cleanup-enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable cleanup of expired refresh tokens"
+    },
+    {
+      "name": "security.refresh-rotation.cleanup-expired-after-days",
+      "type": "java.lang.Integer",
+      "description": "Delete refresh tokens expired more than N days ago"
     }
   ]
 } 

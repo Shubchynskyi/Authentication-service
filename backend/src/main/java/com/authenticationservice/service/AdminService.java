@@ -71,6 +71,7 @@ public class AdminService {
     private final EmailService emailService;
     private final MessageSource messageSource;
     private final EmailTemplateFactory emailTemplateFactory;
+    private final RefreshTokenRotationService refreshTokenRotationService;
 
     @Value("${frontend.url}")
     private String frontendUrl;
@@ -276,6 +277,7 @@ public class AdminService {
     public UserDTO updateUser(Long id, AdminUpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+        boolean blockingUser = Boolean.TRUE.equals(request.getIsBlocked()) && !user.isBlocked();
 
         // Prevent admin from blocking themselves
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -318,7 +320,11 @@ public class AdminService {
         // Roles from this request are intentionally ignored.
         // Use the dedicated roles endpoint to change roles.
 
-        return UserDTO.fromUser(userRepository.save(user));
+        User saved = userRepository.save(user);
+        if (blockingUser) {
+            refreshTokenRotationService.revokeForAccountBlocked(user.getId());
+        }
+        return UserDTO.fromUser(saved);
     }
 
     @Transactional

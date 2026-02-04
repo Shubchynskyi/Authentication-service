@@ -34,6 +34,9 @@ class ProfileServiceTest {
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
+    @Mock
+    private RefreshTokenRotationService refreshTokenRotationService;
+
     @InjectMocks
     private ProfileService profileService;
 
@@ -122,6 +125,7 @@ class ProfileServiceTest {
             assertEquals(expectedNewEncodedPassword, savedUser.getPassword(), 
                          "Password should be updated to newly encoded value");
             assertTrue(savedUser.isEnabled(), "User should remain enabled");
+            verify(refreshTokenRotationService).revokeForPasswordChange(testUser.getId());
         }
 
         @Test

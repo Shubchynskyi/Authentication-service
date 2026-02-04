@@ -83,6 +83,9 @@ class AuthServiceTest {
         @Mock
         private com.authenticationservice.util.EmailTemplateFactory emailTemplateFactory;
 
+        @Mock
+        private RefreshTokenRotationService refreshTokenRotationService;
+
         @InjectMocks
         private AuthService authService;
 
@@ -434,7 +437,7 @@ class AuthServiceTest {
                                         .thenReturn(true);
                         when(jwtTokenProvider.generateAccessToken(any(User.class)))
                                         .thenReturn(TestConstants.Tokens.ACCESS_TOKEN);
-                        when(jwtTokenProvider.generateRefreshToken(any(User.class)))
+                        when(refreshTokenRotationService.issueRefreshToken(any(User.class), any(), any(), any()))
                                         .thenReturn(TestConstants.Tokens.REFRESH_TOKEN);
                         when(userRepository.save(any(User.class)))
                                         .thenReturn(testUser);
@@ -460,7 +463,7 @@ class AuthServiceTest {
                                         .thenReturn(true);
                         when(jwtTokenProvider.generateAccessToken(any(User.class)))
                                         .thenReturn(TestConstants.Tokens.ACCESS_TOKEN);
-                        when(jwtTokenProvider.generateRefreshToken(any(User.class)))
+                        when(refreshTokenRotationService.issueRefreshToken(any(User.class), any(), any(), any()))
                                         .thenReturn(TestConstants.Tokens.REFRESH_TOKEN);
                         when(userRepository.save(any(User.class)))
                                         .thenReturn(testUser);
@@ -599,13 +602,11 @@ class AuthServiceTest {
                                         .thenReturn(true);
                         when(jwtTokenProvider.getEmailFromRefresh(refreshToken))
                                         .thenReturn(testUser.getEmail());
-                        when(jwtTokenProvider.getRememberDaysFromRefresh(refreshToken))
-                                        .thenReturn(null);
                         when(userRepository.findByEmail(testUser.getEmail()))
                                         .thenReturn(Optional.of(testUser));
                         when(jwtTokenProvider.generateAccessToken(any(User.class)))
                                         .thenReturn(TestConstants.Tokens.ACCESS_TOKEN);
-                        when(jwtTokenProvider.generateRefreshToken(any(User.class)))
+                        when(refreshTokenRotationService.rotateRefreshToken(eq(refreshToken), any(User.class), any(), any()))
                                         .thenReturn(TestConstants.Tokens.REFRESH_TOKEN);
 
                         // Act
@@ -806,6 +807,7 @@ class AuthServiceTest {
                         assertNull(testUser.getResetPasswordToken());
                         assertNull(testUser.getResetPasswordTokenExpiry());
                         verify(userRepository).save(testUser);
+                        verify(refreshTokenRotationService).revokeForPasswordChange(testUser.getId());
                 }
 
                 @Test
@@ -900,7 +902,7 @@ class AuthServiceTest {
                                         .thenReturn(Optional.of(testUser));
                         when(jwtTokenProvider.generateAccessToken(any(User.class)))
                                         .thenReturn(TestConstants.Tokens.ACCESS_TOKEN);
-                        when(jwtTokenProvider.generateRefreshToken(any(User.class)))
+                        when(refreshTokenRotationService.issueRefreshToken(any(User.class), any(), any(), any()))
                                         .thenReturn(TestConstants.Tokens.REFRESH_TOKEN);
 
                         // Act
@@ -936,7 +938,7 @@ class AuthServiceTest {
                                         .thenReturn(newUser);
                         when(jwtTokenProvider.generateAccessToken(any(User.class)))
                                         .thenReturn(TestConstants.Tokens.ACCESS_TOKEN);
-                        when(jwtTokenProvider.generateRefreshToken(any(User.class)))
+                        when(refreshTokenRotationService.issueRefreshToken(any(User.class), any(), any(), any()))
                                         .thenReturn(TestConstants.Tokens.REFRESH_TOKEN);
 
                         // Act

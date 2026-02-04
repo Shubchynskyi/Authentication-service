@@ -20,6 +20,7 @@ public class ProfileService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenRotationService refreshTokenRotationService;
 
     @Transactional(readOnly = true)
     public ProfileResponse getProfile(String email) {
@@ -44,6 +45,7 @@ public class ProfileService {
                     return new RuntimeException("User not found");
                 });
 
+        boolean passwordUpdated = false;
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             if (request.getCurrentPassword() == null || request.getCurrentPassword().isBlank()) {
                 log.error("Current password is missing for email: {}", maskEmail(email));
@@ -56,6 +58,7 @@ public class ProfileService {
                 throw new RuntimeException("Incorrect current password");
             }
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+            passwordUpdated = true;
         }
 
         if (request.getName() != null && !request.getName().isBlank()) {
@@ -63,6 +66,9 @@ public class ProfileService {
             user.setName(request.getName());
         }
         userRepository.save(user);
+        if (passwordUpdated) {
+            refreshTokenRotationService.revokeForPasswordChange(user.getId());
+        }
         log.debug("Profile updated successfully for email: {}", maskEmail(email));
     }
 

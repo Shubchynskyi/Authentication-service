@@ -102,7 +102,10 @@ public class AuthController {
     }
 
     @PostMapping(ApiConstants.LOGOUT_URL)
-    public ResponseEntity<Void> logout() {
+    public ResponseEntity<Void> logout(HttpServletRequest request) {
+        var cookie = WebUtils.getCookie(request, refreshTokenCookieService.getCookieName());
+        String refreshToken = cookie != null ? cookie.getValue() : null;
+        authService.logout(refreshToken);
         String refreshCookie = refreshTokenCookieService.clearRefreshTokenCookie().toString();
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, refreshCookie)

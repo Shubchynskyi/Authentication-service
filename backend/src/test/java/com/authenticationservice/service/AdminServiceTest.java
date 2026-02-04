@@ -86,6 +86,9 @@ class AdminServiceTest {
     @Mock
     private com.authenticationservice.util.EmailTemplateFactory emailTemplateFactory;
 
+    @Mock
+    private RefreshTokenRotationService refreshTokenRotationService;
+
     @InjectMocks
     private AdminService adminService;
 
@@ -214,6 +217,7 @@ class AdminServiceTest {
             assertEquals("Test block reason", updatedUser.getBlockReason(), "Block reason should match");
             verify(userRepository).findById(1L);
             verify(userRepository).save(any(User.class));
+            verify(refreshTokenRotationService).revokeForAccountBlocked(testUser.getId());
         }
 
         @Test
