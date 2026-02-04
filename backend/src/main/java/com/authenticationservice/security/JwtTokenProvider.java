@@ -25,6 +25,7 @@ import io.jsonwebtoken.security.Keys;
 public class JwtTokenProvider {
 
     private static final String ROLES_CLAIM = "roles";
+    private static final String USER_ID_CLAIM = "userId";
     private static final String REMEMBER_DAYS_CLAIM = "rememberDays";
     private static final String REFRESH_FAMILY_CLAIM = "ftid";
     private static final int DEFAULT_REMEMBER_DAYS = 15;
@@ -65,6 +66,7 @@ public class JwtTokenProvider {
             builder.issuedAt(now);
             builder.expiration(expiry);
             builder.claim(ROLES_CLAIM, roles);
+            builder.claim(USER_ID_CLAIM, user.getId());
             builder.signWith(key);
             return builder.compact();
         } catch (Exception e) {
@@ -204,6 +206,22 @@ public class JwtTokenProvider {
     public String getEmailFromAccess(String accessToken) {
         Claims claims = accessParser.parseSignedClaims(accessToken).getPayload();
         return claims.getSubject();
+    }
+
+    public Long getUserIdFromAccess(String accessToken) {
+        Claims claims = accessParser.parseSignedClaims(accessToken).getPayload();
+        Object value = claims.get(USER_ID_CLAIM);
+        if (value instanceof Number n) {
+            return n.longValue();
+        }
+        if (value instanceof String s) {
+            try {
+                return Long.parseLong(s);
+            } catch (NumberFormatException ex) {
+                return null;
+            }
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")

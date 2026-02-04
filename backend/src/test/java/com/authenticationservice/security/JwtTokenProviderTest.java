@@ -90,6 +90,18 @@ class JwtTokenProviderTest {
         }
 
         @Test
+        @DisplayName("Should extract user id from generated access token")
+        void generateAccessToken_shouldContainUserId_whenTokenGenerated() {
+            // Act
+            String token = jwtTokenProvider.generateAccessToken(testUser);
+            Long extractedUserId = jwtTokenProvider.getUserIdFromAccess(token);
+
+            // Assert
+            assertEquals(testUser.getId(), extractedUserId,
+                    "Extracted user id should match test user id");
+        }
+
+        @Test
         @DisplayName("Should extract roles from generated access token")
         void generateAccessToken_shouldContainRoles_whenTokenGenerated() {
             // Act

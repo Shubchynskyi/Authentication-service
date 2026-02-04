@@ -272,6 +272,11 @@ Attach `Authorization: Bearer <accessToken>` for API calls. If you receive 401, 
 Validate access tokens with the same `JWT_ACCESS_SECRET` used by this service.
 Refresh tokens are httpOnly cookies and are not available to your backend.
 
+Access token claims:
+- `sub` - user email
+- `roles` - list of role names
+- `userId` - numeric user id
+
 ### 🧪 Local development notes
 
 - Refresh cookie is `Secure=true` by default. For HTTP local dev set:
