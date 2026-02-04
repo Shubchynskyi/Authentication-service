@@ -17,11 +17,11 @@ This project implements a production-ready authentication service with features 
 ### 🔐 Authentication
 
 - **User Registration**: Email-based registration with email verification
-- **Login/Logout**: JWT-based authentication with access tokens (15 minutes) and refresh tokens (7 days, stored in httpOnly cookies)
+- **Login/Logout**: JWT-based authentication with access tokens (15 minutes) and refresh tokens (7 days, stored in httpOnly cookies and rotated on refresh)
 - **Email Verification**: Token-based verification with resend functionality
 - **Password Reset**: Secure password reset flow with 1-hour token expiration and cooldown between requests
 - **OAuth2 Google Authentication**: Social login via Google OAuth2 with access token returned via URL fragment
-- **Token Refresh**: Automatic access token refresh via httpOnly refresh cookie
+- **Token Refresh**: Automatic access token refresh via httpOnly refresh cookie with refresh token rotation and re-use detection
 
 ### 🛡️ Authorization
 
@@ -45,7 +45,7 @@ This project implements a production-ready authentication service with features 
   - Responses include `Retry-After` header and `retryAfterSeconds` field to inform clients when to retry
 - **Password Validation**: Strong password requirements with regex validation
 - **Secure Password Storage**: BCrypt password hashing
-- **JWT Security**: Refresh token stored in httpOnly cookie; access token kept in memory with configurable expiration
+- **JWT Security**: Refresh token stored in httpOnly cookie with rotation and re-use detection; access token kept in memory with configurable expiration
 - **CSRF Protection**: Enabled for cookie-based refresh/logout flows
 - **Content Security Policy (CSP)**: Default CSP headers to reduce XSS risk
 - **Security Event Logging**: Comprehensive logging of rate limiting and authentication failures
@@ -53,7 +53,7 @@ This project implements a production-ready authentication service with features 
 ### 👥 User Management
 
 - **Profile Management**: View and update user profile data
-- **User Management**: Admin can view user details, create new users, update user information (name, email, password, roles, statuses), and delete users
+- **User Management**: Admin can view user details, create new users, update name/email/block status, update roles via dedicated endpoint, and delete users
 - **User Search & Pagination**: Search users with pagination support
 - **Role Management**: Admin can assign and update user roles
 
@@ -462,3 +462,4 @@ Admin panel - Masked login settings with template preview.
 - **Dmytro Shubchynskyi**
 
 For any questions or further information, please contact [d.shubchynskyi@gmail.com](mailto:d.shubchynskyi@gmail.com)
+
