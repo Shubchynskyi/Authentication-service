@@ -200,6 +200,86 @@ Create a `.env` file based on `env.example`. Required variables:
 
 See `env.example` for all available configuration options.
 
+## Integration Guide
+
+Use this service as a central auth provider while keeping other apps separate.
+
+### ✅ Recommended setup (single domain, path-based routing)
+
+Route the following paths to different services (via nginx/traefik/reverse proxy):
+
+- Auth frontend pages (e.g. `/login`, `/register`, `/forgot-password`, `/reset-password`, `/verify`, `/oauth2/success`, `/profile`, `/admin`) → auth-service frontend
+- `/api/auth/*` → auth-service backend
+- `/superapp` → other app frontend
+- `/superapi/*` → other app backend
+
+### 🌐 Nginx example
+
+Use path-based routing on a single domain. This example routes `/superapp` and `/superapi` first, then defaults to the auth frontend for all other pages.
+
+```nginx
+server {
+    listen 80;
+    server_name my-app.com;
+
+    # Auth API
+    location /api/auth/ {
+        proxy_pass http://auth-backend;
+    }
+
+    # Other app API
+    location /superapi/ {
+        proxy_pass http://superapp-backend;
+    }
+
+    # Other app frontend
+    location /superapp/ {
+        proxy_pass http://superapp-frontend;
+    }
+
+    # Auth frontend (login/profile/admin/register/etc.)
+    location / {
+        proxy_pass http://auth-frontend;
+    }
+
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
+### 🔁 Login redirect flow
+
+Send users to: `/login?redirect=/superapp`
+
+Only relative paths are accepted (e.g. `/superapp`, `/superapp/page`).
+
+### 🧭 Frontend guard (in the other app)
+
+On app start:
+
+```ts
+await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' });
+// 200 -> save accessToken in memory and continue
+// 401 -> window.location.replace('/login?redirect=/superapp')
+```
+
+Attach `Authorization: Bearer <accessToken>` for API calls. If you receive 401, refresh and retry.
+
+### 🔐 Backend validation (in the other app)
+
+Validate access tokens with the same `JWT_ACCESS_SECRET` used by this service.
+Refresh tokens are httpOnly cookies and are not available to your backend.
+
+### 🧪 Local development notes
+
+- Refresh cookie is `Secure=true` by default. For HTTP local dev set:
+  - `SECURITY_REFRESH_COOKIE_SECURE=false`
+- Refresh cookie uses `SameSite=Strict` and `Path=/api/auth`.
+- `POST /api/auth/refresh` and `POST /api/auth/logout` require `X-XSRF-TOKEN`.
+  Call `GET /api/auth/csrf` once per session to set the CSRF cookie if your client doesn't already send it.
+
 ## Configuration
 
 ### ⚙️ Application Configuration
@@ -462,4 +542,12 @@ Admin panel - Masked login settings with template preview.
 - **Dmytro Shubchynskyi**
 
 For any questions or further information, please contact [d.shubchynskyi@gmail.com](mailto:d.shubchynskyi@gmail.com)
+
+
+
+
+
+
+
+
 
