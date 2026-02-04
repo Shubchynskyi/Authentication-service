@@ -9,7 +9,7 @@ const { mockLogin, mockShowNotification, mockNavigate, mockLocation } = vi.hoist
     const mockLogin = vi.fn();
     const mockShowNotification = vi.fn();
     const mockNavigate = vi.fn();
-    const mockLocation: { pathname: string; search: string; hash: string; state: { error?: string } | null; key: string } = { pathname: '/login', search: '', hash: '', state: null, key: 'test' };
+    const mockLocation: { pathname: string; search: string; hash: string; state: Record<string, unknown> | null; key: string } = { pathname: '/login', search: '', hash: '', state: null, key: 'test' };
     return { mockLogin, mockShowNotification, mockNavigate, mockLocation };
 });
 
@@ -71,6 +71,7 @@ vi.mock('react-router-dom', async () => {
         ...actual,
         useNavigate: () => mockNavigate,
         useLocation: () => mockLocation,
+        useSearchParams: () => [new URLSearchParams(mockLocation.search), vi.fn()],
     };
 });
 
@@ -141,6 +142,53 @@ describe('LoginPage', () => {
             });
             expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
         }, { timeout: 5000 });
+    });
+
+
+    it('redirects to query redirect after login', async () => {
+        mockLocation.search = '?redirect=/superapp';
+        mockLogin.mockResolvedValueOnce(undefined);
+
+        await renderLoginPage();
+
+        const emailInput = screen.getByLabelText(/Email/i);
+        const passwordInput = screen.getByLabelText(/Password/i);
+
+        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+
+        const submitButton = screen.getByRole('button', { name: /Sign In/i });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/superapp', { replace: true });
+        }, { timeout: 5000 });
+
+        mockLocation.search = '';
+    });
+
+    it('ignores unsafe redirect query and falls back to location state', async () => {
+        mockLocation.search = '?redirect=https://evil.com';
+        mockLocation.state = { from: { pathname: '/profile' } };
+        mockLogin.mockResolvedValueOnce(undefined);
+
+        await renderLoginPage();
+
+        const emailInput = screen.getByLabelText(/Email/i);
+        const passwordInput = screen.getByLabelText(/Password/i);
+
+        fireEvent.change(emailInput, { target: { value: 'test@example.com' } });
+        fireEvent.change(passwordInput, { target: { value: 'Password123@' } });
+
+        const submitButton = screen.getByRole('button', { name: /Sign In/i });
+        fireEvent.click(submitButton);
+
+        await waitFor(() => {
+            expect(mockNavigate).toHaveBeenCalledWith('/profile', { replace: true });
+        }, { timeout: 5000 });
+
+        mockLocation.search = '';
+        mockLocation.state = null;
     });
 
     it('handles login error', async () => {
@@ -255,3 +303,6 @@ describe('LoginPage', () => {
         }, { timeout: 5000 });
     });
 });
+
+
+

@@ -24,6 +24,16 @@ import FormPaper from '../components/FormPaper';
 import { getMaskedLoginSettingsPublic, getTemplate } from '../services/maskedLoginService';
 import MaskedLoginTemplate from '../components/MaskedLoginTemplate';
 
+const getSafeRedirectPath = (value: string | null): string | null => {
+    if (!value) {
+        return null;
+    }
+    if (!value.startsWith('/') || value.startsWith('//') || value.includes('\\')) {
+        return null;
+    }
+    return value;
+};
+
 const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -39,6 +49,8 @@ const LoginPage = () => {
     const [loading, setLoading] = useState(true);
 
     const secretParam = searchParams.get('secret');
+    const redirectParam = searchParams.get('redirect');
+    const safeRedirect = getSafeRedirectPath(redirectParam);
 
     useEffect(() => {
         if (location.state?.error) {
@@ -55,7 +67,7 @@ const LoginPage = () => {
 
         // If user is authenticated, redirect to real home page
         if (!authLoading && isAuthenticated) {
-            navigate('/', { replace: true });
+            navigate(safeRedirect || '/', { replace: true });
             return;
         }
 
@@ -81,7 +93,7 @@ const LoginPage = () => {
         if (!authLoading) {
             checkMaskedLogin();
         }
-    }, [authLoading, isAuthenticated, secretParam, navigate]);
+    }, [authLoading, isAuthenticated, secretParam, navigate, safeRedirect]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -98,7 +110,9 @@ const LoginPage = () => {
         try {
             await login(email, password, { rememberDevice, rememberDays });
             const redirectTo =
-                (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname || '/';
+                safeRedirect ||
+                (location.state as { from?: { pathname?: string } } | undefined)?.from?.pathname ||
+                '/';
             navigate(redirectTo, { replace: true });
         } catch (error) {
             // Error is already handled in AuthContext, but we show a generic message
@@ -225,3 +239,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+
