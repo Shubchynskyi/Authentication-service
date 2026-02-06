@@ -15,13 +15,16 @@ const Navbar: React.FC = () => {
     const { profile } = useProfile();
     const { logout } = useAuth();
     const { t } = useTranslation();
+    const handleHomeClick = () => {
+        window.location.replace('/');
+    };
 
     return (
         <AppBar position="fixed" color="primary" elevation={1}>
             <Toolbar sx={{ justifyContent: 'space-between' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                     <Tooltip title={t('common.home')}>
-                        <IconButton component={Link} to="/" color="inherit" size="large" aria-label="Home">
+                        <IconButton onClick={handleHomeClick} color="inherit" size="large" aria-label="Home">
                             <HomeIcon />
                         </IconButton>
                     </Tooltip>

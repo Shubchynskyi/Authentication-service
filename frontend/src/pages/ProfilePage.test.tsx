@@ -65,14 +65,27 @@ const renderProfilePage = () => {
 };
 
 describe('ProfilePage', () => {
+    let originalLocation: Location;
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockLogout.mockClear();
+        originalLocation = window.location;
+        delete (window as any).location;
+        (window as any).location = {
+            pathname: '/profile',
+            search: '',
+            hash: '',
+            origin: 'http://localhost',
+            href: 'http://localhost/profile',
+            replace: vi.fn(),
+        };
     });
 
     afterEach(() => {
         vi.clearAllMocks();
         mockLogout.mockClear();
+        (window as any).location = originalLocation;
         cleanup();
     });
 
@@ -125,11 +138,13 @@ describe('ProfilePage', () => {
         expect(editLink).toHaveAttribute('href', '/profile/edit');
     });
 
-    it('has link to home page', () => {
+    it('calls full reload when home button is clicked', () => {
         renderProfilePage();
 
-        const homeLink = screen.getByRole('link', { name: /notFound.backHome/i });
-        expect(homeLink).toHaveAttribute('href', '/');
+        const homeButton = screen.getByRole('button', { name: /notFound.backHome/i });
+        fireEvent.click(homeButton);
+
+        expect(window.location.replace).toHaveBeenCalledWith('/');
     });
 
     it('calls logout when logout button is clicked', () => {

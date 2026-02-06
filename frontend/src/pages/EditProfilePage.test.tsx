@@ -117,6 +117,8 @@ const renderEditProfilePage = () => {
 };
 
 describe('EditProfilePage', () => {
+    let originalLocation: Location;
+
     beforeEach(() => {
         vi.clearAllMocks();
         mockUpdateProfile.mockClear();
@@ -125,6 +127,16 @@ describe('EditProfilePage', () => {
         mockUpdateProfile.mockResolvedValue(undefined);
         mockIsLoading = false;
         currentProfile = mockProfile;
+        originalLocation = window.location;
+        delete (window as any).location;
+        (window as any).location = {
+            pathname: '/profile/edit',
+            search: '',
+            hash: '',
+            origin: 'http://localhost',
+            href: 'http://localhost/profile/edit',
+            replace: vi.fn(),
+        };
     });
 
     afterEach(() => {
@@ -132,6 +144,7 @@ describe('EditProfilePage', () => {
         mockUpdateProfile.mockClear();
         mockShowNotification.mockClear();
         mockNavigate.mockClear();
+        (window as any).location = originalLocation;
         cleanup();
     });
 
@@ -407,11 +420,13 @@ describe('EditProfilePage', () => {
         }, { timeout: 5000 });
     });
 
-    it('has link to home page', () => {
+    it('calls full reload when home button is clicked', () => {
         renderEditProfilePage();
 
-        const homeLink = screen.getByRole('link', { name: /Go to Home/i });
-        expect(homeLink).toHaveAttribute('href', '/');
+        const homeButton = screen.getByRole('button', { name: /Go to Home/i });
+        fireEvent.click(homeButton);
+
+        expect(window.location.replace).toHaveBeenCalledWith('/');
     });
 
     it('has link to profile page', () => {

@@ -17,6 +17,9 @@ const ProfilePage: React.FC = () => {
   const { profile, isLoading } = useProfile();
   const { logout } = useAuth();
   const { t } = useTranslation();
+  const handleHomeClick = () => {
+    window.location.replace('/');
+  };
 
   if (isLoading) {
     return (
@@ -74,8 +77,7 @@ const ProfilePage: React.FC = () => {
             <Button
               variant="outlined"
               fullWidth
-              component={Link}
-              to="/"
+              onClick={handleHomeClick}
             >
               {t('notFound.backHome')}
             </Button>

@@ -23,6 +23,9 @@ const EditProfilePage: React.FC = () => {
     const { profile, updateProfile, isLoading } = useProfile();
     const { showNotification } = useNotification();
     const { t, i18n } = useTranslation();
+    const handleHomeClick = () => {
+        window.location.replace('/');
+    };
     
     const [name, setName] = useState('');
     const [currentPassword, setCurrentPassword] = useState('');
@@ -165,8 +168,7 @@ const EditProfilePage: React.FC = () => {
                     <Button
                         variant="outlined"
                         fullWidth
-                        component={Link}
-                        to="/"
+                        onClick={handleHomeClick}
                         sx={{ mb: 2 }}
                     >
                         {t('notFound.backHome')}

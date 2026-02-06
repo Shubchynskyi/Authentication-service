@@ -59,9 +59,11 @@ yarn-error.log*
 *.iml
 *.ipr
 
-### VS Code / Cursor ###
+### Agents ###
 .vscode/
 .cursor/
+.claude/
+.codex/
 .cursorignore
 
 ### Other ###

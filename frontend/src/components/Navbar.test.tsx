@@ -1,5 +1,5 @@
 import { screen, fireEvent } from '@testing-library/react';
-import { vi, describe, it, expect } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Navbar from './Navbar';
 import { renderWithRouter, setupTestCleanup, mockUser } from '../test-utils/test-helpers';
 
@@ -73,14 +73,42 @@ const renderNavbar = () => {
 };
 
 describe('Navbar', () => {
+    let originalLocation: Location;
+
     setupTestCleanup();
+
+    beforeEach(() => {
+        originalLocation = window.location;
+        delete (window as any).location;
+        (window as any).location = {
+            pathname: '/',
+            search: '',
+            hash: '',
+            origin: 'http://localhost',
+            href: 'http://localhost/',
+            replace: vi.fn(),
+        };
+    });
+
+    afterEach(() => {
+        (window as any).location = originalLocation;
+    });
 
     it('renders navbar with home button', () => {
         renderNavbar();
 
         const homeButton = screen.getByLabelText('Home');
         expect(homeButton).toBeInTheDocument();
-        expect(homeButton.closest('a')).toHaveAttribute('href', '/');
+        expect(homeButton.closest('a')).toBeNull();
+    });
+
+    it('calls full reload when home button is clicked', () => {
+        renderNavbar();
+
+        const homeButton = screen.getByLabelText('Home');
+        fireEvent.click(homeButton);
+
+        expect(window.location.replace).toHaveBeenCalledWith('/');
     });
 
     it('renders user profile link when user is logged in', () => {
@@ -148,7 +176,7 @@ describe('Navbar', () => {
         const themeButtons = screen.getAllByRole('button');
         const toggleButton = themeButtons.find(btn => {
             const svg = btn.querySelector('svg');
-            return svg !== null && (btn.getAttribute('aria-label') === '' || svg !== null);
+            return svg !== null && (btn.getAttribute('aria-label') === '' || true);
         });
         
         if (toggleButton) {
